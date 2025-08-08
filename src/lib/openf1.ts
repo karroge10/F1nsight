@@ -89,17 +89,26 @@ export type NextRace = {
 
 export async function getNextRace(nowDate: Date = new Date()): Promise<NextRace | null> {
   const year = nowDate.getUTCFullYear();
-  const sessions = await getRaceSessions(year);
+  // Look across current and next year to handle year boundaries
+  const [curr, next] = await Promise.all([
+    getRaceSessions(year),
+    getRaceSessions(year + 1),
+  ]);
+  const sessions = [...curr, ...next];
   const upcoming = sessions
     .map((s) => ({ s, start: new Date(s.date_start).getTime() }))
     .filter(({ start }) => start > nowDate.getTime())
     .sort((a, b) => a.start - b.start)[0]?.s;
 
   if (!upcoming) return null;
-  const meetings = await getMeetings(year);
-  const meeting = meetings.find((m) => m.meeting_key === upcoming.meeting_key);
+  const meeting = await getMeetingByKey(upcoming.meeting_key);
   if (!meeting) return null;
   return { meeting, session: upcoming };
+}
+
+export async function getMeetingByKey(meetingKey: number): Promise<Meeting | null> {
+  const list = await api<Meeting[]>(`/meetings?meeting_key=${meetingKey}`);
+  return list[0] ?? null;
 }
 
 

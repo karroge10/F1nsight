@@ -16,7 +16,9 @@ export default async function Home() {
             roundLabel={nextRace.meeting.meeting_code}
           />
         ) : (
-          <div className="rounded-md border p-6 text-sm text-muted-foreground">No upcoming race found.</div>
+          <div className="rounded-md border p-6 text-sm text-muted-foreground">
+            No upcoming race found. Please check again later.
+          </div>
         )}
       </div>
       <div>

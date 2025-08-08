@@ -14,8 +14,10 @@ type Props = {
 
 export function CountdownCard({ meetingName, circuit, startIso, roundLabel }: Props) {
   const [now, setNow] = useState<Date>(new Date());
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const i = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(i);
   }, []);
@@ -33,10 +35,10 @@ export function CountdownCard({ meetingName, circuit, startIso, roundLabel }: Pr
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-4 gap-4 text-center">
-          <TimeBox label="Days" value={c.days} />
-          <TimeBox label="Hours" value={c.hours} />
-          <TimeBox label="Minutes" value={c.minutes} />
-          <TimeBox label="Seconds" value={c.seconds} />
+          <TimeBox label="Days" value={mounted ? c.days : undefined} />
+          <TimeBox label="Hours" value={mounted ? c.hours : undefined} />
+          <TimeBox label="Minutes" value={mounted ? c.minutes : undefined} />
+          <TimeBox label="Seconds" value={mounted ? c.seconds : undefined} />
         </div>
         <p className="mt-4 text-center text-xs text-muted-foreground">Starts at {new Date(startIso).toUTCString()}</p>
       </CardContent>
@@ -44,10 +46,10 @@ export function CountdownCard({ meetingName, circuit, startIso, roundLabel }: Pr
   );
 }
 
-function TimeBox({ label, value }: { label: string; value: number }) {
+function TimeBox({ label, value }: { label: string; value?: number }) {
   return (
     <div className="rounded-md bg-muted p-4">
-      <div className="text-3xl font-bold tabular-nums">{value}</div>
+      <div className="text-3xl font-bold tabular-nums">{value ?? "--"}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
