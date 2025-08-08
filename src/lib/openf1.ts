@@ -1,0 +1,105 @@
+// Server-only OpenF1 client helpers. They can be called from server components and routes.
+
+export const OPENF1_BASE_URL = "https://api.openf1.org/v1" as const;
+
+export type Meeting = {
+  meeting_key: number;
+  circuit_key: number;
+  circuit_short_name: string;
+  meeting_code: string;
+  location: string;
+  country_key: number;
+  country_code: string;
+  country_name: string;
+  meeting_name: string;
+  meeting_official_name: string;
+  gmt_offset: string; // HH:mm:ss
+  date_start: string; // ISO
+  year: number;
+};
+
+export type Session = {
+  meeting_key: number;
+  session_key: number;
+  location: string;
+  date_start: string; // ISO
+  date_end: string; // ISO
+  session_type: string; // "Race", "Qualifying", etc
+  session_name: string; // "Race"
+  country_key: number;
+  country_code: string;
+  country_name: string;
+  circuit_key: number;
+  circuit_short_name: string;
+  gmt_offset: string;
+  year: number;
+};
+
+export type Driver = {
+  meeting_key: number;
+  session_key: number;
+  driver_number: number;
+  broadcast_name: string;
+  full_name: string;
+  name_acronym: string;
+  team_name: string;
+  team_colour: string;
+  first_name: string;
+  last_name: string;
+  headshot_url?: string;
+  country_code?: string;
+};
+
+async function api<T>(path: string, init?: RequestInit & { revalidateSeconds?: number }): Promise<T> {
+  const { revalidateSeconds = 60 * 60, ...rest } = init ?? {};
+  const url = `${OPENF1_BASE_URL}${path}`;
+  const res = await fetch(url, {
+    ...rest,
+    next: { revalidate: revalidateSeconds },
+  });
+  if (!res.ok) {
+    throw new Error(`OpenF1 request failed: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as T;
+}
+
+export async function getMeetings(year: number): Promise<Meeting[]> {
+  return api<Meeting[]>(`/meetings?year=${year}`);
+}
+
+export async function getRaceSessions(year: number): Promise<Session[]> {
+  return api<Session[]>(`/sessions?year=${year}&session_name=Race`);
+}
+
+export async function getDriversBySession(sessionKey: number): Promise<Driver[]> {
+  return api<Driver[]>(`/drivers?session_key=${sessionKey}`);
+}
+
+export async function getDriversByYear(year: number): Promise<Driver[]> {
+  const sessions = await getRaceSessions(year);
+  const sampleSession = sessions[0]?.session_key;
+  if (!sampleSession) return [];
+  return getDriversBySession(sampleSession);
+}
+
+export type NextRace = {
+  meeting: Meeting;
+  session: Session;
+};
+
+export async function getNextRace(nowDate: Date = new Date()): Promise<NextRace | null> {
+  const year = nowDate.getUTCFullYear();
+  const sessions = await getRaceSessions(year);
+  const upcoming = sessions
+    .map((s) => ({ s, start: new Date(s.date_start).getTime() }))
+    .filter(({ start }) => start > nowDate.getTime())
+    .sort((a, b) => a.start - b.start)[0]?.s;
+
+  if (!upcoming) return null;
+  const meetings = await getMeetings(year);
+  const meeting = meetings.find((m) => m.meeting_key === upcoming.meeting_key);
+  if (!meeting) return null;
+  return { meeting, session: upcoming };
+}
+
+
