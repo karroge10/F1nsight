@@ -7,8 +7,8 @@ export async function GET() {
   try {
     const data = await getNextRace();
     return NextResponse.json({ data });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "unknown" }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error)?.message ?? "unknown" }, { status: 500 });
   }
 }
 

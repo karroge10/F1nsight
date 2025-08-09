@@ -77,14 +77,21 @@ export async function getDriversBySession(sessionKey: number): Promise<Driver[]>
 
 export async function getDriversByYear(year: number): Promise<Driver[]> {
   const sessions = await getRaceSessions(year);
-  const sampleSession = sessions[0]?.session_key;
-  if (!sampleSession) return [];
-  return getDriversBySession(sampleSession);
+  if (sessions.length === 0) return [];
+  const uniqueDrivers = new Map<number, Driver>();
+  for (const s of sessions) {
+    const list = await getDriversBySession(s.session_key);
+    for (const d of list) {
+      if (!uniqueDrivers.has(d.driver_number)) uniqueDrivers.set(d.driver_number, d);
+    }
+  }
+  return Array.from(uniqueDrivers.values());
 }
 
 export type NextRace = {
   meeting: Meeting;
-  session: Session;
+  session?: Session;
+  source: "session" | "meeting";
 };
 
 export async function getNextRace(nowDate: Date = new Date()): Promise<NextRace | null> {
@@ -100,15 +107,47 @@ export async function getNextRace(nowDate: Date = new Date()): Promise<NextRace 
     .filter(({ start }) => start > nowDate.getTime())
     .sort((a, b) => a.start - b.start)[0]?.s;
 
-  if (!upcoming) return null;
-  const meeting = await getMeetingByKey(upcoming.meeting_key);
+  // Fallback: use time-based filtering directly (date_start>=now)
+  let candidate: Session | undefined = upcoming;
+  if (!candidate) {
+    const direct = await getUpcomingRaceSessions(nowDate);
+    candidate = direct[0];
+  }
+  if (candidate) {
+    const meeting = await getMeetingByKey(candidate.meeting_key);
+    if (!meeting) return null;
+    return { meeting, session: candidate, source: "session" };
+  }
+
+  // Final fallback: use meetings schedule (may provide only weekend start time)
+  const meeting = await getNextMeeting(nowDate);
   if (!meeting) return null;
-  return { meeting, session: upcoming };
+  return { meeting, source: "meeting" };
 }
 
 export async function getMeetingByKey(meetingKey: number): Promise<Meeting | null> {
   const list = await api<Meeting[]>(`/meetings?meeting_key=${meetingKey}`);
   return list[0] ?? null;
+}
+
+export async function getUpcomingRaceSessions(after: Date): Promise<Session[]> {
+  const iso = after.toISOString();
+  const params = new URLSearchParams();
+  params.set("session_name", "Race");
+  // The API supports comparison operators in the parameter key. URLSearchParams will encode them safely.
+  params.set("date_start>=", iso);
+  return api<Session[]>(`/sessions?${params.toString()}`);
+}
+
+export async function getNextMeeting(after: Date): Promise<Meeting | null> {
+  const year = after.getUTCFullYear();
+  const [a, b] = await Promise.all([getMeetings(year), getMeetings(year + 1)]);
+  const candidates = [...a, ...b]
+    .filter((m) => new Date(m.date_start).getTime() > after.getTime())
+    // exclude testing
+    .filter((m) => /grand prix/i.test(m.meeting_name) || /grand prix/i.test(m.meeting_official_name))
+    .sort((m1, m2) => +new Date(m1.date_start) - +new Date(m2.date_start));
+  return candidates[0] ?? null;
 }
 
 

@@ -1,21 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
+import { ThemeProvider } from "@/components/theme-provider";
+import { LoadingProvider } from "@/components/loading-provider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "F1 Analytics Pro",
-  description: "AI-powered F1 data with live standings, schedule and insights",
+  title: "F1 Analytics Pro - Ultimate Formula 1 Data Platform",
+  description: "Comprehensive Formula 1 analytics with AI-powered predictions, real-time data, and premium insights.",
+  generator: "v0.dev",
 };
 
 export default function RootLayout({
@@ -25,9 +20,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background` }>
-        <Navbar />
-        <main className="mx-auto w-full max-w-7xl px-4 py-6">{children}</main>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <LoadingProvider>
+            <Navbar />
+            <main className="page-enter page-enter-active">{children}</main>
+          </LoadingProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
