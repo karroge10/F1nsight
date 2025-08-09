@@ -7,6 +7,7 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 import json
 from datetime import datetime
+from fastf1.ergast import Ergast
 
 app = FastAPI(title="FastF1 Analytics API", version="1.0.0")
 
@@ -23,11 +24,303 @@ app.add_middleware(
 fastf1.Cache.enable_cache('cache')
 
 # Initialize Ergast client
-ergast = fastf1.ergast.Ergast()
+ergast = Ergast()
 
 @app.get("/")
 async def root():
     return {"message": "FastF1 Analytics API is running"}
+
+@app.get("/schedule/{year}")
+async def get_schedule(year: int):
+    """Get the complete race schedule for a given year"""
+    try:
+        print(f"[DEBUG] Fetching schedule for year: {year}")
+        
+        # Get the event schedule using FastF1
+        schedule = fastf1.get_event_schedule(year)
+        print("schedule", schedule)
+        # Convert to dictionary format for JSON response
+        schedule_dict = []
+        for index, event in schedule.iterrows():
+            event_dict = {
+                "round_number": int(event['RoundNumber']) if pd.notna(event['RoundNumber']) else None,
+                "country": str(event['Country']) if pd.notna(event['Country']) else None,
+                "location": str(event['Location']) if pd.notna(event['Location']) else None,
+                "official_name": str(event['OfficialEventName']) if pd.notna(event['OfficialEventName']) else None,
+                "event_name": str(event['EventName']) if pd.notna(event['EventName']) else None,
+                "event_date": str(event['EventDate']) if pd.notna(event['EventDate']) else None,
+                "event_format": str(event['EventFormat']) if pd.notna(event['EventFormat']) else None,
+                # Session times
+                "session1_date": str(event['Session1Date']) if pd.notna(event['Session1Date']) else None,
+                "session2_date": str(event['Session2Date']) if pd.notna(event['Session2Date']) else None,
+                "session3_date": str(event['Session3Date']) if pd.notna(event['Session3Date']) else None,
+                "session4_date": str(event['Session4Date']) if pd.notna(event['Session4Date']) else None,
+                "session5_date": str(event['Session5Date']) if pd.notna(event['Session5Date']) else None,
+                # Session names
+                "session1": str(event['Session1']) if pd.notna(event['Session1']) else None,
+                "session2": str(event['Session2']) if pd.notna(event['Session2']) else None,
+                "session3": str(event['Session3']) if pd.notna(event['Session3']) else None,
+                "session4": str(event['Session4']) if pd.notna(event['Session4']) else None,
+                "session5": str(event['Session5']) if pd.notna(event['Session5']) else None,
+                "f1_api_support": bool(event['F1ApiSupport']) if pd.notna(event['F1ApiSupport']) else False
+            }
+            schedule_dict.append(event_dict)
+        
+        return {"schedule": schedule_dict}
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch schedule: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch schedule: {str(e)}")
+
+@app.get("/next-race/{year}")
+async def get_next_race(year: int):
+    """Get the next upcoming race for a given year"""
+    try:
+        print(f"[DEBUG] Fetching next race for year: {year}")
+        
+        # Get the event schedule using FastF1
+        schedule = fastf1.get_event_schedule(year)
+        
+        # Get current datetime
+        now = datetime.now()
+        
+        # Find the next race
+        next_race = None
+        for index, event in schedule.iterrows():
+            event_date = pd.to_datetime(event['EventDate'])
+            if event_date > now:
+                next_race = event
+                break
+        
+        if next_race is None:
+            # Try next year if no races left in current year
+            try:
+                next_year_schedule = fastf1.get_event_schedule(year + 1)
+                if not next_year_schedule.empty:
+                    next_race = next_year_schedule.iloc[0]
+            except:
+                pass
+        
+        if next_race is None:
+            return {"next_race": None, "message": "No upcoming races found"}
+        
+        # Convert to dictionary format
+        race_dict = {
+            "round_number": int(next_race['RoundNumber']) if pd.notna(next_race['RoundNumber']) else None,
+            "country": str(next_race['Country']) if pd.notna(next_race['Country']) else None,
+            "location": str(next_race['Location']) if pd.notna(next_race['Location']) else None,
+            "official_name": str(next_race['OfficialEventName']) if pd.notna(next_race['OfficialEventName']) else None,
+            "event_name": str(next_race['EventName']) if pd.notna(next_race['EventName']) else None,
+            "event_date": str(next_race['EventDate']) if pd.notna(next_race['EventDate']) else None,
+            "event_format": str(next_race['EventFormat']) if pd.notna(next_race['EventFormat']) else None,
+            # Session times
+            "session1_date": str(next_race['Session1Date']) if pd.notna(next_race['Session1Date']) else None,
+            "session2_date": str(next_race['Session2Date']) if pd.notna(next_race['Session2Date']) else None,
+            "session3_date": str(next_race['Session3Date']) if pd.notna(next_race['Session3Date']) else None,
+            "session4_date": str(next_race['Session4Date']) if pd.notna(next_race['Session4Date']) else None,
+            "session5_date": str(next_race['Session5Date']) if pd.notna(next_race['Session5Date']) else None,
+            # Session names
+            "session1": str(next_race['Session1']) if pd.notna(next_race['Session1']) else None,
+            "session2": str(next_race['Session2']) if pd.notna(next_race['Session2']) else None,
+            "session3": str(next_race['Session3']) if pd.notna(next_race['Session3']) else None,
+            "session4": str(next_race['Session4']) if pd.notna(next_race['Session4']) else None,
+            "session5": str(next_race['Session5']) if pd.notna(next_race['Session5']) else None,
+            "f1_api_support": bool(next_race['F1ApiSupport']) if pd.notna(next_race['F1ApiSupport']) else False
+        }
+        
+        return {"next_race": race_dict}
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch next race: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch next race: {str(e)}")
+
+@app.get("/last-race-top3/{year}")
+async def get_last_race_top3(year: int):
+    """Get the most recent completed race's top 3 finishers for a given year"""
+    try:
+        schedule = fastf1.get_event_schedule(year)
+
+        # Build a race date column using Session5Date (race) falling back to EventDate
+        race_dates = pd.to_datetime(schedule.get('Session5Date', schedule['EventDate']))
+        if 'Session5Date' in schedule.columns:
+            # fillna with EventDate where Session5Date is NaT
+            race_dates = pd.to_datetime(schedule['Session5Date']).fillna(pd.to_datetime(schedule['EventDate']))
+        schedule = schedule.copy()
+        schedule['RaceDate'] = race_dates
+
+        # Completed races only, and only Grand Prix (exclude testing)
+        now = pd.Timestamp.now(tz=schedule['RaceDate'].dt.tz)
+        completed = schedule[(schedule['RaceDate'] < now)]
+        completed = completed[
+            completed['EventName'].astype(str).str.contains('Grand Prix', case=False, na=False) |
+            completed['OfficialEventName'].astype(str).str.contains('Grand Prix', case=False, na=False)
+        ]
+
+        if completed.empty:
+            return {"last_race": None, "top3": [], "message": "No completed races found"}
+
+        last_event = completed.sort_values('RaceDate').iloc[-1]
+        round_number = int(last_event['RoundNumber']) if pd.notna(last_event['RoundNumber']) else None
+
+        if round_number is None:
+            return {"last_race": None, "top3": [], "message": "Unable to determine last race round"}
+
+        session = fastf1.get_session(year, round_number, 'R')
+        session.load()
+        results_df = session.results
+
+        if results_df is None or results_df.empty:
+            # Fallback to Ergast classification
+            try:
+                erg = fastf1.ergast.Ergast()
+                er = erg.get_results(season=year, round=round_number, result_type='pandas')
+                df = getattr(er, 'content', None)
+                if df is not None and not df.empty:
+                    # Expect columns positionText/positionOrder, givenName/familyName, constructorName, points, status, time
+                    df = df.sort_values(by=[c for c in ['positionOrder', 'position'] if c in df.columns])
+                    top3_rows = df.head(3)
+                    top3 = []
+                    for _, row in top3_rows.iterrows():
+                        driver_name = f"{row.get('givenName', '')} {row.get('familyName', '')}".strip() or str(row.get('driverId', 'Unknown'))
+                        team_name = str(row.get('constructorName', 'Unknown'))
+                        pts = float(row.get('points', 0) or 0)
+                        pos = int(row.get('positionOrder') or row.get('position') or 0) or None
+                        top3.append({
+                            "position": pos,
+                            "driver": driver_name,
+                            "team": team_name,
+                            "points": pts,
+                            "status": str(row.get('status', ''))
+                        })
+
+                    return {
+                        "last_race": {
+                            "round_number": round_number,
+                            "country": str(last_event['Country']),
+                            "location": str(last_event['Location']),
+                            "event_name": str(last_event['EventName']),
+                            "race_date": str(last_event['RaceDate'])
+                        },
+                        "top3": top3,
+                        "source": "ergast"
+                    }
+            except Exception:
+                pass
+            return {"last_race": {
+                "round_number": round_number,
+                "country": str(last_event['Country']),
+                "location": str(last_event['Location']),
+                "event_name": str(last_event['EventName']),
+                "race_date": str(last_event['RaceDate'])
+            }, "top3": [], "message": "No classification data available"}
+
+        # Normalize column names in case of version differences
+        cols = {c.lower(): c for c in results_df.columns}
+        def col(name: str) -> str:
+            return cols.get(name.lower(), name)
+
+        results_df = results_df.sort_values(by=col('Position'))
+        top3_rows = results_df.head(3)
+        top3 = []
+        for _, row in top3_rows.iterrows():
+            # Prefer FullName if available, else Driver or Abbreviation as last resort
+            driver_name = row.get(col('FullName'))
+            if pd.isna(driver_name) or driver_name is None:
+                driver_name = row.get(col('Driver'))
+            if pd.isna(driver_name) or driver_name is None:
+                driver_name = row.get(col('Abbreviation'), 'Unknown')
+
+            team_name = row.get(col('TeamName'))
+            if pd.isna(team_name) or team_name is None:
+                team_name = row.get(col('Team'), 'Unknown')
+
+            points_val = row.get(col('Points'), 0)
+            try:
+                points_val = float(points_val) if not pd.isna(points_val) else 0.0
+            except Exception:
+                points_val = 0.0
+
+            top3.append({
+                "position": int(row[col('Position')]) if pd.notna(row.get(col('Position'))) else None,
+                "driver": str(driver_name),
+                "team": str(team_name),
+                "points": points_val,
+                "status": str(row.get(col('Status'), ''))
+            })
+
+        return {
+            "last_race": {
+                "round_number": round_number,
+                "country": str(last_event['Country']),
+                "location": str(last_event['Location']),
+                "event_name": str(last_event['EventName']),
+                "race_date": str(last_event['RaceDate'])
+            },
+            "top3": top3
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch last race results: {str(e)}")
+
+@app.get("/race-results/{year}/{round}")
+async def get_race_results(year: int, round: int, limit: int = 3):
+    """Get classification results for a specific race (default top 3)."""
+    try:
+        session = fastf1.get_session(year, round, 'R')
+        session.load()
+        results_df = session.results
+
+        if results_df is None or results_df.empty:
+            return {
+                "year": year,
+                "round": round,
+                "race_name": session.event['EventName'] if session and session.event is not None else None,
+                "top": [],
+                "message": "No classification data available"
+            }
+
+        cols = {c.lower(): c for c in results_df.columns}
+        def col(name: str) -> str:
+            return cols.get(name.lower(), name)
+
+        ordered = results_df.sort_values(by=col('Position'))
+        subset = ordered.head(max(1, limit))
+        top = []
+        for _, row in subset.iterrows():
+            driver_name = row.get(col('FullName'))
+            if pd.isna(driver_name) or driver_name is None:
+                driver_name = row.get(col('Driver'))
+            if pd.isna(driver_name) or driver_name is None:
+                driver_name = row.get(col('Abbreviation'), 'Unknown')
+
+            team_name = row.get(col('TeamName'))
+            if pd.isna(team_name) or team_name is None:
+                team_name = row.get(col('Team'), 'Unknown')
+
+            status_val = row.get(col('Status'))
+            race_time = row.get(col('Time'))
+            pts = row.get(col('Points'), 0)
+            try:
+                pts = float(pts) if not pd.isna(pts) else 0.0
+            except Exception:
+                pts = 0.0
+
+            top.append({
+                "position": int(row[col('Position')]) if pd.notna(row.get(col('Position'))) else None,
+                "driver": str(driver_name),
+                "team": str(team_name),
+                "points": pts,
+                "status": str(status_val) if status_val is not None else None,
+                "time": str(race_time) if race_time is not None else None
+            })
+
+        return {
+            "year": year,
+            "round": round,
+            "race_name": session.event['EventName'] if session and session.event is not None else None,
+            "top": top
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch race results: {str(e)}")
 
 @app.get("/wdc-calculator/{year}")
 async def calculate_wdc_possibilities(year: int):
@@ -37,7 +330,7 @@ async def calculate_wdc_possibilities(year: int):
         
         # Get current driver standings from Ergast API
         print(f"[DEBUG] Requesting driver standings for {year}...")
-        driver_standings_response = ergast.get_driver_standings(season=year, result_type='pandas')
+        driver_standings_response = ergast.get_driver_standings(season=2025)
         print(f"[DEBUG] Driver standings response type: {type(driver_standings_response)}")
         print(f"[DEBUG] Driver standings content shape: {driver_standings_response.content.shape if hasattr(driver_standings_response, 'content') else 'No content attr'}")
         

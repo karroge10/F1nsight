@@ -3,30 +3,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Trophy, TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-
-interface Driver {
-  position: number
-  name: string
-  team: string
-  points: number
-  change: number
-  nationality: string
-}
+import { useDriverStandings } from '@/hooks/use-driver-standings'
+import { DriverAvatar } from '@/components/ui/driver-avatar'
 
 export function StandingsWidget() {
-  // Mock data - in real app, fetch from Ergast API
-  const drivers: Driver[] = [
-    { position: 1, name: "Max Verstappen", team: "Red Bull Racing", points: 575, change: 0, nationality: "NED" },
-    { position: 2, name: "Sergio Perez", team: "Red Bull Racing", points: 285, change: 0, nationality: "MEX" },
-    { position: 3, name: "Lewis Hamilton", team: "Mercedes", points: 234, change: 1, nationality: "GBR" },
-    { position: 4, name: "Fernando Alonso", team: "Aston Martin", points: 206, change: -1, nationality: "ESP" },
-    { position: 5, name: "Carlos Sainz", team: "Ferrari", points: 200, change: 0, nationality: "ESP" },
-    { position: 6, name: "George Russell", team: "Mercedes", points: 175, change: 2, nationality: "GBR" },
-    { position: 7, name: "Charles Leclerc", team: "Ferrari", points: 165, change: -1, nationality: "MON" },
-    { position: 8, name: "Lando Norris", team: "McLaren", points: 115, change: 1, nationality: "GBR" }
-  ]
+  const currentYear = new Date().getFullYear()
+  const { data: drivers, loading, error, getTopDrivers } = useDriverStandings(currentYear)
+  
+  // Get top 8 drivers for display
+  const topDrivers = getTopDrivers(8)
 
   const getChangeIcon = (change: number) => {
     if (change > 0) return <TrendingUp className="w-4 h-4 text-green-500" />
@@ -37,12 +24,47 @@ export function StandingsWidget() {
   const getTeamColor = (team: string) => {
     const colors: Record<string, string> = {
       "Red Bull Racing": "bg-blue-600",
-      "Mercedes": "bg-cyan-400",
+      "Mercedes": "bg-cyan-400", 
       "Ferrari": "bg-red-600",
       "Aston Martin": "bg-green-600",
-      "McLaren": "bg-orange-500"
+      "McLaren": "bg-orange-500",
+      "Alpine": "bg-pink-500",
+      "Williams": "bg-blue-400",
+      "AlphaTauri": "bg-indigo-600",
+      "Alfa Romeo": "bg-red-800",
+      "Haas": "bg-gray-500",
+      "Sauber": "bg-green-500",
+      "RB": "bg-blue-500" // RB team (formerly AlphaTauri)
     }
     return colors[team] || "bg-gray-600"
+  }
+
+  if (loading) {
+    return (
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-yellow-500" />
+              Driver Standings {currentYear}
+            </CardTitle>
+            <Link href="/standings">
+              <Button variant="outline" size="sm">
+                View All
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-5 h-5 animate-spin text-yellow-500" />
+              <span className="text-gray-400">Loading standings...</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -51,7 +73,8 @@ export function StandingsWidget() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-white flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-500" />
-            Driver Standings 2024
+            Driver Standings {currentYear}
+            {error && <Badge variant="destructive" className="ml-2 text-xs">API Error</Badge>}
           </CardTitle>
           <Link href="/standings">
             <Button variant="outline" size="sm">
@@ -62,7 +85,7 @@ export function StandingsWidget() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {drivers.map((driver, index) => (
+          {topDrivers.map((driver, index) => (
             <div 
               key={driver.position} 
               className={`flex items-center gap-3 p-3 rounded-lg bg-gray-700/50 hover:bg-gray-700 hover:scale-[1.02] transition-all duration-300 cursor-pointer animate-in slide-in-from-left delay-${index * 100}`}
@@ -72,6 +95,10 @@ export function StandingsWidget() {
                   {driver.position}
                 </div>
                 <div className={`w-1 h-8 rounded ${getTeamColor(driver.team)} hover:w-2 transition-all duration-300`} />
+                
+                {/* Driver Avatar */}
+                <DriverAvatar driverName={driver.name} size="md" />
+                
                 <div className="flex-1">
                   <div className="font-semibold text-white">{driver.name}</div>
                   <div className="text-sm text-gray-400">{driver.team}</div>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Trophy, TrendingUp, TrendingDown, Minus, Calculator } from 'lucide-react'
 import { getWDCCalculator, checkFastF1Health, type WDCCalculatorData } from '@/lib/fastf1-api'
+import { DriverAvatar } from '@/components/ui/driver-avatar'
 
 export function WDCCalculator() {
   const [wdcData, setWdcData] = useState<WDCCalculatorData | null>(null)
@@ -168,6 +169,7 @@ export function WDCCalculator() {
                         <div className="text-lg font-bold text-white w-6">
                           {index + 1}
                         </div>
+                        <DriverAvatar driverName={driver.driver} size="md" />
                         <div>
                           <div className="font-semibold text-white">{driver.driver}</div>
                           <div className="text-sm text-gray-400">{driver.team}</div>
@@ -223,6 +225,7 @@ export function WDCCalculator() {
                         <div className="text-sm font-bold text-gray-400 w-6">
                           {stillInContention.length + index + 1}
                         </div>
+                        <DriverAvatar driverName={driver.driver} size="sm" />
                         <div>
                           <div className="font-semibold text-gray-300">{driver.driver}</div>
                           <div className="text-sm text-gray-500">{driver.team}</div>
@@ -273,6 +276,9 @@ export function WDCCalculator() {
           </div>
         </div>
       </CardContent>
+    </Card>
+  )
+}
     </Card>
   )
 }

@@ -76,16 +76,35 @@ export async function getDriversBySession(sessionKey: number): Promise<Driver[]>
 }
 
 export async function getDriversByYear(year: number): Promise<Driver[]> {
-  const sessions = await getRaceSessions(year);
-  if (sessions.length === 0) return [];
-  const uniqueDrivers = new Map<number, Driver>();
-  for (const s of sessions) {
-    const list = await getDriversBySession(s.session_key);
-    for (const d of list) {
-      if (!uniqueDrivers.has(d.driver_number)) uniqueDrivers.set(d.driver_number, d);
+  // Prefer a single OpenF1 query by year if supported; fall back to per-session scan
+  try {
+    const allDrivers = await api<Driver[]>(`/drivers?year=${year}`, { revalidateSeconds: 24 * 60 * 60 });
+
+    // Dedupe across sessions by driver_number when available, else by full_name
+    const unique = new Map<string | number, Driver>();
+    for (const d of allDrivers) {
+      const key = (d as any).driver_number ?? d.full_name;
+      if (!unique.has(key)) unique.set(key, d);
     }
+    return Array.from(unique.values());
+  } catch (e) {
+    // Fallback: union drivers from each Race session (covers mid-season substitutes)
+    const sessions = await getRaceSessions(year);
+    if (sessions.length === 0) return [];
+    const uniqueDrivers = new Map<string | number, Driver>();
+    for (const s of sessions) {
+      try {
+        const list = await getDriversBySession(s.session_key);
+        for (const d of list) {
+          const key = (d as any).driver_number ?? d.full_name;
+          if (!uniqueDrivers.has(key)) uniqueDrivers.set(key, d);
+        }
+      } catch {
+        // ignore individual session failures
+      }
+    }
+    return Array.from(uniqueDrivers.values());
   }
-  return Array.from(uniqueDrivers.values());
 }
 
 export type NextRace = {
@@ -106,6 +125,7 @@ export async function getNextRace(nowDate: Date = new Date()): Promise<NextRace 
     .map((s) => ({ s, start: new Date(s.date_start).getTime() }))
     .filter(({ start }) => start > nowDate.getTime())
     .sort((a, b) => a.start - b.start)[0]?.s;
+  console.log("upcoming", sessions, sessions.length);
 
   // Fallback: use time-based filtering directly (date_start>=now)
   let candidate: Session | undefined = upcoming;

@@ -13,6 +13,7 @@ import {
   RecentRacesSkeleton, 
   NewsCardsSkeleton 
 } from "@/components/loading-skeletons";
+import { LastRaceTop3 } from "@/components/last-race-top3";
 // import { WDCCalculator } from "@/components/wdc-calculator";
 
 export default function HomePage() {
@@ -22,10 +23,12 @@ export default function HomePage() {
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 opacity-0 animate-[fadeInUp_0.8s_ease-out_0.1s_forwards]">
           {/* Race Countdown - Takes full width on mobile, 2 cols on desktop */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
             <Suspense fallback={<CountdownSkeleton />}>
               <RaceCountdown />
             </Suspense>
+            {/* Most Recent Race - Top 3 placed under countdown on large screens */}
+            <LastRaceTop3 />
           </div>
 
           {/* Quick Stats */}
