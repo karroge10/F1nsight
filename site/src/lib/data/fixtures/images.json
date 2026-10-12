@@ -1,0 +1,450 @@
+{
+  "drivers": {
+    "norris": {
+      "src": "/drivers/norris.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "mclaren",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "max_verstappen": {
+      "src": "/drivers/max_verstappen.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "red_bull",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "bortoleto": {
+      "src": "/drivers/bortoleto.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "audi",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "hadjar": {
+      "src": "/drivers/hadjar.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "red_bull",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "gasly": {
+      "src": "/drivers/gasly.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "alpine",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "perez": {
+      "src": "/drivers/perez.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "cadillac",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "antonelli": {
+      "src": "/drivers/antonelli.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "mercedes",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "alonso": {
+      "src": "/drivers/alonso.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "aston_martin",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "leclerc": {
+      "src": "/drivers/leclerc.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "ferrari",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "stroll": {
+      "src": "/drivers/stroll.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "aston_martin",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "albon": {
+      "src": "/drivers/albon.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "williams",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "hulkenberg": {
+      "src": "/drivers/hulkenberg.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "audi",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "lawson": {
+      "src": "/drivers/lawson.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "rb",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "ocon": {
+      "src": "/drivers/ocon.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "haas",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "colapinto": {
+      "src": "/drivers/colapinto.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "alpine",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "hamilton": {
+      "src": "/drivers/hamilton.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "ferrari",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "sainz": {
+      "src": "/drivers/sainz.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "williams",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "russell": {
+      "src": "/drivers/russell.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "mercedes",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "bottas": {
+      "src": "/drivers/bottas.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "cadillac",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "piastri": {
+      "src": "/drivers/piastri.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "mclaren",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "bearman": {
+      "src": "/drivers/bearman.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "haas",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "arvid_lindblad": {
+      "src": "/drivers/arvid_lindblad.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "rb",
+      "source": "F1 media CDN, official season headshot"
+    },
+    "tsunoda": {
+      "src": "/drivers/tsunoda.webp",
+      "width": 2,
+      "height": 2,
+      "season": 2026,
+      "team": "rb",
+      "source": "F1 media CDN, official season headshot"
+    }
+  },
+  "teams": {
+    "mercedes": {
+      "variants": [
+        {
+          "from": null,
+          "to": null,
+          "colour": "/teams/2026/mercedes-colour.webp",
+          "white": "/teams/2026/mercedes-white.webp",
+          "plate": false,
+          "scale": 1.08,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "ferrari": {
+      "variants": [
+        {
+          "from": null,
+          "to": null,
+          "colour": "/teams/2026/ferrari-colour.webp",
+          "white": null,
+          "plate": false,
+          "scale": 1.13,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "red_bull": {
+      "variants": [
+        {
+          "from": null,
+          "to": null,
+          "colour": "/teams/2026/red_bull-colour.webp",
+          "white": null,
+          "plate": false,
+          "scale": 1.14,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "mclaren": {
+      "variants": [
+        {
+          "from": null,
+          "to": null,
+          "colour": "/teams/2026/mclaren-colour.webp",
+          "white": null,
+          "plate": false,
+          "scale": 1.19,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "williams": {
+      "variants": [
+        {
+          "from": null,
+          "to": null,
+          "colour": "/teams/2026/williams-colour.webp",
+          "white": null,
+          "plate": false,
+          "scale": 1.3,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "haas": {
+      "variants": [
+        {
+          "from": null,
+          "to": null,
+          "colour": "/teams/2026/haas-colour.webp",
+          "white": null,
+          "plate": false,
+          "scale": 1.03,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "alpine": {
+      "variants": [
+        {
+          "from": 2021,
+          "to": null,
+          "colour": "/teams/2026/alpine-colour.webp",
+          "white": null,
+          "plate": false,
+          "scale": 1.14,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "aston_martin": {
+      "variants": [
+        {
+          "from": 2021,
+          "to": null,
+          "colour": "/teams/2026/aston_martin-colour.webp",
+          "white": "/teams/2026/aston_martin-white.webp",
+          "plate": false,
+          "scale": 1.14,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "audi": {
+      "variants": [
+        {
+          "from": 2026,
+          "to": null,
+          "colour": "/teams/2026/audi-colour.webp",
+          "white": "/teams/2026/audi-white.webp",
+          "plate": false,
+          "scale": 1.14,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "cadillac": {
+      "variants": [
+        {
+          "from": 2026,
+          "to": null,
+          "colour": "/teams/2026/cadillac-colour.webp",
+          "white": "/teams/2026/cadillac-white.webp",
+          "plate": false,
+          "scale": 1.14,
+          "source": "F1 media CDN, 2026 official variants"
+        }
+      ]
+    },
+    "rb": {
+      "variants": [
+        {
+          "from": 2025,
+          "to": null,
+          "colour": "/teams/2026/rb-colour.webp",
+          "white": "/teams/2026/rb-white.webp",
+          "plate": false,
+          "scale": 1.18,
+          "source": "F1 media CDN, 2026 official variants"
+        },
+        {
+          "from": 2024,
+          "to": 2024,
+          "colour": "/teams/legacy/rb-2024.png",
+          "white": null,
+          "plate": true,
+          "source": "F1 media CDN, season logo PNG"
+        }
+      ]
+    },
+    "alphatauri": {
+      "variants": [
+        {
+          "from": 2020,
+          "to": 2023,
+          "colour": "/teams/legacy/alphatauri.png",
+          "white": null,
+          "plate": true,
+          "source": "F1 media CDN, season logo PNG"
+        }
+      ]
+    },
+    "toro_rosso": {
+      "variants": [
+        {
+          "from": null,
+          "to": 2019,
+          "colour": "/teams/legacy/toro_rosso.png",
+          "white": null,
+          "plate": true,
+          "source": "F1 media CDN, season logo PNG"
+        }
+      ]
+    },
+    "racing_point": {
+      "variants": [
+        {
+          "from": 2019,
+          "to": 2020,
+          "colour": "/teams/legacy/racing_point.png",
+          "white": null,
+          "plate": true,
+          "source": "F1 media CDN, season logo PNG"
+        }
+      ]
+    },
+    "renault": {
+      "variants": [
+        {
+          "from": 2016,
+          "to": 2020,
+          "colour": "/teams/legacy/renault.png",
+          "white": null,
+          "plate": true,
+          "source": "F1 media CDN, season logo PNG"
+        }
+      ]
+    },
+    "alfa": {
+      "variants": [
+        {
+          "from": 2019,
+          "to": 2023,
+          "colour": "/teams/legacy/alfa.png",
+          "white": null,
+          "plate": true,
+          "source": "F1 media CDN, season logo PNG"
+        }
+      ]
+    },
+    "sauber": {
+      "variants": [
+        {
+          "from": 2024,
+          "to": 2025,
+          "colour": "/teams/legacy/sauber-2024.png",
+          "white": null,
+          "plate": true,
+          "source": "F1 media CDN, season logo PNG"
+        }
+      ]
+    },
+    "caterham": {
+      "variants": [
+        {
+          "from": null,
+          "to": 2014,
+          "colour": "/teams/commons/caterham.png",
+          "white": null,
+          "plate": true,
+          "source": "Wikimedia Commons, free file"
+        }
+      ]
+    },
+    "marussia": {
+      "variants": [
+        {
+          "from": 2015,
+          "to": 2015,
+          "colour": "/teams/commons/marussia.png",
+          "white": null,
+          "plate": true,
+          "source": "Wikimedia Commons, free file"
+        }
+      ]
+    }
+  },
+  "cdnTeamSlugs": {
+    "williams": "williams",
+    "aston_martin": "astonmartin",
+    "mercedes": "mercedes",
+    "rb": "racingbulls",
+    "haas": "haasf1team",
+    "audi": "audi",
+    "cadillac": "cadillac",
+    "alpine": "alpine",
+    "red_bull": "redbullracing",
+    "ferrari": "ferrari",
+    "mclaren": "mclaren"
+  }
+}

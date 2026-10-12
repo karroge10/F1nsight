@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- F1nsight mark: a near-black rounded square carries the F in white and the 1 in the accent red, so it reads in both themes at 16px -->
+  <rect width="64" height="64" rx="14" fill="#121214"/>
+  <path d="M12 16h18v8H20v7h9v8h-9v9h-8z" fill="#F4F4F2"/>
+  <path d="M40 16h9v32h-9V26l-6 3v-9z" fill="#E8282B"/>
+</svg>

@@ -1,0 +1,26 @@
+[project]
+name = "f1-ml"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5.6",
+    "lightgbm>=4.7.0",
+    "numpy>=2.5.3",
+    "optuna>=5.0.0",
+    "pandas>=3.0.6",
+    "polars>=2.0.0",
+    "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
+    "torch>=2.11.0",
+    "xgboost>=3.4.1",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }

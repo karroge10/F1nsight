@@ -1,0 +1,805 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ------------------------------------------------------------------ */
+/* Design tokens (see DESIGN.md). Dark is the primary theme.           */
+/* ------------------------------------------------------------------ */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: oklch(0.135 0.004 260);
+  --bg-raised: oklch(0.17 0.005 260);
+  --bg-sunken: oklch(0.11 0.004 260);
+  --bg-hover: oklch(0.2 0.006 260);
+  --rule: oklch(0.26 0.006 260);
+  --rule-strong: oklch(0.36 0.008 260);
+  --ink: oklch(0.95 0.004 90);
+  --ink-2: oklch(0.74 0.008 260);
+  --ink-3: oklch(0.62 0.01 260);
+  --accent: oklch(0.66 0.215 28);
+  --accent-ink: oklch(0.98 0.005 90);
+  --focus: oklch(0.75 0.16 28);
+
+  --sector-purple: oklch(0.64 0.23 305);
+  --sector-green: oklch(0.74 0.19 150);
+  --sector-yellow: oklch(0.86 0.17 95);
+  --status-green: oklch(0.74 0.19 150);
+  --status-yellow: oklch(0.86 0.17 95);
+  --status-red: oklch(0.6 0.22 28);
+  --tyre-soft: oklch(0.62 0.22 28);
+  --tyre-medium: oklch(0.86 0.17 95);
+  --tyre-hard: oklch(0.92 0 0);
+  --tyre-inter: oklch(0.72 0.18 150);
+  --tyre-wet: oklch(0.6 0.17 250);
+  --delta-up: oklch(0.74 0.19 150);
+  --delta-down: oklch(0.66 0.215 28);
+
+  --prob-hue: 250;
+  --prob-0: oklch(0.24 0.02 var(--prob-hue));
+  --scroll-shadow: oklch(0 0 0 / 0.6);
+  --prob-1: oklch(0.32 0.06 var(--prob-hue));
+  --prob-2: oklch(0.44 0.1 var(--prob-hue));
+  --prob-3: oklch(0.56 0.13 var(--prob-hue));
+  --prob-4: oklch(0.68 0.14 var(--prob-hue));
+  --prob-5: oklch(0.8 0.12 var(--prob-hue));
+
+  --shadow-float: 0 0 0 1px oklch(1 0 0 / 0.06), 0 8px 24px oklch(0 0 0 / 0.45);
+  --radius-chip: 2px;
+  --radius-control: 4px;
+  --radius-float: 6px;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: oklch(0.985 0.002 90);
+  --bg-raised: oklch(0.955 0.003 90);
+  --bg-sunken: oklch(0.93 0.003 90);
+  --bg-hover: oklch(0.94 0.004 90);
+  --rule: oklch(0.87 0.004 90);
+  --rule-strong: oklch(0.75 0.006 90);
+  --ink: oklch(0.16 0.006 260);
+  --ink-2: oklch(0.42 0.01 260);
+  --ink-3: oklch(0.5 0.01 260);
+  --accent: oklch(0.56 0.215 28);
+  --accent-ink: oklch(0.99 0 0);
+  --focus: oklch(0.56 0.215 28);
+
+  --sector-purple: oklch(0.56 0.23 305);
+  --sector-green: oklch(0.66 0.19 150);
+  --sector-yellow: oklch(0.82 0.17 95);
+  --status-green: oklch(0.66 0.19 150);
+  --status-yellow: oklch(0.82 0.17 95);
+  --status-red: oklch(0.56 0.22 28);
+  --tyre-hard: oklch(0.6 0 0);
+  --delta-up: oklch(0.52 0.17 150);
+  --delta-down: oklch(0.52 0.215 28);
+
+  /* light ramp: every level, the empty one included, stays at least about 1.5:1 on --bg */
+  --prob-0: oklch(0.85 0.025 var(--prob-hue));
+  --prob-1: oklch(0.76 0.07 var(--prob-hue));
+  --prob-2: oklch(0.67 0.11 var(--prob-hue));
+  --prob-3: oklch(0.58 0.13 var(--prob-hue));
+  --prob-4: oklch(0.5 0.15 var(--prob-hue));
+  --prob-5: oklch(0.42 0.15 var(--prob-hue));
+  --scroll-shadow: oklch(0.2 0.01 260 / 0.22);
+
+  --shadow-float: 0 0 0 1px oklch(0 0 0 / 0.08), 0 8px 24px oklch(0 0 0 / 0.12);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-sunken: var(--bg-sunken);
+  --color-bg-hover: var(--bg-hover);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-sector-purple: var(--sector-purple);
+  --color-sector-green: var(--sector-green);
+  --color-sector-yellow: var(--sector-yellow);
+  --color-status-green: var(--status-green);
+  --color-status-yellow: var(--status-yellow);
+  --color-status-red: var(--status-red);
+  --color-delta-up: var(--delta-up);
+  --color-delta-down: var(--delta-down);
+
+  --font-sans: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.35;
+  --text-table: 0.8125rem;
+  --text-table--line-height: 1.3;
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.45;
+  --text-body: 1rem;
+  --text-body--line-height: 1.55;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.2;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 1.15;
+  --text-h1: clamp(2.25rem, 1.5rem + 2.5vw, 3.5rem);
+  --text-h1--line-height: 1;
+  --text-display: clamp(4.5rem, 2rem + 7vw, 7rem);
+  --text-display--line-height: 0.95;
+
+  --radius-chip: 2px;
+  --radius-control: 4px;
+  --radius-float: 6px;
+
+  --shadow-float: var(--shadow-float);
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+
+html {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.55;
+  font-feature-settings: "ss01" 0;
+}
+
+::selection {
+  background: oklch(0.66 0.215 28 / 0.35);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+svg {
+  display: block;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* every dropdown on the site: our own chevron, inset from the right edge, with room reserved
+   so the text never runs under it. Unlayered, so it wins over px-* utilities on the element. */
+select {
+  appearance: none;
+  padding-inline-end: 2.25rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: calc(100% - 1.125rem) 50%, calc(100% - 0.8125rem) 50%;
+  background-size: 0.3125rem 0.3125rem;
+  background-repeat: no-repeat;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+select:hover {
+  border-color: var(--rule-strong);
+}
+select option {
+  background: var(--bg-raised);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ */
+/* Register utilities                                                  */
+/* ------------------------------------------------------------------ */
+
+@utility display {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-stretch: 80%;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  font-variant-numeric: proportional-nums;
+}
+
+@utility headline {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  font-stretch: 88%;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+}
+
+/* numbers: the same sans as everything else, tabular figures, so columns of times align. */
+@utility timing {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+@utility mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@utility label {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+@utility section-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-table);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility team-rule {
+  box-shadow: inset 3px 0 0 0 var(--team, var(--rule-strong));
+}
+
+@utility hairline-y {
+  border-top: 1px solid var(--rule);
+}
+
+@utility press {
+  transition-property: transform, background-color, color, border-color;
+  transition-duration: 120ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+@utility stagger-in {
+  animation: stagger-in 480ms cubic-bezier(0.2, 0, 0, 1) backwards;
+  animation-delay: calc(var(--stagger, 0) * 90ms);
+}
+
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.theme-toggle .theme-icon-moon {
+  display: none;
+}
+[data-theme="light"] .theme-toggle .theme-icon-moon {
+  display: inline;
+}
+[data-theme="light"] .theme-toggle .theme-icon-sun {
+  display: none;
+}
+
+.selected-pill {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* Segmented control segment: the button fills the full control height (the tap area), and the
+   selected state is a pill drawn 3px inside it, so the look matches the padded controls. */
+.segment {
+  position: relative;
+  isolation: isolate;
+}
+.segment-on {
+  color: var(--bg);
+}
+.segment-on::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  border-radius: 3px;
+  background: var(--ink);
+}
+
+.live-dot {
+  animation: pulse-live 1.6s ease-in-out infinite;
+}
+
+/* skeleton shimmer: a lighter band sweeps across the placeholder */
+.skeleton {
+  background-color: var(--bg-raised);
+  background-image: linear-gradient(90deg, transparent 0%, var(--bg-hover) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* bars grow from zero on first paint and glide when the value changes (ProbBar) */
+.bar-fill {
+  transform-origin: left center;
+  transition: transform 480ms cubic-bezier(0.2, 0, 0, 1), opacity 240ms ease-out;
+}
+@starting-style {
+  .bar-fill {
+    transform: scaleX(0);
+  }
+}
+
+/* sparklines and chart lines draw in from the left (paths need pathLength="1") */
+.draw-in {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: draw-in 720ms cubic-bezier(0.2, 0, 0, 1) backwards;
+}
+@keyframes draw-in {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* dense data tables */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-table);
+  line-height: 1.3;
+}
+.data-table th {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  text-align: start;
+  padding: 0.5rem 0.625rem;
+  border-bottom: 1px solid var(--rule-strong);
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.data-table td {
+  padding: 0 0.625rem;
+  height: 2.25rem;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: background-color 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+.data-table tbody tr:hover td {
+  background: var(--bg-hover);
+}
+.data-table .num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+  .data-table td {
+    height: 2.75rem;
+  }
+  /* lap time tables (practice, qualifying) keep every time column on a phone with tighter cells */
+  .data-table.phone-tight th,
+  .data-table.phone-tight td {
+    padding-inline: 0.375rem;
+  }
+}
+
+/* sector and tyre chips */
+.sector {
+  display: inline-block;
+  min-width: 0.875rem;
+  height: 0.375rem;
+  border-radius: var(--radius-chip);
+  background: var(--rule-strong);
+  transition: background-color 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+.sector[data-flag="purple"] {
+  background: var(--sector-purple);
+}
+.sector[data-flag="green"] {
+  background: var(--sector-green);
+}
+.sector[data-flag="yellow"] {
+  background: var(--sector-yellow);
+}
+
+.tyre {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 999px;
+  border: 2px solid var(--tyre-color, var(--rule-strong));
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+.tyre[data-compound="S"] {
+  --tyre-color: var(--tyre-soft);
+}
+.tyre[data-compound="M"] {
+  --tyre-color: var(--tyre-medium);
+}
+.tyre[data-compound="H"] {
+  --tyre-color: var(--tyre-hard);
+}
+.tyre[data-compound="I"] {
+  --tyre-color: var(--tyre-inter);
+}
+.tyre[data-compound="W"] {
+  --tyre-color: var(--tyre-wet);
+}
+
+/* tyre strategy bars (session pages): one segment per stint, tinted by compound */
+.stint {
+  --stint-color: var(--rule-strong);
+  background: color-mix(in oklch, var(--stint-color) 28%, var(--bg));
+  box-shadow: inset 0 -2px 0 var(--stint-color);
+  color: var(--ink);
+}
+.stint[data-compound="S"] {
+  --stint-color: var(--tyre-soft);
+}
+.stint[data-compound="M"] {
+  --stint-color: var(--tyre-medium);
+}
+.stint[data-compound="H"] {
+  --stint-color: var(--tyre-hard);
+}
+.stint[data-compound="I"] {
+  --stint-color: var(--tyre-inter);
+}
+.stint[data-compound="W"] {
+  --stint-color: var(--tyre-wet);
+}
+
+/* a label row inside a table body (qualifying knock-out groups) */
+.data-table tr.group-divider td {
+  padding-top: 0.75rem;
+  padding-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.data-table tr.group-divider:hover td {
+  background: transparent;
+}
+
+/* a table box that scrolls inside a card (fastest laps beside pit stops); the header row
+   stays put while the rows move. The two-class selector beats the overflow-y rule of .scroll-x. */
+.table-scroll,
+.scroll-x.table-scroll {
+  max-height: 32rem;
+  overflow: auto;
+}
+/* in a pair of cards on wide screens the box takes the height the row gives it instead of its
+   own, so the longer card scrolls and both cards end on the same line */
+@media (min-width: 64rem) {
+  .table-fill {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 20rem;
+  }
+  .table-fill > .scroll-x.table-scroll {
+    position: absolute;
+    inset: 0;
+    max-height: none;
+  }
+}
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg);
+}
+
+/* probability heat cells (SVG rects) */
+.prob-cell {
+  fill: var(--prob-0);
+  transition: fill 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+.prob-cell[data-level="1"] {
+  fill: var(--prob-1);
+}
+.prob-cell[data-level="2"] {
+  fill: var(--prob-2);
+}
+.prob-cell[data-level="3"] {
+  fill: var(--prob-3);
+}
+.prob-cell[data-level="4"] {
+  fill: var(--prob-4);
+}
+.prob-cell[data-level="5"] {
+  fill: var(--prob-5);
+}
+
+/* grid and flex children must be allowed to shrink below their content, or a wide table
+   inside a scroll container still forces the column (and the page) wider than the viewport */
+.grid > * {
+  min-width: 0;
+}
+
+/* horizontally scrollable regions: fade the trailing edge on small screens as a scroll cue */
+.scroll-x {
+  /* x auto alone turns y into auto too, so sub-pixel row heights and the tap-hit areas of the
+     last row showed a phantom vertical scrollbar; this region only scrolls sideways */
+  overflow: auto hidden;
+  scrollbar-width: thin;
+  max-width: 100%;
+  contain: inline-size;
+  /* scroll cue in every browser: edge shadows that the local covers hide at each end */
+  background:
+    linear-gradient(to right, var(--bg) 40%, transparent) left / 2.5rem 100% no-repeat local,
+    linear-gradient(to left, var(--bg) 40%, transparent) right / 2.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--scroll-shadow), transparent) left / 0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent) right / 0.75rem 100% no-repeat scroll;
+}
+
+/* fade the trailing edge only while there is more to scroll: the scroll-driven timeline is
+   inactive when the region does not overflow, so no mask applies at all */
+@supports (animation-timeline: scroll()) {
+  .scroll-x {
+    animation: scroll-x-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
+}
+/* 16px fade only on a side that has more to scroll: right at the start, both in between,
+   left at the end; no fade at all when the region fits */
+@keyframes scroll-x-fade {
+  0% {
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent);
+  }
+  4%,
+  96% {
+    mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent);
+  }
+  100% {
+    mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 100%);
+  }
+}
+
+/* track status bar colours */
+.track-status[data-status="green"] {
+  --status: var(--status-green);
+}
+.track-status[data-status="yellow"],
+.track-status[data-status="sc"],
+.track-status[data-status="vsc"] {
+  --status: var(--status-yellow);
+}
+.track-status[data-status="red"] {
+  --status: var(--status-red);
+}
+.track-status[data-status="chequered"] {
+  --status: var(--ink-2);
+}
+.track-status[data-status="idle"] {
+  --status: var(--rule-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .stagger-in {
+    animation: none;
+  }
+}
+
+/* primary nav: horizontal scroller with a fade at whichever edge has more links behind it */
+.nav-scroll {
+  mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+}
+@supports (animation-timeline: scroll()) {
+  .nav-scroll {
+    animation: nav-scroll-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
+}
+@keyframes nav-scroll-fade {
+  0% {
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 2rem), transparent);
+  }
+  8%,
+  92% {
+    mask-image: linear-gradient(to right, transparent 0, #000 2rem, #000 calc(100% - 2rem), transparent);
+  }
+  100% {
+    mask-image: linear-gradient(to right, transparent 0, #000 2rem, #000 100%);
+  }
+}
+
+/* the first block after a page intro sits close to it: the intro already ends with its own
+   bottom padding, so the usual section gap would leave a hole under the title */
+.page-intro + * {
+  margin-top: 1rem;
+}
+@media (min-width: 640px) {
+  .page-intro + * {
+    margin-top: 1.5rem;
+  }
+}
+
+/* touch targets on phones: links and sort buttons inside tables and intro breadcrumbs grow to
+   44px tall (the row or line grows with them); desktop keeps the dense layout */
+@media (max-width: 639px) {
+  .data-table th button,
+  .data-table td a,
+  .eyebrow a,
+  .tap {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+  .data-table th button,
+  .data-table td a {
+    min-width: 2.75rem;
+  }
+  summary {
+    min-height: 2.75rem;
+  }
+}
+
+/* inline and list links on phones: a 44px-tall hit area from vertical padding, cancelled by a
+   matching negative margin so the text and the rows around it do not move */
+@media (max-width: 639px) {
+  .tap-hit {
+    padding-block: 0.9375rem;
+    margin-block: -0.9375rem;
+  }
+}
+
+/* a field drawn as one box (input plus unit): the ring goes around the whole box, never just
+   the inner input */
+[data-focus-group] :focus-visible {
+  outline: none;
+}
+
+/* vertical scroll lists: a 16px fade at the bottom only while more rows remain below */
+@supports (animation-timeline: scroll()) {
+  .scroll-y-fade {
+    animation: scroll-y-fade linear both;
+    animation-timeline: scroll(self block);
+  }
+}
+@keyframes scroll-y-fade {
+  0%,
+  96% {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
+  }
+  100% {
+    mask-image: none;
+  }
+}
+
+/* Extends a button's tap area 4px up and down (the row's 3px of padding and border, plus the
+   button's own 1px border if any), so a 38px (30px from sm) button in a 44px (36px) row is hit
+   across the full row height. */
+.hit-y {
+  position: relative;
+}
+.hit-y::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+
+/* race control button on the map, with its log menu */
+.rc-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-control);
+  background: color-mix(in oklch, var(--bg) 88%, transparent);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--ink-2);
+  backdrop-filter: blur(2px);
+}
+.rc-button:hover,
+.rc-button[aria-expanded="true"] {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+.rc-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.rc-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: min(28rem, calc(100vw - 2rem));
+  max-height: min(32rem, calc(100vh - 21.5rem));
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-float);
+  background: var(--bg);
+  box-shadow: var(--shadow-float);
+}
+@media (max-width: 639px) {
+  .rc-menu {
+    position: fixed;
+    inset: 4rem 1rem auto 1rem;
+    width: auto;
+    max-height: calc(100vh - 6rem);
+  }
+}

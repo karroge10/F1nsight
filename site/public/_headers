@@ -1,0 +1,14 @@
+# Cloudflare Pages response headers (copied into site/out by the static export).
+# Hashed build assets never change under the same name: cache them for a year.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Data files written at build time change with every data refresh.
+/api/*
+  Cache-Control: public, max-age=300
+
+
+# https://developers.cloudflare.com/workers/static-assets/headers
+# https://opennext.js.org/cloudflare/caching#static-assets-caching
+/_next/static/*
+  Cache-Control: public,max-age=31536000,immutable

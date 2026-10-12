@@ -1,0 +1,4 @@
+{
+ "_help": "Grid penalties typed by hand. They win over the FIA documents and race control for the same driver and session. Fields: season, round, driverId (or carNumber), kind (places, back_of_grid, pit_lane, or none to cancel parsed entries), places (for kind places), appliesTo (race or sprint), category (power_unit or other, optional), note. Example: {\"season\": 2026, \"round\": 17, \"driverId\": \"russell\", \"kind\": \"places\", \"places\": 40, \"appliesTo\": \"race\", \"category\": \"power_unit\", \"note\": \"PU elements\"}",
+ "penalties": []
+}
