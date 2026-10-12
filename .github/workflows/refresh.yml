@@ -2,8 +2,8 @@
 #
 # The cloud version of refresh.ps1 + scripts/publish.ps1. The data a refresh builds on lives in
 # the release `state` (cloud/state.py): pulled at the start, changed groups pushed at the end.
-# Retraining stays on the PC (GPU); a promoted model reaches this workflow through the same
-# release (scripts/retrain-gate.ps1 pushes it). See "Cloud refresh" in README.md.
+# Retraining runs in retrain-live.yml, which pushes a promoted model to the same release and
+# then starts this workflow. See "Cloud refresh" in README.md.
 #
 # Manual run: gh workflow run refresh.yml [-f force=true] [-f only=fastf1,predict] [-f publish=false]
 
@@ -28,11 +28,11 @@ on:
         description: Build the site and upload it to Cloudflare Pages
         type: boolean
         default: true
-  # Not live yet. To go live, uncomment: every 30 minutes the gate step checks whether a planned
-  # run (session end + 1 h, a retry 3 h later, race morning, Monday 06:00 UTC weekly) fell due
-  # since the last cloud run (python -m f1p.weekend --due) and stops in about a minute if not.
-  # schedule:
-  #   - cron: "7,37 * * * *"
+  # Every 30 minutes the gate step checks whether a planned run (session end + 1 h, a retry 3 h
+  # later, race morning, Monday 06:00 UTC weekly) fell due since the last cloud run
+  # (python -m f1p.weekend --due) and stops in about a minute if not.
+  schedule:
+    - cron: "7,37 * * * *"
 
 permissions:
   contents: write

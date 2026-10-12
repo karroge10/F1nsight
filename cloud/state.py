@@ -51,11 +51,15 @@ EXCLUDED_SUFFIXES = (".log", ".lock", ".tmp", ".pyc")
 EXCLUDED_DIRS = ("__pycache__",)
 
 # group name -> paths relative to v2. "model" is filled in from ml/models/latest.json.
+# Who writes what: the refresh writes every data group and "predictions" (next.json,
+# fantasy.json); only the retrain gate writes "model" and "backtest" (the backtest and its
+# history files), so neither run's push can carry stale copies of the other's files.
 GROUPS = {
     "refresh-state": ["logs/refresh_state.json"],
     "processed": ["data/processed"],
     "serve": ["data/serve"],
     "predictions": ["data/predictions"],
+    "backtest": ["data/predictions/backtest.json", "data/predictions/history"],
     "model": [],
     "raw-openf1": ["data/raw/openf1"],
     "raw-livetiming": ["data/raw/livetiming"],
@@ -63,8 +67,13 @@ GROUPS = {
     "raw-other": ["data/raw/f1db", "data/raw/fantasy", "data/raw/fia", "data/raw/jolpica",
                   "data/raw/openmeteo"],
 }
+# Paths left out of a group because another group owns them.
+GROUP_EXCLUDES = {
+    "predictions": ["data/predictions/backtest.json", "data/predictions/history"],
+}
 MODEL_FILES = ["ml/models/latest.json", "ml/models/params.json",
-               "ml/reports/backtest_driver_rows.parquet", "ml/reports/backtest_summary.json"]
+               "ml/reports/backtest_driver_rows.parquet", "ml/reports/backtest_summary.json",
+               "ml/reports/retrain_gate.json"]
 
 
 def main() -> int:
@@ -171,6 +180,7 @@ def push(groups: list[str], explicit: bool, dry_run: bool) -> int:
 def group_files(name: str) -> list[Path]:
     """Every file of a group, sorted, without logs, locks and temporary files."""
     roots = _group_roots(name)
+    owned_elsewhere = GROUP_EXCLUDES.get(name, [])
     files = []
     for root in roots:
         if root.is_file():
@@ -179,7 +189,9 @@ def group_files(name: str) -> list[Path]:
         if not root.is_dir():
             continue
         for path in root.rglob("*"):
-            if path.is_file() and not _excluded(path):
+            if not path.is_file() or _excluded(path):
+                continue
+            if not _owned_elsewhere(path, owned_elsewhere):
                 files.append(path)
     # Sort on the text, not the Path: Windows paths compare without case, Linux paths with it,
     # and the hash must come out the same on the PC and in Actions.
@@ -216,6 +228,11 @@ def _group_roots(name: str) -> list[Path]:
 def _relative_text(path: Path) -> str:
     relative = path.relative_to(V2_DIR)
     return relative.as_posix()
+
+
+def _owned_elsewhere(path: Path, owned: list[str]) -> bool:
+    relative = _relative_text(path)
+    return any(relative == prefix or relative.startswith(prefix + "/") for prefix in owned)
 
 
 def _excluded(path: Path) -> bool:

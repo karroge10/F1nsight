@@ -6,6 +6,9 @@ Run from v2/ml:
                                                                   # results are newer than the model
     uv run python scripts/retrain_if_better.py --no-promote       # dry run: everything up to the
                                                                   # comparison, never promotes
+    uv run python scripts/retrain_if_better.py --check-due        # print "due" or "not due: why"
+    uv run python scripts/retrain_if_better.py --force-promote    # promote whatever the comparison
+                                                                  # says (it is still logged)
     uv run python scripts/retrain_if_better.py --no-promote --seed 1 --gbm-bags 5 --nn-seeds 8
                                                                   # seed and ensemble sizes, passed
                                                                   # to f1ml.train and the backtest
@@ -81,6 +84,10 @@ def main() -> int:
         staging = Path(args.backtest_into)
         return run_staged_backtest(staging, ensemble)
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    if args.check_due:
+        reason = not_due_reason()
+        print(f"not due: {reason}" if reason else "due")
+        return 0
     if args.when_due:
         reason = not_due_reason()
         if reason:
@@ -89,7 +96,7 @@ def main() -> int:
     log_path = LOGS_DIR / f"retrain-{datetime.now():%Y%m%d-%H%M%S}.log"
     with log_path.open("a", encoding="utf-8") as log:
         try:
-            report = run_gate(log, args.no_promote, ensemble)
+            report = run_gate(log, args.no_promote, ensemble, args.force_promote)
         except Exception as exc:
             problem = f"{exc.__class__.__name__}: {exc}"
             _log(log, f"retrain gate failed: {problem}")
@@ -102,7 +109,8 @@ def main() -> int:
     return 0 if report["decision"] in FINISHED_DECISIONS else 1
 
 
-def run_gate(log, no_promote: bool = False, ensemble: list[str] | None = None) -> dict:
+def run_gate(log, no_promote: bool = False, ensemble: list[str] | None = None,
+             force: bool = False) -> dict:
     ensemble = ensemble or []
     criteria = [f"{stage} {metric} (tolerance {tolerance})" for stage, metric, _, tolerance in CRITERIA]
     report = {"startedAt": _now_iso(), "criteria": criteria,
@@ -148,10 +156,13 @@ def run_gate(log, no_promote: bool = False, ensemble: list[str] | None = None) -
         worse_text = ", ".join(comparison["worse"]) or "nothing"
         report["reason"] = f"dry run (--no-promote); worse on: {worse_text}"
         _log(log, f"dry run: would {verdict}; {report['currentModel']} stays, nothing promoted")
-    elif comparison["better_or_equal"]:
+    elif comparison["better_or_equal"] or force:
         promote(log, candidate, staging)
         report["decision"] = "promoted"
         report["reason"] = "candidate is not worse than the noise tolerance on any criterion"
+        if force:
+            worse_text = ", ".join(comparison["worse"]) or "nothing"
+            report["reason"] = f"forced (--force-promote); the comparison found worse: {worse_text}"
     else:
         report["decision"] = "rejected"
         report["reason"] = "worse on " + ", ".join(comparison["worse"])
@@ -268,7 +279,8 @@ def _trained_through_race_id() -> int:
     latest = _read_json(paths.MODELS_DIR / "latest.json")
     if not latest:
         return 0
-    meta_path = ML_DIR / latest["path"] / "meta.json"
+    folder = latest["path"].replace("\\", "/")
+    meta_path = ML_DIR / folder / "meta.json"
     meta = _read_json(meta_path) or {}
     return int(meta.get("trainedThroughRaceId", 0))
 
@@ -342,6 +354,10 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--when-due", action="store_true",
                         help="only run when results are newer than the current model (scheduled task)")
+    parser.add_argument("--check-due", action="store_true",
+                        help='print "due" or "not due: <reason>" and exit (cloud schedule)')
+    parser.add_argument("--force-promote", action="store_true",
+                        help="promote the candidate even if the comparison rejects it")
     parser.add_argument("--no-promote", action="store_true",
                         help="dry run: train, backtest and compare, but never promote or forecast")
     parser.add_argument("--seed", type=int, default=0, help="seed block for training and backtest")

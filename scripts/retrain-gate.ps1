@@ -9,8 +9,8 @@
 # The gate (ml\scripts\retrain_if_better.py) rebuilds features, trains, backtests and promotes
 # the new model only if it is not worse. It runs once per new race result, so after every race
 # weekend; a rejected candidate is not retried until the next race. After a promotion the
-# static site is rebuilt and uploaded (scripts\publish.ps1) and the new model, backtest and
-# forecast go to the cloud refresh state (cloud\state.py push, needs the gh CLI logged in).
+# static site is rebuilt and uploaded (scripts\publish.ps1) and the new model and backtest go
+# to the cloud refresh state (cloud\state.py push, needs the gh CLI logged in).
 # With -PullState the gate first pulls the cloud refresh's data (every group but the model), so
 # a PC that no longer refreshes by itself still retrains on the latest results.
 # Every check is appended to v2\logs\retrain-gate-checks.log.
@@ -28,7 +28,7 @@ $ml = Join-Path $root "ml"
 $python = Join-Path $ml ".venv\Scripts\python.exe"
 $statePython = Join-Path $root "pipeline\.venv\Scripts\python.exe"
 $stateScript = Join-Path $root "cloud\state.py"
-$dataGroups = "refresh-state,processed,serve,predictions,raw-openf1,raw-livetiming,raw-fastf1,raw-other"
+$dataGroups = "refresh-state,processed,serve,predictions,backtest,raw-openf1,raw-livetiming,raw-fastf1,raw-other"
 $logs = Join-Path $root "logs"
 $taskName = "F1nsight-retrain-gate"
 
@@ -59,7 +59,7 @@ function Main {
     }
     if ($text -match "retrain gate: promoted") {
         Publish-Site $checkLog
-        Invoke-State $checkLog @("push", "--groups", "model,predictions")
+        Invoke-State $checkLog @("push", "--groups", "model,backtest")
     }
     exit $code
 }

@@ -1,0 +1,28 @@
+# F1nsight: keep the scheduled workflows alive.
+#
+# GitHub disables scheduled workflows in a public repository after 60 days without activity
+# (the off-season). Once a month this re-enables the scheduled workflows through the API, which
+# restarts that count without adding commits.
+
+name: Keep schedules alive
+
+on:
+  schedule:
+    - cron: "0 5 1 * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Enable the scheduled workflows
+        run: |
+          for workflow in refresh.yml retrain-live.yml keepalive.yml; do
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/enable"
+            echo "enabled $workflow"
+          done

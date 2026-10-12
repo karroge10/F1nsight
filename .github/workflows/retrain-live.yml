@@ -1,0 +1,103 @@
+# F1nsight: the live retrain gate, run on GitHub's servers (CPU).
+#
+# Every 6 hours a cheap check (retrain_if_better.py --check-due) asks whether results contain a
+# race newer than the one the model was trained through and the gate has not run for it yet;
+# if so the gate trains, backtests and compares (about 2 hours). On a promotion the groups
+# "model" and "backtest" go to the release `state` and refresh.yml is started, so the forecast is
+# recomputed with the new model on the newest data and the site is deployed. A rejection pushes
+# the gate report (in "model") so the same race is not retried.
+#
+#   gh workflow run retrain-live.yml                  # run the gate now
+#   gh workflow run retrain-live.yml -f force=true    # promote even if the comparison rejects
+
+name: Retrain
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Promote the candidate even if the comparison rejects it (still logged)
+        type: boolean
+        default: false
+  schedule:
+    - cron: "23 */6 * * *"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: retrain-live
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONIOENCODING: utf-8
+      UV_FROZEN: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pipeline/uv.lock
+            ml/uv.lock
+
+      - name: Environments
+        run: |
+          uv sync --project pipeline
+          uv sync --project ml
+
+      - name: Due check
+        id: due
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          python3 cloud/state.py pull --groups processed,model
+          result=$(cd ml && uv run python scripts/retrain_if_better.py --check-due)
+          echo "$result"
+          if [ "$result" = "due" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Pull state
+        if: steps.due.outputs.run == 'true'
+        run: python3 cloud/state.py pull --skip serve
+
+      - name: Retrain gate
+        id: gate
+        if: steps.due.outputs.run == 'true'
+        working-directory: ml
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          args=()
+          if [ "$FORCE" = "true" ]; then args+=(--force-promote); fi
+          code=0
+          uv run python scripts/retrain_if_better.py "${args[@]}" || code=$?
+          decision=$(jq -r '.decision' reports/retrain_gate.json)
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          jq '{decision, reason, candidateModel, phaseSeconds, comparison}' reports/retrain_gate.json
+          exit $code
+
+      - name: Push the model
+        if: steps.gate.outputs.decision == 'promoted' || steps.gate.outputs.decision == 'rejected'
+        run: python3 cloud/state.py push --groups model,backtest
+
+      - name: Refresh with the new model
+        if: steps.gate.outputs.decision == 'promoted'
+        run: gh workflow run refresh.yml --ref "$GITHUB_REF_NAME"
+
+      - name: Keep the gate log and report
+        if: always() && steps.due.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrain-${{ github.run_id }}
+          path: |
+            logs/retrain-*.log
+            ml/reports/retrain_gate.json
+          retention-days: 30
