@@ -1,8 +1,9 @@
 # F1nsight
 
-A personal Formula 1 site that runs on this PC and costs nothing: a race forecast trained on the
-local GPU, an F1 Fantasy planner, live timing with a moving track map (and replays of any recent
-session), and the full stats archive since 1950. Every source is free and public; where a feature
+A personal Formula 1 site that costs nothing: refreshed, retrained and published by GitHub
+Actions (see "Cloud runs"), with this PC as a manual fallback. A race forecast, an F1 Fantasy
+planner, live timing with a moving track map (and replays of any recent session), and the full
+stats archive since 1950. Every source is free and public; where a feature
 would need a paid service, a free estimate is used and labelled as such. Shared rules for
 contributors are in `SPEC.md`.
 
@@ -46,7 +47,7 @@ All from the `v2` folder in PowerShell unless noted.
 | --- | --- |
 | Start everything and open the browser | `.\start.ps1` (live service on 8765, site on 3000; reuses a running dev server; `-Rebuild` forces a fresh build) |
 | Refresh after a session or race | `.\refresh.ps1` (`-Force`, `-Only fastf1,predict`, `-Skip openf1`) |
-| Schedule this weekend's refreshes | `.\scripts\schedule-weekend.ps1` (`-List`, `-Remove`, `-RemoveAll`, `-Season 2026 -Round 18`) |
+| Windows tasks for a weekend (fallback only, off while the cloud schedules run) | `.\scripts\schedule-weekend.ps1` (`-List`, `-Remove`, `-RemoveAll`, `-Season 2026 -Round 18`) |
 | Retrain, promote only if not worse | `.\scripts\retrain-gate.ps1 -Now` (or `cd ml; uv run python scripts/retrain_if_better.py`) |
 | Forecast only | `cd ml; uv run python -m f1ml.predict` |
 | Full history rebuild | `cd pipeline; uv run python -m f1p.history.update` |
@@ -86,76 +87,59 @@ candidate (immediately putting `models/latest.json` back to the current model), 
 candidate into `ml/staging/<version>/` and compares it with the published backtest on the races
 both cover. It promotes only if post-qualifying win log loss, post-qualifying Spearman and
 pre-weekend win log loss are all no worse than their seed-noise tolerance (0.031, 0.0013 and
-0.0061, measured over three seeds of the 5 ranker, 10 network ensemble); then it copies the staged backtest and history files
-into `data/predictions/` and runs `f1ml.predict`. Otherwise the current model stays. The decision
-and metrics are in `ml/reports/retrain_gate.json`, the run log in `logs/retrain-<time>.log`.
-Takes about 1.5 hours (backtest about 80 minutes).
+0.0061, measured over three seeds of the 5 ranker, 10 network ensemble); then it copies the
+staged backtest and history files into `data/predictions/` and runs `f1ml.predict`. Otherwise
+the current model stays. The decision and metrics are in `ml/reports/retrain_gate.json`, the run
+log in `logs/retrain-<time>.log`. Takes about 2 hours on a GitHub runner (backtest about 105
+minutes). `--no-promote` is a dry run, `--force-promote` promotes whatever the comparison says.
 
-## Scheduled tasks (Windows Task Scheduler)
+## Cloud runs (GitHub Actions): the primary path
 
-Created by `scripts\schedule-weekend.ps1` and `scripts\retrain-gate.ps1 -Register`. They run as
-the current user while logged on and start as soon as possible if the PC was off or asleep.
-Singapore Grand Prix 2026 (round 17, sprint weekend), local time is UTC+4:
+Everything scheduled runs on GitHub's servers (free for a public repo), so the hosted site
+https://f1nsight.pages.dev updates with the PC off. Secrets: `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`.
 
-| Task | Local | UTC | After |
-| --- | --- | --- | --- |
-| `F1nsight-refresh-FP1` | Fri 09 Oct 14:30 | 10:30 | FP1 08:30 to 09:30 UTC |
-| `F1nsight-refresh-FP1-retry` | Fri 09 Oct 17:30 | 13:30 | |
-| `F1nsight-refresh-SQ` | Fri 09 Oct 18:15 | 14:15 | Sprint qualifying 12:30 to 13:15 UTC |
-| `F1nsight-refresh-SQ-retry` | Fri 09 Oct 21:15 | 17:15 | |
-| `F1nsight-refresh-Sprint` | Sat 10 Oct 15:00 | 11:00 | Sprint 09:00 UTC |
-| `F1nsight-refresh-Sprint-retry` | Sat 10 Oct 18:00 | 14:00 | |
-| `F1nsight-refresh-Quali` | Sat 10 Oct 19:00 | 15:00 | Qualifying 13:00 to 14:00 UTC |
-| `F1nsight-refresh-Quali-retry` | Sat 10 Oct 22:00 | 18:00 | |
-| `F1nsight-refresh-Race` | Sun 11 Oct 19:15 | 15:15 | Race 12:00 UTC, about 2 h |
-| `F1nsight-refresh-Race-retry` | Sun 11 Oct 22:15 | 18:15 | |
-| `F1nsight-refresh-weekly` | Mondays 10:00 | 06:00 | `refresh.ps1 -Force`, then registers the next weekend's tasks |
-| `F1nsight-retrain-gate` | every 6 h | | runs the retrain gate once per new race result, so after every race weekend |
+| Workflow | When (UTC) | What |
+| --- | --- | --- |
+| `refresh.yml` (Refresh) | every 30 minutes, `7,37 * * * *` | the gate (`python -m f1p.weekend --due`) stops in about a minute unless a planned run fell due since the last cloud run: session end + 1 h, a retry 3 h later, race morning, Monday 06:00 forced. Then pull the state, `python -m f1p.refresh` (CPU forecast), site images, build, `check-export.mjs`, `wrangler pages deploy` from the repo root, push the changed groups |
+| `retrain-live.yml` (Retrain) | every 6 hours, `23 */6 * * *` | `retrain_if_better.py --check-due`: only when results have a race newer than the model and the gate has not run for it. Runs the gate (about 2 h); on a promotion pushes `model` and `backtest`, then starts Refresh so the forecast and the site use the new model |
+| `keepalive.yml` | monthly, `0 5 1 * *` | re-enables the scheduled workflows, which GitHub would switch off after 60 days without activity |
+| `retrain.yml` (Retrain trial) | manual | the gate with `--no-promote`, one job per seed: timing and noise checks, pushes nothing |
 
-Because the weekly task re-registers the per-session tasks for the next race (same names,
-overwritten), the schedule keeps itself current. List, inspect and remove:
-
-```powershell
-.\scripts\schedule-weekend.ps1 -List                     # next run, last run, last result
-Get-ScheduledTask -TaskName 'F1nsight-*'                 # same, plain
-Start-ScheduledTask -TaskName 'F1nsight-refresh-FP1'     # run one now
-.\scripts\schedule-weekend.ps1 -Remove                   # per-session tasks only
-.\scripts\retrain-gate.ps1 -Unregister                   # the retrain gate task
-.\scripts\schedule-weekend.ps1 -RemoveAll                # every F1nsight task
-```
-
-The separate `F1v2-probe-SGP-FP1` / `F1v2-probe-SGP-SQ` tasks (static archive probe) are not
-managed here.
-
-## Cloud refresh (GitHub Actions)
-
-`.github/workflows/refresh.yml` runs the same refresh, forecast and upload on GitHub's servers
-(free for a public repo), so the hosted site updates with the PC off. Retraining stays on the PC.
-
-- **State**: the data a refresh builds on is kept as assets of the GitHub release `state`
-  (`cloud/state.py`): `logs/refresh_state.json`, `data/processed`, `data/serve`,
-  `data/predictions`, the current model (`ml/models/latest.json`, its folder, `params.json`,
-  the backtest rows in `ml/reports`) and `data/raw` without logs. Each group is one tar.gz; only
-  groups whose files changed are uploaded again. `data/fastf1_cache` is not kept: the refresh
-  downloads the sessions it needs.
-- **Run**: pull the state, `python -m f1p.refresh` (Linux, CPU forecast), site images, build,
-  `check-export.mjs`, `wrangler pages deploy` from the repo root, push the changed groups.
-  Secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-- **Schedule** (commented out until it goes live): every 30 minutes the gate runs
-  `python -m f1p.weekend --due`, which runs the refresh only when one of the PC task times
-  (session end + 1 h, a retry 3 h later, race morning, Monday 06:00 UTC forced) passed since
-  the last cloud run.
-- **Models from the PC**: after a promotion `scripts\retrain-gate.ps1` pushes the groups
-  `model` and `predictions`; the next cloud run sees the new `latest.json` and forecasts with it.
-  With `-PullState` the gate first pulls the cloud's data, for a PC that no longer refreshes.
+- **State**: the data the runs build on is kept as assets of the GitHub release `state`
+  (`cloud/state.py`), one tar.gz per group; only groups whose files changed are uploaded again.
+  Groups: `refresh-state` (`logs/refresh_state.json`), `processed`, `serve`, `predictions`
+  (`next.json`, `fantasy.json`), `backtest` (`backtest.json`, `history/`), `model`
+  (`latest.json`, its folder, `params.json`, the backtest rows and the gate report in
+  `ml/reports`) and `data/raw` without logs in four groups. The refresh never writes `model` or
+  `backtest` and the retrain never writes the data groups, so neither push overwrites the other.
+  `data/fastf1_cache` is not kept: the refresh downloads the sessions it needs.
 
 | What | Command |
 | --- | --- |
-| Run it now | `gh workflow run refresh.yml` (`-f force=true`, `-f only=fastf1,predict`, `-f publish=false`) |
-| Watch it | `gh run watch` or `gh run view --log` |
+| Refresh now | `gh workflow run refresh.yml` (`-f force=true`, `-f only=fastf1,predict`, `-f publish=false`) |
+| Retrain now | `gh workflow run retrain-live.yml` (`-f force=true` promotes even if the comparison rejects) |
+| Watch a run | `gh run watch` or `gh run view --log` |
 | State per group, local and remote | `pipeline\.venv\Scripts\python.exe cloud\state.py status` |
-| Push the PC's data (first seed) | `pipeline\.venv\Scripts\python.exe cloud\state.py push --all` |
 | Get the cloud's data on the PC | `pipeline\.venv\Scripts\python.exe cloud\state.py pull` |
+
+## PC scripts (manual fallback)
+
+The PC no longer runs anything on a schedule (the Windows tasks were removed on 13 Oct 2026).
+The scripts still work for a manual run, for example when GitHub Actions is down or to train
+on the GPU:
+
+```powershell
+.\refresh.ps1                                  # refresh, forecast and publish from this PC
+.\scripts\retrain-gate.ps1 -Now -PullState     # pull the cloud's data, retrain on the GPU, and
+                                               # after a promotion push model + backtest to the cloud
+pipeline\.venv\Scripts\python.exe cloud\state.py pull    # first, so a PC refresh starts from the cloud's data
+```
+
+Pull the cloud state before a PC refresh and keep the cloud schedules in mind: a PC refresh
+publishes to the same Pages project but does not push its data back, so the next cloud run
+works from its own state. `scripts\schedule-weekend.ps1` and `retrain-gate.ps1 -Register`
+would bring the Windows tasks back; do not use them while the cloud schedules are on.
 
 ## Tests
 
@@ -189,27 +173,23 @@ Credits text for the site: `site/CREDITS.md`.
 
 ## Weekend checklist
 
-Before the weekend (Wednesday or Thursday):
+Nothing has to run on the PC. Before the weekend, check https://f1nsight.pages.dev shows the
+coming race (stage `pre-weekend`) and that the last Refresh runs are green
+(`gh run list --workflow refresh.yml`).
 
-1. `.\start.ps1` and check the forecast page shows the coming race (stage `pre-weekend`).
-2. `.\scripts\schedule-weekend.ps1 -List`: the per-session tasks show this weekend's dates. If
-   not, run `.\scripts\schedule-weekend.ps1`.
-3. Leave the PC on (or asleep, the tasks catch up when it wakes) and logged in.
-
-During the weekend, nothing to do. After each session a task runs the refresh; the forecast
-moves to `post-practice` after the last session before qualifying and to `post-qualifying` after
-qualifying. To check a run: `logs\refresh-last.json`, or the newest `logs\refresh-*.log`.
-To run one by hand: `.\refresh.ps1`.
+During the weekend the Refresh workflow runs about an hour after each session and again three
+hours later; the forecast moves to `post-practice` after the last session before qualifying and
+to `post-qualifying` after qualifying. To check a run: `gh run view <id> --log`; the summary is
+printed by the Result step and the logs are kept as an artifact.
 
 After the race:
 
-1. The race and retry tasks pick up results once Jolpica has them; the Monday weekly task runs
-   `refresh.ps1 -Force` regardless. Check `/races/<season>/<round>` shows the results and the home
-   page track record has the race.
-2. Retrain when it is worth it (new results, more FastF1 data): `.\scripts\retrain-gate.ps1 -Now`
-   (about 1.5 hours, GPU). It keeps the current model unless the new one is at least as good.
-3. If a step failed: read the summary at the end of the log. Steps are independent, so the rest
-   of the data is still fresh; fix the cause and run `.\refresh.ps1 -Only <step>`.
+1. The race and retry runs pick up results once Jolpica has them; the Monday 06:00 UTC run is
+   forced. Check `/races/<season>/<round>` shows the results.
+2. Within six hours of the results the Retrain workflow runs the gate (about 2 hours) and, on a
+   promotion, starts a Refresh with the new model.
+3. If a step failed: the summary names it. Steps are independent, so the rest of the data is
+   still fresh; fix the cause and run `gh workflow run refresh.yml -f only=<step>`.
 
 ## Troubleshooting
 
