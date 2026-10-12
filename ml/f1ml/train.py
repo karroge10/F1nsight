@@ -2,6 +2,11 @@
 
     uv run python -m f1ml.train                 # train the final bundle with saved params
     uv run python -m f1ml.train --tune          # tune first (about 30 to 60 minutes)
+    uv run python -m f1ml.train --seed 2 --gbm-bags 5 --nn-seeds 8
+
+--seed moves every random source of the fit (XGBoost subsampling, network initialisation and
+batch order) to a separate block of seeds; 0 is the historical default. --gbm-bags and
+--nn-seeds set the ensemble sizes (seed-averaged XGBoost rankers, set transformer networks).
 
 Tuning folds train on every season before the validation season and validate on it
 (2021, 2022, 2023). The backtest seasons 2024 to 2026 are never used for tuning.
@@ -34,6 +39,7 @@ def main() -> None:
     parser.add_argument("--trials", type=int, default=40, help="trials per GBM study")
     parser.add_argument("--nn-trials", type=int, default=10, help="trials for the network")
     parser.add_argument("--no-nn", action="store_true", help="GBM only (faster)")
+    add_ensemble_arguments(parser)
     args = parser.parse_args()
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -43,6 +49,7 @@ def main() -> None:
         params = tune_all(features, args.trials, args.nn_trials, use_nn=not args.no_nn)
     else:
         params = load_params()
+    apply_ensemble(params, args)
     train_final(features, params, use_nn=not args.no_nn)
 
 
@@ -61,6 +68,22 @@ def load_params() -> dict:
     for key, value in defaults.items():
         saved.setdefault(key, value)
     return saved
+
+
+def add_ensemble_arguments(parser: argparse.ArgumentParser) -> None:
+    """--seed, --gbm-bags, --nn-seeds: shared by f1ml.train, f1ml.backtest and the retrain gate."""
+    parser.add_argument("--seed", type=int, default=0, help="seed block for every random source")
+    parser.add_argument("--gbm-bags", type=int, help="XGBoost rankers averaged per model")
+    parser.add_argument("--nn-seeds", type=int, help="set transformer networks averaged")
+
+
+def apply_ensemble(params: dict, args: argparse.Namespace) -> None:
+    """Write the seed and ensemble sizes from the command line into params (kept in meta.json)."""
+    params["seed"] = args.seed
+    if args.gbm_bags:
+        params["gbm_bags"] = args.gbm_bags
+    if args.nn_seeds:
+        params["nn"]["seeds"] = args.nn_seeds
 
 
 def default_params() -> dict:

@@ -115,11 +115,12 @@ class Bundle:
         boosters = [*self.race_models.values(), *self.quali_models.values(),
                     *self.dnf_models.values()]
         for booster in boosters:
-            if isinstance(booster, xgb.Booster):
+            if isinstance(booster, (xgb.Booster, gbm.BoosterBag)):
                 booster.set_param({"device": gbm.pick_device()})
 
 
 LONG_WINDOW = 96
+SEED_STRIDE = 1000
 LONG_CHUNK = 24
 FIRST_PICK_WINDOW = 48
 
@@ -202,13 +203,14 @@ def long_window_schedules(train: pd.DataFrame, params: dict, stack: dict) -> Non
             gated_before = feat.stage_frame(before, stage)
             gated_target = feat.stage_frame(target, stage)
             stage_params = rank_params.get(stage, rank_params["default"])
-            ranker = gbm.train_ranker(gated_before, columns, "y_finish", stage_params)
+            ranker = _train_ranker(gated_before, columns, "y_finish", stage_params, params)
             scored = target[["raceId", "y_finish", "y_quali", "grid"]].copy()
             scored["y_finish"] = _finishers_only(target)
             scored["race"] = gbm.predict(ranker, gated_target, columns)
             if stage in QUALI_STAGES:
                 quali_params = rank_params.get("quali", rank_params["default"])
-                quali_ranker = gbm.train_ranker(gated_before, columns, "y_quali", quali_params)
+                quali_ranker = _train_ranker(gated_before, columns, "y_quali", quali_params,
+                                             params)
                 scored["quali"] = gbm.predict(quali_ranker, gated_target, columns)
             collected[stage].append(scored)
     for stage in feat.STAGES:
@@ -253,11 +255,12 @@ def _fit_base(train: pd.DataFrame, params: dict, use_nn: bool, verbose: bool) ->
         stage_params = rank_params.get(stage, rank_params["default"])
         gated = feat.stage_frame(train, stage)
         columns = feat.stage_columns(stage)
-        bundle.race_models[stage] = gbm.train_ranker(gated, columns, "y_finish", stage_params)
+        bundle.race_models[stage] = _train_ranker(gated, columns, "y_finish", stage_params,
+                                                  params)
         if stage in QUALI_STAGES:
             quali_params = rank_params.get("quali", rank_params["default"])
-            bundle.quali_models[stage] = gbm.train_ranker(gated, columns, "y_quali",
-                                                          quali_params)
+            bundle.quali_models[stage] = _train_ranker(gated, columns, "y_quali", quali_params,
+                                                       params)
     dnf_params = params["dnf"]
     decay = dnf_params.get("decay", 0.85)
     pre_model = gbm.DnfLogit(with_grid=False, decay=decay)
@@ -266,12 +269,26 @@ def _fit_base(train: pd.DataFrame, params: dict, use_nn: bool, verbose: bool) ->
     bundle.dnf_models["quali"] = quali_model.fit(train)
     bundle.timings["gbm_seconds"] = time.time() - started
     if use_nn:
-        set_model = nn.train_set_model(train, params["nn"], verbose=verbose)
+        nn_params = dict(params["nn"], seed=_seed_base(params))
+        set_model = nn.train_set_model(train, nn_params, verbose=verbose)
         bundle.set_model = set_model
         bundle.timings["nn_seconds"] = set_model.train_seconds
     if verbose:
         print(f"    base models trained: {bundle.timings}")
     return bundle
+
+
+def _train_ranker(gated: pd.DataFrame, columns: list, order_col: str, stage_params: dict,
+                  params: dict):
+    """A ranker (bagged when params["gbm_bags"] > 1) seeded from the run's seed."""
+    seed = _seed_base(params)
+    bags = int(params.get("gbm_bags", 1))
+    return gbm.train_ranker(gated, columns, order_col, stage_params, seed=seed, bags=bags)
+
+
+def _seed_base(params: dict) -> int:
+    """First seed of every random source in a fit; seeds of one run never meet another's."""
+    return int(params.get("seed", 0)) * SEED_STRIDE
 
 
 def _fit_dnf_stack(scored: pd.DataFrame, use_nn: bool) -> dict:

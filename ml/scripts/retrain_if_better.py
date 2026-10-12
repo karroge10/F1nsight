@@ -6,6 +6,9 @@ Run from v2/ml:
                                                                   # results are newer than the model
     uv run python scripts/retrain_if_better.py --no-promote       # dry run: everything up to the
                                                                   # comparison, never promotes
+    uv run python scripts/retrain_if_better.py --no-promote --seed 1 --gbm-bags 5 --nn-seeds 8
+                                                                  # seed and ensemble sizes, passed
+                                                                  # to f1ml.train and the backtest
 
 Steps:
 1. (with --when-due) exit quietly unless results.parquet has a race newer than the one the current
@@ -70,9 +73,10 @@ FINISHED_DECISIONS = ("promoted", "rejected", "would promote", "would reject")
 
 def main() -> int:
     args = _parse_args()
+    ensemble = _ensemble_arguments(args)
     if args.backtest_into:
         staging = Path(args.backtest_into)
-        return run_staged_backtest(staging)
+        return run_staged_backtest(staging, ensemble)
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
     if args.when_due:
         reason = not_due_reason()
@@ -82,7 +86,7 @@ def main() -> int:
     log_path = LOGS_DIR / f"retrain-{datetime.now():%Y%m%d-%H%M%S}.log"
     with log_path.open("a", encoding="utf-8") as log:
         try:
-            report = run_gate(log, args.no_promote)
+            report = run_gate(log, args.no_promote, ensemble)
         except Exception as exc:
             problem = f"{exc.__class__.__name__}: {exc}"
             _log(log, f"retrain gate failed: {problem}")
@@ -95,9 +99,10 @@ def main() -> int:
     return 0 if report["decision"] in FINISHED_DECISIONS else 1
 
 
-def run_gate(log, no_promote: bool = False) -> dict:
+def run_gate(log, no_promote: bool = False, ensemble: list[str] | None = None) -> dict:
+    ensemble = ensemble or []
     report = {"startedAt": _now_iso(), "criteria": [f"{s} {m}" for s, m, _ in CRITERIA],
-              "dryRun": no_promote, "phaseSeconds": {}}
+              "dryRun": no_promote, "ensembleArguments": ensemble, "phaseSeconds": {}}
     report["resultsThroughRaceId"] = _latest_results_race_id()
     _log(log, "retrain gate started" + (" (no promote)" if no_promote else ""))
     phase_started = time.monotonic()
@@ -112,7 +117,7 @@ def run_gate(log, no_promote: bool = False) -> dict:
         _run(log, "ml", "f1ml.features")
         _phase_done(log, report, "features", phase_started)
         phase_started = time.monotonic()
-        _run(log, "ml", "f1ml.train")
+        _run(log, "ml", "f1ml.train", *ensemble)
         _phase_done(log, report, "train", phase_started)
         candidate = _read_json(paths.MODELS_DIR / "latest.json")
         if current:
@@ -125,7 +130,7 @@ def run_gate(log, no_promote: bool = False) -> dict:
         shutil.rmtree(staging)
     script = str(Path(__file__).resolve())
     staging_text = str(staging)
-    command = [sys.executable, script, "--backtest-into", staging_text]
+    command = [sys.executable, script, "--backtest-into", staging_text, *ensemble]
     phase_started = time.monotonic()
     _run_command(log, command, ML_DIR)
     _phase_done(log, report, "backtest", phase_started)
@@ -151,7 +156,7 @@ def run_gate(log, no_promote: bool = False) -> dict:
     return report
 
 
-def run_staged_backtest(staging: Path) -> int:
+def run_staged_backtest(staging: Path, ensemble: list[str]) -> int:
     """Child process: f1ml.backtest with every output redirected into `staging`."""
     predictions = staging / "predictions"
     paths.PREDICTIONS_DIR = predictions
@@ -161,7 +166,7 @@ def run_staged_backtest(staging: Path) -> int:
         folder.mkdir(parents=True, exist_ok=True)
     from f1ml import backtest
 
-    sys.argv = ["f1ml.backtest"]
+    sys.argv = ["f1ml.backtest", *ensemble]
     backtest.main()
     return 0
 
@@ -268,10 +273,20 @@ def _bulk_download_running() -> bool:
     return bool(running)
 
 
-def _run(log, project: str, module: str) -> None:
+def _ensemble_arguments(args: argparse.Namespace) -> list[str]:
+    """--seed / --gbm-bags / --nn-seeds as given, to pass on to f1ml.train and the backtest."""
+    arguments = ["--seed", str(args.seed)]
+    if args.gbm_bags:
+        arguments += ["--gbm-bags", str(args.gbm_bags)]
+    if args.nn_seeds:
+        arguments += ["--nn-seeds", str(args.nn_seeds)]
+    return arguments
+
+
+def _run(log, project: str, module: str, *extra: str) -> None:
     venv = V2_DIR / project / ".venv"
     python = venv / "Scripts" / "python.exe" if os.name == "nt" else venv / "bin" / "python"
-    command = [str(python), "-m", module]
+    command = [str(python), "-m", module, *extra]
     cwd = V2_DIR / project
     _run_command(log, command, cwd)
 
@@ -324,6 +339,9 @@ def _parse_args() -> argparse.Namespace:
                         help="only run when results are newer than the current model (scheduled task)")
     parser.add_argument("--no-promote", action="store_true",
                         help="dry run: train, backtest and compare, but never promote or forecast")
+    parser.add_argument("--seed", type=int, default=0, help="seed block for training and backtest")
+    parser.add_argument("--gbm-bags", type=int, help="XGBoost rankers averaged per model")
+    parser.add_argument("--nn-seeds", type=int, help="set transformer networks averaged")
     parser.add_argument("--backtest-into", help=argparse.SUPPRESS)
     return parser.parse_args()
 

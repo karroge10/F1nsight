@@ -5,23 +5,38 @@
 # promoted, the forecast is not rerun, the state is not pushed and the site is not touched; the
 # gate log and ml/reports/retrain_gate.json are kept as an artifact.
 #
-#   gh workflow run retrain.yml
+#   gh workflow run retrain.yml                                   # seeds 1, 2, 3 in parallel
+#   gh workflow run retrain.yml -f seeds="[0]" -f gbm_bags=5 -f nn_seeds=10
 
 name: Retrain trial
 
 on:
   workflow_dispatch:
+    inputs:
+      seeds:
+        description: JSON list of seeds, one job each (they run in parallel)
+        type: string
+        default: "[1, 2, 3]"
+      gbm_bags:
+        description: XGBoost rankers averaged per model (empty keeps the saved params)
+        type: string
+        default: ""
+      nn_seeds:
+        description: Set transformer networks averaged (empty keeps the saved params)
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
-concurrency:
-  group: retrain
-  cancel-in-progress: false
-
 jobs:
   retrain:
+    name: retrain seed ${{ matrix.seed }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: ${{ fromJSON(inputs.seeds) }}
     timeout-minutes: 355
     env:
       GH_TOKEN: ${{ github.token }}
@@ -54,7 +69,15 @@ jobs:
 
       - name: Retrain gate (no promote)
         working-directory: ml
-        run: uv run python scripts/retrain_if_better.py --no-promote
+        env:
+          SEED: ${{ matrix.seed }}
+          GBM_BAGS: ${{ inputs.gbm_bags }}
+          NN_SEEDS: ${{ inputs.nn_seeds }}
+        run: |
+          args=(--no-promote --seed "$SEED")
+          if [ -n "$GBM_BAGS" ]; then args+=(--gbm-bags "$GBM_BAGS"); fi
+          if [ -n "$NN_SEEDS" ]; then args+=(--nn-seeds "$NN_SEEDS"); fi
+          uv run python scripts/retrain_if_better.py "${args[@]}"
 
       - name: Timings
         if: always()
@@ -68,7 +91,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: retrain-trial-${{ github.run_id }}
+          name: retrain-trial-${{ github.run_id }}-seed${{ matrix.seed }}
           path: |
             logs/retrain-*.log
             ml/reports/retrain_gate.json

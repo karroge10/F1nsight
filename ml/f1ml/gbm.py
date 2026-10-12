@@ -47,8 +47,12 @@ DNF_QUALI_COLUMNS = DNF_COLUMNS + ["grid", "q_pos", "pitlane"]
 
 
 def train_ranker(frame: pd.DataFrame, columns: list[str], order_col: str,
-                 params: dict, seed: int = 0) -> xgb.Booster:
-    """Ranker over races; rows without an order (DNF, no quali time) are left out."""
+                 params: dict, seed: int = 0, bags: int = 1):
+    """Ranker over races; rows without an order (DNF, no quali time) are left out.
+
+    With bags > 1 the ranker is trained `bags` times with seeds seed, seed + 1, ... (row and
+    column subsampling differ) and returned as a BoosterBag that averages their scores.
+    """
     ranked = frame[frame[order_col].notna()].sort_values(["raceId", order_col])
     group_sizes = ranked.groupby("raceId", sort=True).size()
     ranked = ranked[ranked["raceId"].map(group_sizes) >= 2]
@@ -73,7 +77,12 @@ def train_ranker(frame: pd.DataFrame, columns: list[str], order_col: str,
         booster_params["lambdarank_num_pair_per_sample"] = 10
         booster_params["ndcg_exp_gain"] = False
     rounds = int(params["num_boost_round"])
-    return xgb.train(booster_params, matrix, num_boost_round=rounds)
+    boosters = []
+    for bag in range(bags):
+        booster_params["seed"] = seed + bag
+        booster = xgb.train(booster_params, matrix, num_boost_round=rounds)
+        boosters.append(booster)
+    return boosters[0] if bags == 1 else BoosterBag(boosters)
 
 
 def train_dnf(frame: pd.DataFrame, columns: list[str], params: dict,
@@ -111,6 +120,29 @@ def importance(booster: xgb.Booster) -> dict[str, float]:
     gains = booster.get_score(importance_type="total_gain")
     total = sum(gains.values()) or 1.0
     return {name: value / total for name, value in gains.items()}
+
+
+class BoosterBag:
+    """Several boosters trained with different seeds; answers like one xgb.Booster (mean)."""
+
+    def __init__(self, boosters: list[xgb.Booster]):
+        self.boosters = boosters
+
+    def predict(self, matrix: xgb.DMatrix, **options) -> np.ndarray:
+        outputs = [booster.predict(matrix, **options) for booster in self.boosters]
+        return np.mean(outputs, axis=0)
+
+    def get_score(self, importance_type: str) -> dict[str, float]:
+        totals: dict[str, float] = {}
+        for booster in self.boosters:
+            scores = booster.get_score(importance_type=importance_type)
+            for name, value in scores.items():
+                totals[name] = totals.get(name, 0.0) + value / len(self.boosters)
+        return totals
+
+    def set_param(self, values: dict) -> None:
+        for booster in self.boosters:
+            booster.set_param(values)
 
 
 def pick_device() -> str:

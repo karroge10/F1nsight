@@ -36,6 +36,7 @@ from f1ml import features as feat
 from f1ml.features import History
 
 BASELINE_SEASONS = (2014, 2023)
+SIM_SEED_STRIDE = 1_000_000
 
 
 def main() -> None:
@@ -48,6 +49,7 @@ def main() -> None:
     parser.add_argument("--no-history", action="store_true", help="skip history JSON files")
     parser.add_argument("--label", help="experiment run: write scorecard rows only")
     parser.add_argument("--features", help="feature parquet to use instead of the cache")
+    train.add_ensemble_arguments(parser)
     args = parser.parse_args()
     warnings.filterwarnings("ignore", category=RuntimeWarning)
     paths.ensure_dirs()
@@ -55,7 +57,7 @@ def main() -> None:
     with gpu.GpuMonitor() as monitor:
         write_history = not args.no_history and not args.label
         result = run_backtest(args.seasons, args.retrain_every, args.sims, not args.no_nn,
-                              args.limit, write_history, args.features)
+                              args.limit, write_history, args.features, args)
     result["summary"]["gpu"] = monitor.summary()
     result["summary"]["seconds"] = round(time.time() - started, 1)
     write_scorecard_rows(result, args.label or "published")
@@ -65,11 +67,17 @@ def main() -> None:
 
 
 def run_backtest(seasons, retrain_every: int, sims: int, use_nn: bool, limit: int,
-                 write_history: bool, features_path: str | None = None) -> dict:
+                 write_history: bool, features_path: str | None = None,
+                 ensemble: argparse.Namespace | None = None) -> dict:
+    """Walk-forward backtest. `ensemble` (--seed, --gbm-bags, --nn-seeds) also moves the
+    simulation seeds, so two seeds give two independent runs end to end."""
     features = train.load_features()
     if features_path:
         features = pd.read_parquet(features_path)
     params = train.load_params()
+    if ensemble is not None:
+        train.apply_ensemble(params, ensemble)
+    sim_offset = SIM_SEED_STRIDE * int(params.get("seed", 0))
     history = History.load()
     labelled = features[features["y_finish"].notna()]
     grid_table = metrics.empirical_slot_table(labelled, "grid", BASELINE_SEASONS)
@@ -100,7 +108,7 @@ def run_backtest(seasons, retrain_every: int, sims: int, use_nn: bool, limit: in
             race_started = time.time()
             record, rows, fantasy_eval, payload, scored = evaluate_race(
                 trained, trained_info, history, features, race_id, grid_table, champ_table,
-                sims)
+                sims, sim_offset)
             scorecard_cars.extend(scored["cars"])
             scorecard_races.extend(scored["races"])
             races.append(record)
@@ -120,7 +128,7 @@ def run_backtest(seasons, retrain_every: int, sims: int, use_nn: bool, limit: in
 
 
 def evaluate_race(trained, trained_info, history, features, race_id, grid_table, champ_table,
-                  sims):
+                  sims, sim_offset: int = 0):
     frame = features[features["raceId"] == race_id].reset_index(drop=True)
     season = race_id // 100
     round_number = race_id % 100
@@ -141,7 +149,7 @@ def evaluate_race(trained, trained_info, history, features, race_id, grid_table,
         with_title = stage == "post-qualifying"
         result = forecast.forecast_race(
             trained, frame, stage, extras, history=history if with_title else None,
-            sims=sims, seed=race_id, standings=standings if with_title else None)
+            sims=sims, seed=race_id + sim_offset, standings=standings if with_title else None)
         forecasts[stage] = result
         summary = result.summary
         stage_metrics = metrics.race_metrics(summary["expectedPosition"], summary["pWin"],
@@ -159,7 +167,7 @@ def evaluate_race(trained, trained_info, history, features, race_id, grid_table,
                                      summary["expectedPoints"][i], actual_points[i]))
     locked = forecast.lock_frame(frame)
     forecasts["lock"] = forecast.forecast_race(trained, locked, "post-practice", extras,
-                                               sims=sims, seed=race_id + 7)
+                                               sims=sims, seed=race_id + 7 + sim_offset)
     record["baselines"] = baseline_metrics(history, frame, race_id, actual, dnf, grid_table,
                                            champ_table)
     assets = export.AssetBook(season, round_number)

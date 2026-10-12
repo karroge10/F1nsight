@@ -132,7 +132,8 @@ def train_set_model(frame: pd.DataFrame, params: dict, verbose: bool = False) ->
     tensors["weight"] = weights.astype(np.float32)
     model = SetModel(preprocessor, params)
     seeds = int(params["seeds"])
-    for seed in range(seeds):
+    first_seed = int(params.get("seed", 0))
+    for seed in range(first_seed, first_seed + seeds):
         network = _fit_network(tensors, params, seed, verbose)
         model.networks.append(network)
     model.train_seconds = time.time() - started
