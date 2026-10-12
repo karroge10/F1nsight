@@ -1,0 +1,76 @@
+# F1nsight: the retrain gate on a GitHub runner (CPU), as a timing trial.
+#
+# Runs ml/scripts/retrain_if_better.py --no-promote on the cloud refresh state: features, train,
+# the staged walk-forward backtest and the comparison with the current model. Nothing is
+# promoted, the forecast is not rerun, the state is not pushed and the site is not touched; the
+# gate log and ml/reports/retrain_gate.json are kept as an artifact.
+#
+#   gh workflow run retrain.yml
+
+name: Retrain trial
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retrain
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONIOENCODING: utf-8
+      UV_FROZEN: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Runner
+        run: |
+          echo "cpus: $(nproc)"
+          free -h
+          lscpu | grep -E "Model name|^CPU\(s\)|Thread|MHz" || true
+          df -h . | tail -1
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pipeline/uv.lock
+            ml/uv.lock
+
+      - name: Environments
+        run: |
+          uv sync --project pipeline
+          uv sync --project ml
+
+      - name: Pull state
+        run: python3 cloud/state.py pull --skip serve
+
+      - name: Retrain gate (no promote)
+        working-directory: ml
+        run: uv run python scripts/retrain_if_better.py --no-promote
+
+      - name: Timings
+        if: always()
+        run: |
+          log=$(ls -t logs/retrain-*.log 2>/dev/null | head -1)
+          if [ -z "$log" ]; then echo "no gate log"; exit 0; fi
+          grep -E "phase |retrained before|seconds:|dry run|retrain gate" "$log" || true
+          jq '{decision, reason, phaseSeconds, comparison}' ml/reports/retrain_gate.json || true
+
+      - name: Keep the gate log and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrain-trial-${{ github.run_id }}
+          path: |
+            logs/retrain-*.log
+            ml/reports/retrain_gate.json
+            ml/staging/*/predictions/backtest.json
+          retention-days: 30

@@ -4,6 +4,8 @@ Run from v2/ml:
     uv run python scripts/retrain_if_better.py                    # run the gate now
     uv run python scripts/retrain_if_better.py --when-due         # scheduled task: run only when
                                                                   # results are newer than the model
+    uv run python scripts/retrain_if_better.py --no-promote       # dry run: everything up to the
+                                                                  # comparison, never promotes
 
 Steps:
 1. (with --when-due) exit quietly unless results.parquet has a race newer than the one the current
@@ -21,7 +23,9 @@ Steps:
    and staging stay on disk for inspection.
 
 The decision and both sets of metrics go to ml/reports/retrain_gate.json; the full output to
-v2/logs/retrain-<time>.log.
+v2/logs/retrain-<time>.log. Seconds per phase (FastF1 tables, features, train, backtest) are in
+the report too. With --no-promote the decision is "would promote" or "would reject": nothing is
+copied, f1ml.predict does not run and models/latest.json keeps pointing at the current model.
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -60,6 +65,7 @@ CRITERIA = [
 ]
 # Floating point slack only; any real regression rejects the candidate.
 EPSILON = 1e-9
+FINISHED_DECISIONS = ("promoted", "rejected", "would promote", "would reject")
 
 
 def main() -> int:
@@ -76,7 +82,7 @@ def main() -> int:
     log_path = LOGS_DIR / f"retrain-{datetime.now():%Y%m%d-%H%M%S}.log"
     with log_path.open("a", encoding="utf-8") as log:
         try:
-            report = run_gate(log)
+            report = run_gate(log, args.no_promote)
         except Exception as exc:
             problem = f"{exc.__class__.__name__}: {exc}"
             _log(log, f"retrain gate failed: {problem}")
@@ -86,21 +92,28 @@ def main() -> int:
     report["trigger"] = "due" if args.when_due else "manual"
     _write_json(GATE_REPORT, report)
     print(f"retrain gate: {report['decision']} ({report.get('reason', '')}); report {GATE_REPORT}")
-    return 0 if report["decision"] in ("promoted", "rejected") else 1
+    return 0 if report["decision"] in FINISHED_DECISIONS else 1
 
 
-def run_gate(log) -> dict:
-    report = {"startedAt": _now_iso(), "criteria": [f"{s} {m}" for s, m, _ in CRITERIA]}
+def run_gate(log, no_promote: bool = False) -> dict:
+    report = {"startedAt": _now_iso(), "criteria": [f"{s} {m}" for s, m, _ in CRITERIA],
+              "dryRun": no_promote, "phaseSeconds": {}}
     report["resultsThroughRaceId"] = _latest_results_race_id()
-    _log(log, "retrain gate started")
+    _log(log, "retrain gate started" + (" (no promote)" if no_promote else ""))
+    phase_started = time.monotonic()
     _rebuild_fastf1_tables(log)
+    _phase_done(log, report, "fastf1Tables", phase_started)
     current = _read_json(paths.MODELS_DIR / "latest.json")
     report["currentModel"] = current["version"] if current else None
     current_backtest = _read_json(paths.PREDICTIONS_DIR / "backtest.json")
 
     with file_lock(REFRESH_LOCK, REFRESH_LOCK_WAIT_S, purpose="retrain gate: train"):
+        phase_started = time.monotonic()
         _run(log, "ml", "f1ml.features")
+        _phase_done(log, report, "features", phase_started)
+        phase_started = time.monotonic()
         _run(log, "ml", "f1ml.train")
+        _phase_done(log, report, "train", phase_started)
         candidate = _read_json(paths.MODELS_DIR / "latest.json")
         if current:
             _write_json(paths.MODELS_DIR / "latest.json", current)
@@ -113,12 +126,20 @@ def run_gate(log) -> dict:
     script = str(Path(__file__).resolve())
     staging_text = str(staging)
     command = [sys.executable, script, "--backtest-into", staging_text]
+    phase_started = time.monotonic()
     _run_command(log, command, ML_DIR)
+    _phase_done(log, report, "backtest", phase_started)
     candidate_backtest = _read_json(staging / "predictions" / "backtest.json")
 
     comparison = compare_backtests(current_backtest, candidate_backtest)
     report["comparison"] = comparison
-    if comparison["better_or_equal"]:
+    if no_promote:
+        verdict = "promote" if comparison["better_or_equal"] else "reject"
+        report["decision"] = f"would {verdict}"
+        worse_text = ", ".join(comparison["worse"]) or "nothing"
+        report["reason"] = f"dry run (--no-promote); worse on: {worse_text}"
+        _log(log, f"dry run: would {verdict}; {report['currentModel']} stays, nothing promoted")
+    elif comparison["better_or_equal"]:
         promote(log, candidate, staging)
         report["decision"] = "promoted"
         report["reason"] = "candidate is not worse on every criterion"
@@ -202,6 +223,12 @@ def not_due_reason() -> str:
 # ---------------------------------------------------------------------------
 
 
+def _phase_done(log, report: dict, name: str, started: float) -> None:
+    seconds = round(time.monotonic() - started, 1)
+    report["phaseSeconds"][name] = seconds
+    _log(log, f"phase {name}: {seconds:.0f}s")
+
+
 def _mean_metric(races: dict, race_ids: list[int], stage: str, metric: str) -> float:
     values = [races[race_id]["stages"][stage][metric] for race_id in race_ids]
     return sum(values) / len(values) if values else 0.0
@@ -242,7 +269,8 @@ def _bulk_download_running() -> bool:
 
 
 def _run(log, project: str, module: str) -> None:
-    python = V2_DIR / project / ".venv" / "Scripts" / "python.exe"
+    venv = V2_DIR / project / ".venv"
+    python = venv / "Scripts" / "python.exe" if os.name == "nt" else venv / "bin" / "python"
     command = [str(python), "-m", module]
     cwd = V2_DIR / project
     _run_command(log, command, cwd)
@@ -294,6 +322,8 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--when-due", action="store_true",
                         help="only run when results are newer than the current model (scheduled task)")
+    parser.add_argument("--no-promote", action="store_true",
+                        help="dry run: train, backtest and compare, but never promote or forecast")
     parser.add_argument("--backtest-into", help=argparse.SUPPRESS)
     return parser.parse_args()
 
