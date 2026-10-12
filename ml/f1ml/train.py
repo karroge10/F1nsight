@@ -5,8 +5,11 @@
     uv run python -m f1ml.train --seed 2 --gbm-bags 5 --nn-seeds 8
 
 --seed moves every random source of the fit (XGBoost subsampling, network initialisation and
-batch order) to a separate block of seeds; 0 is the historical default. --gbm-bags and
---nn-seeds set the ensemble sizes (seed-averaged XGBoost rankers, set transformer networks).
+batch order) to a separate block of seeds. --gbm-bags and --nn-seeds set the ensemble sizes
+(seed-averaged XGBoost rankers, set transformer networks), default GBM_BAGS and NN_SEEDS: with
+1 ranker and 3 networks the backtest metrics moved with the seed by about as much as two models
+differ (pre-weekend win log loss 1.913 to 1.967 over four seeds); 5 rankers and 10 networks
+cut that spread about thirteenfold (1.920 to 1.924) and improved the mean.
 
 Tuning folds train on every season before the validation season and validate on it
 (2021, 2022, 2023). The backtest seasons 2024 to 2026 are never used for tuning.
@@ -30,6 +33,8 @@ from f1ml import features as feat
 from f1ml import gbm, gpu, nn, paths, plackett
 
 TUNE_SEASONS = (2021, 2022, 2023)
+GBM_BAGS = 5
+NN_SEEDS = 10
 NN_TUNE_SEASONS = (2022, 2023)
 
 
@@ -73,8 +78,10 @@ def load_params() -> dict:
 def add_ensemble_arguments(parser: argparse.ArgumentParser) -> None:
     """--seed, --gbm-bags, --nn-seeds: shared by f1ml.train, f1ml.backtest and the retrain gate."""
     parser.add_argument("--seed", type=int, default=0, help="seed block for every random source")
-    parser.add_argument("--gbm-bags", type=int, help="XGBoost rankers averaged per model")
-    parser.add_argument("--nn-seeds", type=int, help="set transformer networks averaged")
+    parser.add_argument("--gbm-bags", type=int, default=GBM_BAGS,
+                        help="XGBoost rankers averaged per model")
+    parser.add_argument("--nn-seeds", type=int, default=NN_SEEDS,
+                        help="set transformer networks averaged")
 
 
 def apply_ensemble(params: dict, args: argparse.Namespace) -> None:

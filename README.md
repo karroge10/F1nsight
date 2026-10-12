@@ -85,7 +85,8 @@ or had nothing new, 1 when a step failed (the summary names it), 3 when another 
 candidate (immediately putting `models/latest.json` back to the current model), backtests the
 candidate into `ml/staging/<version>/` and compares it with the published backtest on the races
 both cover. It promotes only if post-qualifying win log loss, post-qualifying Spearman and
-pre-weekend win log loss are all no worse; then it copies the staged backtest and history files
+pre-weekend win log loss are all no worse than their seed-noise tolerance (0.031, 0.0013 and
+0.0061, measured over three seeds of the 5 ranker, 10 network ensemble); then it copies the staged backtest and history files
 into `data/predictions/` and runs `f1ml.predict`. Otherwise the current model stays. The decision
 and metrics are in `ml/reports/retrain_gate.json`, the run log in `logs/retrain-<time>.log`.
 Takes about 1.5 hours (backtest about 80 minutes).

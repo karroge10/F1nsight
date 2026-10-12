@@ -6,7 +6,7 @@
 # gate log and ml/reports/retrain_gate.json are kept as an artifact.
 #
 #   gh workflow run retrain.yml                                   # seeds 1, 2, 3 in parallel
-#   gh workflow run retrain.yml -f seeds="[0]" -f gbm_bags=5 -f nn_seeds=10
+#   gh workflow run retrain.yml -f seeds="[0]" -f gbm_bags=1 -f nn_seeds=3   # the old single model
 
 name: Retrain trial
 
@@ -18,11 +18,11 @@ on:
         type: string
         default: "[1, 2, 3]"
       gbm_bags:
-        description: XGBoost rankers averaged per model (empty keeps the saved params)
+        description: XGBoost rankers averaged per model (empty uses f1ml.train's default, 5)
         type: string
         default: ""
       nn_seeds:
-        description: Set transformer networks averaged (empty keeps the saved params)
+        description: Set transformer networks averaged (empty uses f1ml.train's default, 10)
         type: string
         default: ""
 

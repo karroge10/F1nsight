@@ -19,8 +19,10 @@ Steps:
    to the current model straight away, under the refresh lock, so nothing uses the candidate yet.
 4. `f1ml.backtest` for the candidate into ml/staging/<version>/ (the live data/predictions files
    are not touched).
-5. Compare on the races both backtests cover. The candidate must not be worse on any of:
-   post-qualifying win log loss, post-qualifying Spearman, pre-weekend win log loss.
+5. Compare on the races both backtests cover. The candidate must not be worse, by more than
+   that criterion's tolerance, on any of: post-qualifying win log loss, post-qualifying
+   Spearman, pre-weekend win log loss. The tolerances are the seed noise of the ensemble
+   model: 2.83 times (two independent fits, 95%) the spread over three seeds.
 6. Promote: models/latest.json -> candidate, staged backtest.json, history/*.json and reports
    copied into place, then `f1ml.predict`. Reject: the current model stays, the candidate folder
    and staging stay on disk for inspection.
@@ -60,14 +62,15 @@ REFRESH_LOCK = LOGS_DIR / "refresh.lock"
 REFRESH_LOCK_WAIT_S = 60 * 60
 GATE_REPORT = paths.REPORTS_DIR / "retrain_gate.json"
 STAGING_DIR = ML_DIR / "staging"
-# (stage, metric, direction): +1 means higher is better, -1 means lower is better.
+# (stage, metric, direction, tolerance): +1 means higher is better, -1 means lower is better.
+# Tolerance: a change smaller than this is seed noise, not a regression. Measured on the CPU
+# runner with 5 rankers and 10 networks over seeds 1 to 3 (standard deviation 0.0110, 0.00046,
+# 0.00217 on 64 races), times 2.83 for the difference of two independent fits.
 CRITERIA = [
-    ("post-qualifying", "logLossWin", -1),
-    ("post-qualifying", "spearman", +1),
-    ("pre-weekend", "logLossWin", -1),
+    ("post-qualifying", "logLossWin", -1, 0.031),
+    ("post-qualifying", "spearman", +1, 0.0013),
+    ("pre-weekend", "logLossWin", -1, 0.0061),
 ]
-# Floating point slack only; any real regression rejects the candidate.
-EPSILON = 1e-9
 FINISHED_DECISIONS = ("promoted", "rejected", "would promote", "would reject")
 
 
@@ -101,7 +104,8 @@ def main() -> int:
 
 def run_gate(log, no_promote: bool = False, ensemble: list[str] | None = None) -> dict:
     ensemble = ensemble or []
-    report = {"startedAt": _now_iso(), "criteria": [f"{s} {m}" for s, m, _ in CRITERIA],
+    criteria = [f"{stage} {metric} (tolerance {tolerance})" for stage, metric, _, tolerance in CRITERIA]
+    report = {"startedAt": _now_iso(), "criteria": criteria,
               "dryRun": no_promote, "ensembleArguments": ensemble, "phaseSeconds": {}}
     report["resultsThroughRaceId"] = _latest_results_race_id()
     _log(log, "retrain gate started" + (" (no promote)" if no_promote else ""))
@@ -147,7 +151,7 @@ def run_gate(log, no_promote: bool = False, ensemble: list[str] | None = None) -
     elif comparison["better_or_equal"]:
         promote(log, candidate, staging)
         report["decision"] = "promoted"
-        report["reason"] = "candidate is not worse on every criterion"
+        report["reason"] = "candidate is not worse than the noise tolerance on any criterion"
     else:
         report["decision"] = "rejected"
         report["reason"] = "worse on " + ", ".join(comparison["worse"])
@@ -182,15 +186,16 @@ def compare_backtests(current: dict | None, candidate: dict) -> dict:
     common = sorted(current_ids & candidate_ids)
     rows = []
     worse = []
-    for stage, metric, direction in CRITERIA:
+    for stage, metric, direction, tolerance in CRITERIA:
         before = _mean_metric(current_races, common, stage, metric)
         after = _mean_metric(candidate_races, common, stage, metric)
         delta = after - before
-        regressed = direction * delta < -EPSILON
+        regressed = direction * delta < -tolerance
         if regressed:
             worse.append(f"{stage} {metric}")
         row = {"stage": stage, "metric": metric, "current": round(before, 5),
-               "candidate": round(after, 5), "delta": round(delta, 5), "worse": regressed}
+               "candidate": round(after, 5), "delta": round(delta, 5), "tolerance": tolerance,
+               "worse": regressed}
         rows.append(row)
     return {"better_or_equal": not worse, "worse": worse, "races": len(common), "metrics": rows}
 
@@ -340,8 +345,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--no-promote", action="store_true",
                         help="dry run: train, backtest and compare, but never promote or forecast")
     parser.add_argument("--seed", type=int, default=0, help="seed block for training and backtest")
-    parser.add_argument("--gbm-bags", type=int, help="XGBoost rankers averaged per model")
-    parser.add_argument("--nn-seeds", type=int, help="set transformer networks averaged")
+    parser.add_argument("--gbm-bags", type=int, help="XGBoost rankers averaged (default f1ml.train's)")
+    parser.add_argument("--nn-seeds", type=int, help="networks averaged (default f1ml.train's)")
     parser.add_argument("--backtest-into", help=argparse.SUPPRESS)
     return parser.parse_args()
 
