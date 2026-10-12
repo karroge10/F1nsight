@@ -181,7 +181,9 @@ def group_files(name: str) -> list[Path]:
         for path in root.rglob("*"):
             if path.is_file() and not _excluded(path):
                 files.append(path)
-    return sorted(files)
+    # Sort on the text, not the Path: Windows paths compare without case, Linux paths with it,
+    # and the hash must come out the same on the PC and in Actions.
+    return sorted(files, key=_relative_text)
 
 
 def group_hash(files: list[Path]) -> str:
@@ -189,7 +191,7 @@ def group_hash(files: list[Path]) -> str:
     digest = hashlib.sha256()
     for path in files:
         stat = path.stat()
-        relative = path.relative_to(V2_DIR).as_posix()
+        relative = _relative_text(path)
         line = f"{relative}\t{stat.st_size}\t{int(stat.st_mtime)}\n"
         digest.update(line.encode("utf-8"))
     return digest.hexdigest()
@@ -209,6 +211,11 @@ def _group_roots(name: str) -> list[Path]:
         folder = latest["path"].replace("\\", "/")
         roots.append(V2_DIR / "ml" / folder)
     return roots
+
+
+def _relative_text(path: Path) -> str:
+    relative = path.relative_to(V2_DIR)
+    return relative.as_posix()
 
 
 def _excluded(path: Path) -> bool:
