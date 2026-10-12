@@ -361,7 +361,11 @@ def _sessions_ended_between(start: datetime, end: datetime) -> list[str]:
 
 
 def _prediction_inputs() -> str:
-    """Fingerprint of everything f1ml.predict reads: processed tables, serve db, model, archive."""
+    """Fingerprint of everything f1ml.predict reads: processed tables, serve db, model, archive.
+
+    Modification times are whole seconds: the cloud refresh restores these files from a tar
+    archive, which keeps the time to about a microsecond, not to the nanosecond.
+    """
     now = datetime.now(timezone.utc)
     season = str(now.year)
     parts = []
@@ -369,19 +373,20 @@ def _prediction_inputs() -> str:
     tables = sorted(found)
     for path in tables:
         stat = path.stat()
-        parts.append(f"{path.name}:{stat.st_mtime_ns}:{stat.st_size}")
+        parts.append(f"{path.name}:{int(stat.st_mtime)}:{stat.st_size}")
     for path in (SERVE_DIR / "f1.sqlite", V2_DIR / "ml" / "models" / "latest.json"):
         modified = _mtime(path)
-        parts.append(f"{path.name}:{modified}")
+        parts.append(f"{path.name}:{int(modified)}")
     livetiming = RAW_DIR / "livetiming" / season
     livetiming_modified = _newest_mtime(livetiming)
-    parts.append(f"livetiming:{livetiming_modified}")
+    parts.append(f"livetiming:{int(livetiming_modified)}")
     return "|".join(parts)
 
 
 def _python_command(project: str, module: str, extra: tuple[str, ...]) -> list[str]:
     """The project's venv interpreter; `uv run` when the venv does not exist yet."""
-    venv_python = V2_DIR / project / ".venv" / "Scripts" / "python.exe"
+    venv = V2_DIR / project / ".venv"
+    venv_python = venv / "Scripts" / "python.exe" if os.name == "nt" else venv / "bin" / "python"
     if venv_python.exists():
         return [str(venv_python), "-m", module, *extra]
     return ["uv", "run", "python", "-m", module, *extra]

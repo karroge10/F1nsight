@@ -1,4 +1,4 @@
-"""Gradient boosted models on the GPU (XGBoost, device=cuda).
+"""Gradient boosted models on the GPU (XGBoost, device=cuda; the CPU when there is no CUDA).
 
 - rankers: pairwise / LambdaRank over the entrants of each race (group = race), used for the
   race finishing order of classified finishers and for the qualifying order;
@@ -11,9 +11,8 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import torch
 import xgboost as xgb
-
-DEVICE = "cuda"
 
 DEFAULT_RANK_PARAMS = {
     "objective": "rank:pairwise",
@@ -114,6 +113,11 @@ def importance(booster: xgb.Booster) -> dict[str, float]:
     return {name: value / total for name, value in gains.items()}
 
 
+def pick_device() -> str:
+    """XGBoost device: "cuda" when this machine has CUDA, otherwise "cpu"."""
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def recency_weights(seasons: np.ndarray, decay: float) -> np.ndarray:
     latest = seasons.max()
     age = latest - seasons
@@ -122,7 +126,7 @@ def recency_weights(seasons: np.ndarray, decay: float) -> np.ndarray:
 
 def _booster_params(params: dict, seed: int) -> dict:
     return {
-        "device": DEVICE,
+        "device": pick_device(),
         "tree_method": "hist",
         "eta": params["eta"],
         "max_depth": int(params["max_depth"]),

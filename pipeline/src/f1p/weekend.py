@@ -3,6 +3,7 @@
     uv run python -m f1p.weekend                    # next race weekend, as a table
     uv run python -m f1p.weekend --json             # same, for scripts/schedule-weekend.ps1
     uv run python -m f1p.weekend --season 2026 --round 17
+    uv run python -m f1p.weekend --due              # the cloud refresh's gate, see due_runs
 
 Session start times come from data/processed/races.parquet (Jolpica schedule). A refresh runs
 REFRESH_AFTER_END after the session's nominal end, which is when the free sources (static live
@@ -22,7 +23,9 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from f1p.paths import PROCESSED_DIR
+from f1p.paths import PROCESSED_DIR, V2_DIR
+
+STATE_PATH = V2_DIR / "logs" / "refresh_state.json"
 
 # column, short task label, nominal length
 SESSIONS = [
@@ -39,11 +42,17 @@ DEFAULT_AFTER_END = timedelta(minutes=60)
 RETRY_AFTER = timedelta(hours=3)
 RACE_MORNING_BEFORE = timedelta(hours=3)
 TASK_PREFIX = "F1nsight-refresh-"
+# The weekly forced refresh: Monday 06:00 UTC, the PC task's Monday 10:00 at UTC+4.
+WEEKLY_WEEKDAY = 0
+WEEKLY_HOUR_UTC = 6
+FIRST_CHECK_LOOKBACK = timedelta(hours=1)
 
 
 def main() -> int:
     args = _parse_args()
     now = datetime.now(timezone.utc)
+    if args.due:
+        return print_due(now)
     race = find_race(args.season, args.round, now)
     if race is None:
         print("no upcoming race in data/processed/races.parquet", file=sys.stderr)
@@ -68,6 +77,49 @@ def find_race(season: int | None, round_number: int | None, now: datetime) -> pd
     cutoff = now.replace(tzinfo=None) - timedelta(hours=6)
     upcoming = races[races["raceUtc"] > cutoff].sort_values("raceUtc")
     return None if upcoming.empty else upcoming.iloc[0]
+
+
+def print_due(now: datetime) -> int:
+    """Gate for the scheduled cloud refresh: which planned runs fell due since the last check.
+
+    Prints one JSON line {"due": [...], "force": bool}. The check time is kept in
+    logs/refresh_state.json and only moves forward when something was due, so a cloud run that
+    dies before saving its state is simply due again on the next check.
+    """
+    state = _read_state()
+    cloud = state.setdefault("cloud", {})
+    checked = cloud.get("checkedThrough")
+    since = datetime.fromisoformat(checked) if checked else now - FIRST_CHECK_LOOKBACK
+    due = due_runs(since, now)
+    force = any(task["name"] == f"{TASK_PREFIX}weekly" for task in due)
+    if due:
+        cloud["checkedThrough"] = now.isoformat(timespec="seconds")
+        _write_state(state)
+    names = [task["name"] for task in due]
+    payload = {"since": since.isoformat(timespec="seconds"), "due": names, "force": force}
+    print(json.dumps(payload))
+    return 0
+
+
+def due_runs(since: datetime, now: datetime) -> list[dict]:
+    """Planned refreshes (the same plan the PC tasks follow, plus the weekly one) in (since, now]."""
+    races = pd.read_parquet(PROCESSED_DIR / "races.parquet")
+    # Every planned run of a race lies within about three days before and one day after its start.
+    low = since.replace(tzinfo=None) - timedelta(days=1)
+    high = now.replace(tzinfo=None) + timedelta(days=4)
+    nearby = races[(races["raceUtc"] > low) & (races["raceUtc"] < high)]
+    due = []
+    for _, race in nearby.iterrows():
+        plan = refresh_plan(race)
+        for task in plan["tasks"]:
+            run_at = datetime.fromisoformat(task["runAtIso"])
+            if since < run_at <= now:
+                due.append(task)
+    weekly = _last_weekly_run(now)
+    if since < weekly <= now:
+        weekly_task = _task(f"{TASK_PREFIX}weekly", weekly, "weekly forced refresh")
+        due.append(weekly_task)
+    return due
 
 
 def refresh_plan(race: pd.Series) -> dict:
@@ -112,11 +164,35 @@ def _task(name: str, run_at: datetime, note: str) -> dict:
     }
 
 
+def _last_weekly_run(now: datetime) -> datetime:
+    days_back = (now.weekday() - WEEKLY_WEEKDAY) % 7
+    day = now - timedelta(days=days_back)
+    run_at = day.replace(hour=WEEKLY_HOUR_UTC, minute=0, second=0, microsecond=0)
+    if run_at > now:
+        run_at = run_at - timedelta(days=7)
+    return run_at
+
+
+def _read_state() -> dict:
+    if not STATE_PATH.exists():
+        return {}
+    text = STATE_PATH.read_text(encoding="utf-8")
+    return json.loads(text)
+
+
+def _write_state(state: dict) -> None:
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(state, indent=1)
+    STATE_PATH.write_text(text, encoding="utf-8")
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--season", type=int)
     parser.add_argument("--round", type=int)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--due", action="store_true",
+                        help="print the planned runs due since the last check (cloud refresh gate)")
     return parser.parse_args()
 
 

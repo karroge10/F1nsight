@@ -8,12 +8,15 @@ weights (which also act as the temperature), then the base models are refit on t
 
 from __future__ import annotations
 
+import io
 import pickle
 import time
 from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+import torch
+import xgboost as xgb
 from scipy.special import expit, logit
 from sklearn.linear_model import LogisticRegression
 
@@ -96,8 +99,24 @@ class Bundle:
 
     @staticmethod
     def load(path) -> "Bundle":
+        """Load a bundle on this machine's device: one trained on the GPU also runs on a CPU."""
         with open(path, "rb") as handle:
-            return pickle.load(handle)
+            unpickler = _DeviceUnpickler(handle)
+            bundle = unpickler.load()
+        bundle.to_device()
+        return bundle
+
+    def to_device(self) -> None:
+        """Point the networks and the XGBoost boosters at CUDA when present, else the CPU."""
+        if self.set_model is not None:
+            device = nn.pick_device()
+            for network in self.set_model.networks:
+                network.to(device)
+        boosters = [*self.race_models.values(), *self.quali_models.values(),
+                    *self.dnf_models.values()]
+        for booster in boosters:
+            if isinstance(booster, xgb.Booster):
+                booster.set_param({"device": gbm.pick_device()})
 
 
 LONG_WINDOW = 96
@@ -332,3 +351,18 @@ def _pad_weights(weights: np.ndarray) -> list[float]:
     while len(values) < 2:
         values.append(0.0)
     return values
+
+
+class _DeviceUnpickler(pickle.Unpickler):
+    """Maps pickled torch tensors onto the current device (CUDA tensors load on a CPU box)."""
+
+    def find_class(self, module: str, name: str):
+        if module == "torch.storage" and name == "_load_from_bytes":
+            return _load_tensor_bytes
+        return super().find_class(module, name)
+
+
+def _load_tensor_bytes(data: bytes):
+    buffer = io.BytesIO(data)
+    device = nn.pick_device()
+    return torch.load(buffer, map_location=device, weights_only=False)

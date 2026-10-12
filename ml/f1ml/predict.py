@@ -96,7 +96,9 @@ def load_latest():
     if not latest_path.exists():
         raise SystemExit("no trained model: run `uv run python -m f1ml.train` first")
     latest = json.loads(latest_path.read_text(encoding="utf-8"))
-    folder = paths.ML_DIR / latest["path"]
+    # Written on Windows as models\<version>; the cloud refresh reads it on Linux.
+    relative = latest["path"].replace("\\", "/")
+    folder = paths.ML_DIR / relative
     trained = bundle_module.Bundle.load(folder / "bundle.pkl")
     meta = json.loads((folder / "meta.json").read_text(encoding="utf-8"))
     return trained, meta

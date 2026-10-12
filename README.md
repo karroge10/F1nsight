@@ -126,6 +126,36 @@ Start-ScheduledTask -TaskName 'F1nsight-refresh-FP1'     # run one now
 The separate `F1v2-probe-SGP-FP1` / `F1v2-probe-SGP-SQ` tasks (static archive probe) are not
 managed here.
 
+## Cloud refresh (GitHub Actions)
+
+`.github/workflows/refresh.yml` runs the same refresh, forecast and upload on GitHub's servers
+(free for a public repo), so the hosted site updates with the PC off. Retraining stays on the PC.
+
+- **State**: the data a refresh builds on is kept as assets of the GitHub release `state`
+  (`cloud/state.py`): `logs/refresh_state.json`, `data/processed`, `data/serve`,
+  `data/predictions`, the current model (`ml/models/latest.json`, its folder, `params.json`,
+  the backtest rows in `ml/reports`) and `data/raw` without logs. Each group is one tar.gz; only
+  groups whose files changed are uploaded again. `data/fastf1_cache` is not kept: the refresh
+  downloads the sessions it needs.
+- **Run**: pull the state, `python -m f1p.refresh` (Linux, CPU forecast), site images, build,
+  `check-export.mjs`, `wrangler pages deploy` from the repo root, push the changed groups.
+  Secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+- **Schedule** (commented out until it goes live): every 30 minutes the gate runs
+  `python -m f1p.weekend --due`, which runs the refresh only when one of the PC task times
+  (session end + 1 h, a retry 3 h later, race morning, Monday 06:00 UTC forced) passed since
+  the last cloud run.
+- **Models from the PC**: after a promotion `scripts\retrain-gate.ps1` pushes the groups
+  `model` and `predictions`; the next cloud run sees the new `latest.json` and forecasts with it.
+  With `-PullState` the gate first pulls the cloud's data, for a PC that no longer refreshes.
+
+| What | Command |
+| --- | --- |
+| Run it now | `gh workflow run refresh.yml` (`-f force=true`, `-f only=fastf1,predict`, `-f publish=false`) |
+| Watch it | `gh run watch` or `gh run view --log` |
+| State per group, local and remote | `pipeline\.venv\Scripts\python.exe cloud\state.py status` |
+| Push the PC's data (first seed) | `pipeline\.venv\Scripts\python.exe cloud\state.py push --all` |
+| Get the cloud's data on the PC | `pipeline\.venv\Scripts\python.exe cloud\state.py pull` |
+
 ## Tests
 
 | Suite | Command | Last run |

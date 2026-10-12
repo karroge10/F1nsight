@@ -1,0 +1,179 @@
+# F1nsight: the scheduled data refresh, forecast and site upload, run on GitHub's servers.
+#
+# The cloud version of refresh.ps1 + scripts/publish.ps1. The data a refresh builds on lives in
+# the release `state` (cloud/state.py): pulled at the start, changed groups pushed at the end.
+# Retraining stays on the PC (GPU); a promoted model reaches this workflow through the same
+# release (scripts/retrain-gate.ps1 pushes it). See "Cloud refresh" in README.md.
+#
+# Manual run: gh workflow run refresh.yml [-f force=true] [-f only=fastf1,predict] [-f publish=false]
+
+name: Refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run every step even if nothing looks new
+        type: boolean
+        default: false
+      only:
+        description: "Only these steps, comma separated: history, openf1, fantasy, fastf1, penalties, predict, images"
+        type: string
+        default: ""
+      skip:
+        description: Steps to leave out, comma separated
+        type: string
+        default: ""
+      publish:
+        description: Build the site and upload it to Cloudflare Pages
+        type: boolean
+        default: true
+  # Not live yet. To go live, uncomment: every 30 minutes the gate step checks whether a planned
+  # run (session end + 1 h, a retry 3 h later, race morning, Monday 06:00 UTC weekly) fell due
+  # since the last cloud run (python -m f1p.weekend --due) and stops in about a minute if not.
+  # schedule:
+  #   - cron: "7,37 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONIOENCODING: utf-8
+      UV_FROZEN: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pipeline/uv.lock
+            ml/uv.lock
+
+      - name: Pipeline environment
+        run: uv sync --project pipeline
+
+      - name: Gate
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "force=${FORCE:-false}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 cloud/state.py pull --groups refresh-state,processed
+          result=$(cd pipeline && uv run python -m f1p.weekend --due)
+          echo "$result"
+          due=$(echo "$result" | jq -r '.due | length')
+          force=$(echo "$result" | jq -r '.force')
+          if [ "$due" -gt 0 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+          echo "force=$force" >> "$GITHUB_OUTPUT"
+
+      - name: Pull state
+        if: steps.gate.outputs.run == 'true'
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          # On a schedule the gate already pulled (and updated) these two groups.
+          if [ "$EVENT" = "schedule" ]; then
+            python3 cloud/state.py pull --skip refresh-state,processed
+          else
+            python3 cloud/state.py pull
+          fi
+          du -sh data/* ml/models logs 2>/dev/null || true
+
+      - name: ML environment
+        if: steps.gate.outputs.run == 'true'
+        run: uv sync --project ml
+
+      - uses: actions/setup-node@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Site dependencies
+        if: steps.gate.outputs.run == 'true'
+        working-directory: site
+        run: npm ci --no-audit --no-fund
+
+      - name: Refresh
+        id: refresh
+        if: steps.gate.outputs.run == 'true'
+        env:
+          FORCE: ${{ steps.gate.outputs.force }}
+          ONLY: ${{ inputs.only }}
+          SKIP: ${{ inputs.skip }}
+        run: |
+          # Same split as refresh.ps1: "images" is a site step, the rest go to f1p.refresh.
+          only=$(echo "$ONLY" | tr ',' '\n' | grep -v '^images$' | grep -v '^$' | paste -sd, - || true)
+          skip=$(echo "$SKIP" | tr ',' '\n' | grep -v '^images$' | grep -v '^$' | paste -sd, - || true)
+          args=()
+          if [ "$FORCE" = "true" ]; then args+=(--force); fi
+          if [ -n "$only" ]; then args+=(--only "$only"); fi
+          if [ -n "$skip" ]; then args+=(--skip "$skip"); fi
+          code=0
+          if [ -z "$ONLY" ] || [ -n "$only" ]; then
+            cd pipeline
+            uv run python -m f1p.refresh "${args[@]}" || code=$?
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Site images
+        if: steps.gate.outputs.run == 'true' && (inputs.only == '' || contains(inputs.only, 'images')) && !contains(inputs.skip, 'images')
+        continue-on-error: true
+        working-directory: site
+        run: |
+          node --no-warnings scripts/fetch-images.mjs || echo "::warning::fetch-images failed, keeping the existing images"
+          node --no-warnings scripts/fetch-current-logos.mjs || echo "::warning::fetch-current-logos failed, keeping the existing logos"
+
+      - name: Build site
+        id: build
+        if: steps.refresh.outputs.code == '0' && (github.event_name == 'schedule' || inputs.publish)
+        working-directory: site
+        env:
+          NODE_OPTIONS: --disable-warning=ExperimentalWarning
+        run: |
+          npm run build
+          node scripts/check-export.mjs
+
+      - name: Upload to Cloudflare Pages
+        if: steps.build.outcome == 'success'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # From the repo root: inside site/ wrangler detects Next.js and rewrites the project.
+        run: site/node_modules/.bin/wrangler pages deploy site/out --project-name f1nsight --branch main --commit-dirty=true
+
+      - name: Push state
+        if: always() && steps.refresh.outcome == 'success'
+        run: python3 cloud/state.py push
+
+      - name: Keep the logs
+        if: always() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: refresh-logs-${{ github.run_id }}
+          path: logs/
+          retention-days: 14
+
+      - name: Result
+        if: steps.gate.outputs.run == 'true'
+        env:
+          CODE: ${{ steps.refresh.outputs.code }}
+        run: |
+          cat logs/refresh-last.json 2>/dev/null | jq -r '.steps[] | "\(.name)\t\(.status)\t\(.seconds)s\t\(.reason)"' || true
+          if [ "$CODE" != "0" ]; then echo "::error::a refresh step failed (exit $CODE), see the summary above"; exit 1; fi

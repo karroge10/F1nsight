@@ -44,21 +44,7 @@ def file_lock(path: Path, wait_s: float = 0, **info) -> Iterator[Path]:
 
 def pipeline_processes(module: str) -> list[dict]:
     """Running Python processes (other than this one) whose command line contains `module`."""
-    script = (
-        "Get-CimInstance Win32_Process -Filter \"Name like 'python%'\" | "
-        "Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress"
-    )
-    command = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script]
-    try:
-        completed = subprocess.run(command, capture_output=True, text=True, timeout=60, check=False)
-    except (OSError, subprocess.TimeoutExpired):
-        return []
-    output = completed.stdout.strip()
-    if not output:
-        return []
-    rows = json.loads(output)
-    if isinstance(rows, dict):
-        rows = [rows]
+    rows = _windows_processes() if os.name == "nt" else _posix_processes()
     own_pids = {os.getpid(), os.getppid()}
     found = []
     for row in rows:
@@ -109,9 +95,11 @@ def read_owner(path: Path) -> dict:
 
 
 def pid_alive(pid: int) -> bool:
-    """True if a process with this pid is running (Windows API, never signals the process)."""
+    """True if a process with this pid is running (never signals the process)."""
     if pid <= 0:
         return False
+    if os.name != "nt":
+        return _posix_pid_alive(pid)
     kernel32 = ctypes.windll.kernel32
     handle = kernel32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
     if not handle:
@@ -135,3 +123,44 @@ def _drop_launchers(found: list[dict], module: str) -> list[dict]:
         by_command.setdefault(key, row)
     unique = by_command.values()
     return list(unique)
+
+
+def _windows_processes() -> list[dict]:
+    script = (
+        "Get-CimInstance Win32_Process -Filter \"Name like 'python%'\" | "
+        "Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress"
+    )
+    command = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script]
+    try:
+        completed = subprocess.run(command, capture_output=True, text=True, timeout=60, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    output = completed.stdout.strip()
+    if not output:
+        return []
+    rows = json.loads(output)
+    return [rows] if isinstance(rows, dict) else rows
+
+
+def _posix_processes() -> list[dict]:
+    """Same rows as on Windows, from /proc (Linux, the GitHub Actions refresh)."""
+    rows = []
+    for folder in Path("/proc").glob("[0-9]*"):
+        try:
+            raw = (folder / "cmdline").read_bytes()
+        except OSError:
+            continue
+        command_line = raw.replace(b"\x00", b" ").decode("utf-8", "replace").strip()
+        if "python" in command_line:
+            rows.append({"ProcessId": int(folder.name), "CommandLine": command_line})
+    return rows
+
+
+def _posix_pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True

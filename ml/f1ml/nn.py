@@ -75,7 +75,7 @@ class SetModel:
         """Race score, quali score and DNF logit per row (seed ensemble average)."""
         gated = feat.stage_frame(frame, stage)
         batch = _race_batches(gated, self.preprocessor, stage)
-        device = _device()
+        device = pick_device()
         outputs = {"race": [], "quali": [], "dnf": []}
         for network in self.networks:
             network.eval()
@@ -153,18 +153,19 @@ def plackett_luce_nll(scores: torch.Tensor, order: torch.Tensor, valid: torch.Te
     return terms.sum(dim=1)
 
 
+def pick_device() -> torch.device:
+    """CUDA when this machine has it, otherwise the CPU (GitHub Actions runners)."""
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 # ----------------------------------------------------------------------------------------------
 # helpers
-
-
-def _device() -> torch.device:
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def _fit_network(tensors: dict, params: dict, seed: int, verbose: bool) -> SetTransformer:
     torch.manual_seed(seed)
     generator = np.random.default_rng(seed)
-    device = _device()
+    device = pick_device()
     input_dim = tensors["x"].shape[-1]
     network = SetTransformer(input_dim, int(params["d_model"]), int(params["layers"]),
                              int(params["heads"]), params["dropout"]).to(device)
