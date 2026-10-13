@@ -1,0 +1,12 @@
+{
+  "fastform": {
+    "half_life": 5.0,
+    "threshold": 0.25,
+    "reset_discount": 0.25,
+    "old_discount": 0.25
+  },
+  "similarity": {
+    "bandwidth": 0.5,
+    "shrinkage": 6.0
+  }
+}
