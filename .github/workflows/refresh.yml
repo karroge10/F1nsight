@@ -144,7 +144,9 @@ jobs:
 
       - name: Build site
         id: build
-        if: steps.refresh.outputs.code == '0' && (github.event_name == 'schedule' || inputs.publish)
+        # The outcome check matters: when the gate skips Refresh, its empty code compares equal
+        # to '0' (expressions coerce both strings to numbers).
+        if: steps.refresh.outcome == 'success' && steps.refresh.outputs.code == '0' && (github.event_name == 'schedule' || inputs.publish)
         working-directory: site
         env:
           NODE_OPTIONS: --disable-warning=ExperimentalWarning
