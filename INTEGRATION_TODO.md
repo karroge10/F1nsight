@@ -35,15 +35,32 @@ Collected from agent reports; handle in the final integration and test pass.
 - Title odds and sharpness: next.json now has Antonelli pTitle 0.996 (renders ">99%"), leader
   expected 16 points for the round. Exact 0 probabilities rendered as "0%" in the title odds;
   `formatPercent` now clamps them to "<1%". Done.
-- Probe tasks `F1v2-probe-SGP-*`: still pending (they run on Friday). Open.
+- Probe tasks `F1v2-probe-SGP-*`: removed on 2026-10-13. Closed.
 - One refresh command: `refresh.ps1` / `python -m f1p.refresh`, scheduled per session by
   `scripts/schedule-weekend.ps1`. Done, see `README.md`.
 
-## Hosting (decided 2026-10-08, not started)
+## Hosting (done 2026-10-13)
 
-The repo will be public and the whole stack must be free. The plan, from `research/free-hosting.md`:
+Everything runs free in the cloud with the PC off; details in README.md, "Cloud runs".
 
-- **Site:** a static pre-render built from `f1.sqlite`, hosted on Cloudflare Pages.
-- **Refresh and predict:** scheduled GitHub Actions jobs on CPU. State lives in Cloudflare R2. Do one manual trial run first to measure the real time.
-- **Retrain:** stays on the PC after races. Optional: let XGBoost fall back to CPU so it can run in Actions too.
-- **Live service (f1live):** an Oracle Cloud Always Free ARM VM.
+- **Site:** static export on Cloudflare Pages, https://f1nsight.pages.dev.
+- **Refresh, forecast, retrain:** GitHub Actions; state in the GitHub release `state` (not R2).
+  Retraining starts from the refresh that brings a new race's results.
+- **Timing:** the Cloudflare Worker `f1nsight-cron` dispatches the workflows on time; GitHub's own
+  schedules are a backup.
+- **Live service (f1live):** not hosted. The hosted live page only plays the replays built into
+  the site; live timing during a session needs the service (planned: Oracle Cloud Always Free VM).
+
+## Backlog (owner's priorities, 2026-10-13)
+
+- **Model: be better than the other public F1 prediction models.** Work through
+  `research/prediction-model-roadmap.md`, judging every change by `research/evaluation-protocol.md`.
+  First experiment: team strength counts the team-mate's results, which underrates a strong
+  driver in a weak second car (Verstappen); try the team's best car instead. To claim "better than
+  others" we also need their numbers: archive an outside benchmark each weekend (betting market
+  prices, for example Polymarket's public API) and score it next to ours.
+- **Fantasy: redesign.** The owner does not like the current fantasy implementation (feature and
+  page); revisit after the model work.
+- **Live timing on the hosted site:** host f1live (see Hosting).
+- **Austin (2026 R18, 23 to 25 Oct):** first race weekend fully in the cloud. Afterwards check that
+  every planned run, the penalty news checks and the post-race retrain fired on time.
