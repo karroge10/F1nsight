@@ -20,6 +20,11 @@ latest stage whose inputs exist: `pre-weekend`, `post-practice` (practice laps, 
 qualifying and sprint results when they ran before qualifying), `post-qualifying` (grid known).
 Retrain (`f1ml.train`) after each race once Jolpica has the results.
 
+`predict` also reads the race's Polymarket winner market (`market.py`) and pools it with the
+model's win chances, about 80% market before the weekend and 65% after practice and after
+qualifying (weights from `scripts/exp_market` and `scripts/exp_combo`). Without a usable market
+the forecast is the model's own. Each fetch is archived in `data/raw/polymarket/`.
+
 ## Layout
 
 | Module | Role |
@@ -28,6 +33,8 @@ Retrain (`f1ml.train`) after each race once Jolpica has the results.
 | `livetiming.py` | Parse cached `livetiming.formula1.com/static` streams (best laps, qualifying), last fallback |
 | `practice_pace.py` | Practice one-lap gap per session corrected for tyre compound, tyre age and track evolution (FastF1 laps, 2018 on) |
 | `features.py` | Point-in-time feature builder (`History`), stage gating (`stage_frame`) |
+| `dynpl.py` | Point-in-time Plackett-Luce driver and team strengths, a Kalman style filter over every past race (`dp_*` features) |
+| `market.py` | Polymarket race winner prices and the logarithmic pool with the model's win chances |
 | `gbm.py` | XGBoost rankers on the GPU, DNF logistic model |
 | `nn.py` | Set transformer over the field, Plackett-Luce listwise loss, GPU |
 | `plackett.py` | Plackett-Luce likelihoods, blend weights, position dependent temperature |

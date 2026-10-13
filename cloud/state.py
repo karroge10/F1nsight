@@ -34,6 +34,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -45,6 +46,9 @@ RELEASE_NOTES = ("Data for the scheduled refresh in GitHub Actions (cloud/state.
                  "Generated, do not edit.")
 MANIFEST_PREFIX = "manifest-"
 KEEP_MANIFESTS = 2
+# GitHub answers an occasional asset request with HTTP 5xx; gh calls are tried this many times.
+GH_ATTEMPTS = 4
+GH_RETRY_WAIT_S = 15
 PART_BYTES = 1900 * 1024 * 1024
 COMPRESS_LEVEL = 6
 EXCLUDED_SUFFIXES = (".log", ".lock", ".tmp", ".pyc")
@@ -66,6 +70,8 @@ GROUPS = {
     "raw-fastf1": ["data/raw/fastf1"],
     "raw-other": ["data/raw/f1db", "data/raw/fantasy", "data/raw/fia", "data/raw/jolpica",
                   "data/raw/openmeteo"],
+    # changes on every forecast, so kept apart from the large raw groups
+    "raw-polymarket": ["data/raw/polymarket"],
 }
 # Paths left out of a group because another group owns them.
 GROUP_EXCLUDES = {
@@ -363,12 +369,22 @@ def _ensure_release(dry_run: bool) -> None:
 
 def _gh(*arguments: str, check: bool = True) -> subprocess.CompletedProcess:
     command = ["gh", *arguments]
-    completed = subprocess.run(command, cwd=V2_DIR, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace")
+    for attempt in range(1, GH_ATTEMPTS + 1):
+        completed = subprocess.run(command, cwd=V2_DIR, capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace")
+        if completed.returncode == 0 or not _server_error(completed.stderr):
+            break
+        if attempt < GH_ATTEMPTS:
+            print(f"state: gh {' '.join(arguments[:2])} got a server error, retrying")
+            time.sleep(GH_RETRY_WAIT_S * attempt)
     if check and completed.returncode != 0:
         shown = " ".join(arguments[:3])
         raise SystemExit(f"state: gh {shown} failed: {completed.stderr.strip()}")
     return completed
+
+
+def _server_error(stderr: str) -> bool:
+    return any(f"HTTP {code}" in stderr for code in (500, 502, 503, 504))
 
 
 def _source() -> str:

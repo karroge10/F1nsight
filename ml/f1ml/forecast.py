@@ -21,8 +21,14 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from f1ml import fantasy, penalties, simulate
+from f1ml import fantasy, market, penalties, simulate
 from f1ml import features as feat
+
+# Pilot simulations per step and steps when the race strengths are fitted to the pooled market
+# win chances (`fit_to_market`). Common random numbers (one seed) keep the steps smooth.
+MARKET_FIT_SIMS = 8000
+MARKET_FIT_STEPS = 6
+MARKET_STEP_CLIP = 1.0
 
 STAGE_INPUTS = {
     "pre-weekend": [],
@@ -45,19 +51,27 @@ class RaceForecast:
     extras: dict = field(default_factory=dict)
     # announced penalties used: {"race": GridPenalties | None, "sprint": ..., "shift": array}
     grid_penalties: dict = field(default_factory=dict)
+    # win chances pooled with the market (`market.pool`), None when no market was used
+    market_target: np.ndarray | None = None
 
 
 def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.ExtrasModel | None,
                   history=None, races: pd.DataFrame | None = None, sims: int = 20000,
                   seed: int = 0, standings: dict | None = None,
-                  announced: pd.DataFrame | None = None) -> RaceForecast:
+                  announced: pd.DataFrame | None = None,
+                  market_win: np.ndarray | None = None) -> RaceForecast:
     """Forecast one race at a stage. `frame`: feature rows of the race (one per entrant).
 
     announced: rows of grid_penalties.parquet for this race (`penalties.load`), or None.
+    market_win: the winner market's probabilities in frame order (`market.winner_prices`), or
+    None for the model's own forecast.
     """
     frame = frame.reset_index(drop=True)
     prediction = bundle.predict(frame, stage)
     inputs = weekend_inputs(bundle, frame, stage, prediction, announced)
+    market_target = None
+    if market_win is not None:
+        market_target = fit_to_market(inputs, stage, market_win, seed)
     weekend = simulate.simulate_weekend(inputs, sims=sims, seed=seed)
     summary = simulate.summarize_positions(weekend)
     used = inputs_used(frame, stage)
@@ -72,10 +86,35 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
                             weekend, summary, fantasy_sims)
     forecast.grid_penalties = {"race": inputs.race_penalties, "sprint": inputs.sprint_penalties,
                                "shift": inputs.penalty_shift}
+    forecast.market_target = market_target
     if history is not None and standings is not None:
         forecast.championship = championship(bundle, history, frame, weekend, standings,
                                              sims=sims, seed=seed)
     return forecast
+
+
+def fit_to_market(inputs: simulate.WeekendInputs, stage: str, market_win: np.ndarray,
+                  seed: int) -> np.ndarray:
+    """Pool the model's win chances with the market's and move the race strengths (in place)
+    until the simulated win chances match the pool. Returns the pooled win chances.
+
+    Each step adds log(target / simulated) over the first-pick temperature, the change that
+    would match exactly if the field's other strengths stayed put.
+    """
+    first_temperature = 1.0
+    if inputs.race_schedule is not None:
+        first_temperature = float(inputs.race_schedule[0])
+    floor = 0.5 / MARKET_FIT_SIMS
+    ours = _simulated_win(inputs, seed)
+    weight = market.OURS_WEIGHT[stage]
+    target = market.pool(ours, market_win, weight)
+    current = ours
+    for _ in range(MARKET_FIT_STEPS):
+        ratio = np.log(np.maximum(target, floor)) - np.log(np.maximum(current, floor))
+        step = np.clip(ratio, -MARKET_STEP_CLIP, MARKET_STEP_CLIP) / first_temperature
+        inputs.race_strength = inputs.race_strength + step
+        current = _simulated_win(inputs, seed)
+    return target
 
 
 def lock_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -269,6 +308,12 @@ def _first_pick_ratio(bundle, stage: str) -> float:
     if post is None or here is None or here[0] <= 0:
         return 1.0
     return float(post[0] / here[0])
+
+
+def _simulated_win(inputs: simulate.WeekendInputs, seed: int) -> np.ndarray:
+    pilot = simulate.simulate_weekend(inputs, sims=MARKET_FIT_SIMS, seed=seed)
+    race = np.asarray(pilot.race)
+    return (race == 1).mean(axis=0)
 
 
 def _ranks(values: pd.Series) -> np.ndarray:

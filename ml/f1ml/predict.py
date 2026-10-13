@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from f1ml import (backtest, export, fantasy, forecast, paths, penalties, points_calibration,
+from f1ml import (backtest, export, fantasy, forecast, market, paths, penalties, points_calibration,
                   simulate)
 from f1ml import bundle as bundle_module
 from f1ml import features as feat
@@ -76,19 +76,42 @@ def run(features: pd.DataFrame, stage: str | None, sims: int):
     for record in announced.itertuples(index=False):
         print(f"grid penalty: {record.driverId} {record.kind} {record.places} "
               f"({record.appliesTo}, {record.source})")
+    prices = market_prices(history, frame, race_id)
+    market_win = None if prices is None else prices.probabilities
     result = forecast.forecast_race(trained, frame, chosen, extras, history=history,
                                     sims=sims, seed=race_id, standings=standings,
-                                    announced=announced)
+                                    announced=announced, market_win=market_win)
     points_calibration.calibrate_expected_points(result.summary, chosen, race_id)
     assets = export.AssetBook(season, round_number)
     backtest_block = backtest_summary_block()
     model_meta = {"version": meta["version"], "trainedAt": meta["trainedAt"],
-                  "notes": model_notes(meta)}
+                  "notes": model_notes(meta), "market": market_block(prices, chosen)}
     payload = export.race_payload(result, trained, model_meta, history, assets, backtest_block)
     horizon = fantasy_horizon(trained, history, result, assets, extras)
     rules = export.fantasy_rules_block()
     fantasy_payload = export.fantasy_payload(result, assets, rules, horizon, history)
     return payload, fantasy_payload
+
+
+def market_prices(history, frame: pd.DataFrame, race_id: int):
+    """The race's winner market in frame order (`market.winner_prices`), or None."""
+    race = history.races.loc[race_id]
+    race_date = str(race["date"])[:10]
+    names = history.drivers["fullName"].to_dict()
+    driver_ids = frame["driverId"].tolist()
+    prices = market.winner_prices(race_id, race["raceName"], race_date, driver_ids, names)
+    if prices is not None:
+        print(f"market: {prices.event_slug}, volume ${prices.volume:,.0f}, "
+              f"{prices.priced} of {len(driver_ids)} drivers priced")
+    return prices
+
+
+def market_block(prices, stage: str) -> dict | None:
+    """The model.market block of next.json: which market was pooled in and how much."""
+    if prices is None:
+        return None
+    return {"source": "Polymarket", "event": prices.event_slug, "fetchedAt": prices.fetched_at,
+            "volume": round(prices.volume), "modelWeight": market.OURS_WEIGHT[stage]}
 
 
 def load_latest():
