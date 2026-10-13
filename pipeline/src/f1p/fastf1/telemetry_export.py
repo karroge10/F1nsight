@@ -28,7 +28,8 @@ logger = logging.getLogger("f1p.telemetry_export")
 
 
 def export(seasons: list[int], codes: list[str], force: bool = False) -> dict:
-    setup_offline(seasons)
+    if seasons:
+        setup_offline(seasons)
     written = 0
     skipped = 0
     for season in seasons:
@@ -192,14 +193,21 @@ def main() -> None:
     parser.add_argument("--force", action="store_true", help="rewrite existing files")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    seasons = season_range(args.seasons) if args.seasons else [latest_cached_season()]
+    if args.seasons:
+        seasons = season_range(args.seasons)
+    else:
+        latest = latest_cached_season()
+        # the cloud refresh has no cache unless this run downloaded a session: nothing to export
+        seasons = [] if latest is None else [latest]
     summary = export(seasons, args.sessions, args.force)
     print(json.dumps(summary))
 
 
-def latest_cached_season() -> int:
+def latest_cached_season() -> int | None:
+    if not FASTF1_CACHE_DIR.is_dir():
+        return None
     years = [int(p.name) for p in FASTF1_CACHE_DIR.iterdir() if p.is_dir() and p.name.isdigit()]
-    return max(years)
+    return max(years) if years else None
 
 
 if __name__ == "__main__":
