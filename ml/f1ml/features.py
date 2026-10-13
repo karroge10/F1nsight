@@ -38,9 +38,10 @@ DEG_CLIP = 0.3
 # Weight of each practice session in fp_best_gap (FP1 runs are more varied: set-up work, test
 # items, rookies, so it says less about the weekend than FP2 and FP3).
 SESSION_WEIGHTS = {"fp1_gap": 0.5, "fp2_gap": 1.0, "fp3_gap": 1.0, "FP4": 1.0}
-# Experiment switch (F1ML_TEAM_BEST_CAR=1): team points form and team championship position use
-# the better car per race instead of both cars, so a weak team-mate does not drag a driver down.
-TEAM_BEST_CAR = os.environ.get("F1ML_TEAM_BEST_CAR") == "1"
+# Team points form and team championship position use the better car per race instead of both
+# cars, so a weak team-mate does not drag a driver down. On by default since 2026-10-13 (scorecard
+# exp_bestcar: post-qualifying RPS better, nothing worse); F1ML_TEAM_BEST_CAR=0 restores both cars.
+TEAM_BEST_CAR = os.environ.get("F1ML_TEAM_BEST_CAR", "1") == "1"
 
 CONTEXT_COLS = [
     "season", "round", "n_rounds", "season_progress", "rounds_since_reset", "reset_season",
