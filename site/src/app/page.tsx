@@ -71,7 +71,7 @@ function circuitFacts(circuit: Circuit | null, previousRace: Circuit["races"][nu
   const lastWinner = previousRace && winnerId ? { season: previousRace.season, driverId: winnerId, name: lookups.driverName(winnerId) } : null;
   const record = circuit?.lapRecord ?? null;
   const lapRecord = record ? { timeMs: record.timeMs, driverId: record.driverId, name: lookups.driverName(record.driverId), season: record.season } : null;
-  return { lastWinner, lapRecord, racesHeld: circuit?.raceCount ?? null };
+  return { lastWinner, lapRecord };
 }
 
 /** Pole lap from the last race at this circuit: the reference that turns percent gaps into seconds. */

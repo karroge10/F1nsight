@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SeasonScroll } from "./season-scroll";
 
 interface SeasonPickerProps {
   seasons: number[];
@@ -6,13 +7,16 @@ interface SeasonPickerProps {
   hrefFor: (season: number) => string;
 }
 
-/** Recent seasons as links plus a jump list for the rest. Server rendered, no JS. */
+/** Phones: every season in one sideways-scrolling row. Wider screens: recent seasons as links plus a jump list for the rest. */
 export function SeasonPicker({ seasons, current, hrefFor }: SeasonPickerProps) {
   const sorted = [...seasons].sort((a, b) => b - a);
   const recent = sorted.slice(0, 8);
   const rest = sorted.slice(8);
+  const links = sorted.map((season) => ({ season, href: hrefFor(season) }));
   return (
-    <nav aria-label="Season" className="flex flex-wrap items-center gap-1 text-ui">
+    <>
+    <SeasonScroll seasons={links} current={current} className="sm:hidden" />
+    <nav aria-label="Season" className="hidden flex-wrap items-center gap-1 text-ui sm:flex">
       {recent.map((s) => (
         <Link
           key={s}
@@ -38,5 +42,6 @@ export function SeasonPicker({ seasons, current, hrefFor }: SeasonPickerProps) {
         </details>
       ) : null}
     </nav>
+    </>
   );
 }

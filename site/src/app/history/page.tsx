@@ -8,7 +8,7 @@ import { Section } from "@/components/ui/section";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamName } from "@/components/ui/team-name";
 import { Meter } from "@/components/ui/prob-bar";
-import { IconCalendar, IconCrown, IconFastestLap, IconGarage, IconGridSlot, IconHelmet, IconListNumbers, IconMedal, IconTrophy } from "@/components/icons";
+import { IconCalendar, IconGarage, IconHelmet } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "History and records",
@@ -101,13 +101,10 @@ function RecordGrid({ groups, hrefBase, teamLookups }: { groups: Awaited<ReturnT
     <div className="grid gap-x-10 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
       {groups.map((group) => {
         const max = group.entries[0]?.value ?? 1;
-        const Icon = recordIcon(group.key);
         return (
           <div key={group.key}>
-            <h3 className="flex items-center gap-2 text-ui font-[550] text-ink">
-              <Icon size="1rem" className="text-ink-3" />
-              {group.title}
-            </h3>
+            {/* a list title under the section heading: quieter, so the two levels do not read alike */}
+            <h3 className="text-ui text-ink-2">{group.title}</h3>
             <ol className="mt-2 divide-y divide-rule">
               {group.entries.slice(0, 8).map((e, i) => {
                 const ratio = e.value / max;
@@ -135,11 +132,3 @@ function RecordGrid({ groups, hrefBase, teamLookups }: { groups: Awaited<ReturnT
   );
 }
 
-function recordIcon(key: string) {
-  if (key.endsWith("-wins")) return IconTrophy;
-  if (key.endsWith("-poles")) return IconGridSlot;
-  if (key.endsWith("-podiums")) return IconMedal;
-  if (key.endsWith("-titles")) return IconCrown;
-  if (key.endsWith("-fastestLaps")) return IconFastestLap;
-  return IconListNumbers;
-}

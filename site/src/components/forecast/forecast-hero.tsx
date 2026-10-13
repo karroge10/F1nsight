@@ -21,7 +21,6 @@ interface ForecastHeroProps {
 export interface CircuitFacts {
   lastWinner: { season: number; driverId: string; name: string } | null;
   lapRecord: { timeMs: number; driverId: string; name: string; season: number } | null;
-  racesHeld: number | null;
 }
 
 /**
@@ -65,7 +64,6 @@ export function ForecastHero({ prediction, race, now, totalRounds, facts }: Fore
                 , <span className="whitespace-nowrap"><Flag of={prediction.race.country} keepSpace={false} className="mr-1.5" />
                 {prediction.race.country}</span>
               </span>
-              {facts.racesHeld ? <span className="text-ink-3">, <span className="whitespace-nowrap">{facts.racesHeld} races held</span></span> : null}
             </dd>
             {facts.lastWinner ? (
               <>
