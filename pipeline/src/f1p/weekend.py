@@ -10,6 +10,11 @@ REFRESH_AFTER_END after the session's nominal end, which is when the free source
 timing archive for FastF1, OpenF1 history, Jolpica) normally have it, and again RETRY_AFTER later
 for whatever was still missing. One more run, RaceMorning, comes RACE_MORNING_BEFORE the race
 start: grid penalties announced overnight and the final grid are in the forecast before the race.
+
+The cloud gate (--due) adds news checks: every NEWS_EVERY from NEWS_FROM_BEFORE the race start
+until the start, a run of only the penalties step and the forecast, so a penalty announced
+between sessions (or before FP1) reaches the site within NEWS_EVERY. They are not part of the
+weekend plan the PC tasks follow.
 Keep these in step with f1p.fastf1.incremental.SESSION_LENGTH:
 the first run must come after that module's "ended" time.
 """
@@ -42,6 +47,9 @@ DEFAULT_AFTER_END = timedelta(minutes=60)
 RETRY_AFTER = timedelta(hours=3)
 RACE_MORNING_BEFORE = timedelta(hours=3)
 TASK_PREFIX = "F1nsight-refresh-"
+NEWS_TASK = f"{TASK_PREFIX}news"
+NEWS_FROM_BEFORE = timedelta(days=3, hours=12)
+NEWS_EVERY = timedelta(hours=2)
 # The weekly forced refresh: Monday 06:00 UTC, the PC task's Monday 10:00 at UTC+4.
 WEEKLY_WEEKDAY = 0
 WEEKLY_HOUR_UTC = 6
@@ -82,7 +90,8 @@ def find_race(season: int | None, round_number: int | None, now: datetime) -> pd
 def print_due(now: datetime) -> int:
     """Gate for the scheduled cloud refresh: which planned runs fell due since the last check.
 
-    Prints one JSON line {"due": [...], "force": bool}. The check time is kept in
+    Prints one JSON line {"due": [...], "force": bool, "newsOnly": bool}; newsOnly means only
+    news checks fell due, so the refresh runs just the penalties step and the forecast. The check time is kept in
     logs/refresh_state.json and only moves forward when something was due, so a cloud run that
     dies before saving its state is simply due again on the next check.
     """
@@ -92,17 +101,19 @@ def print_due(now: datetime) -> int:
     since = datetime.fromisoformat(checked) if checked else now - FIRST_CHECK_LOOKBACK
     due = due_runs(since, now)
     force = any(task["name"] == f"{TASK_PREFIX}weekly" for task in due)
+    news_only = bool(due) and all(task["name"] == NEWS_TASK for task in due)
     if due:
         cloud["checkedThrough"] = now.isoformat(timespec="seconds")
         _write_state(state)
     names = [task["name"] for task in due]
-    payload = {"since": since.isoformat(timespec="seconds"), "due": names, "force": force}
+    payload = {"since": since.isoformat(timespec="seconds"), "due": names, "force": force,
+               "newsOnly": news_only}
     print(json.dumps(payload))
     return 0
 
 
 def due_runs(since: datetime, now: datetime) -> list[dict]:
-    """Planned refreshes (the same plan the PC tasks follow, plus the weekly one) in (since, now]."""
+    """Planned refreshes (the PC tasks' plan, the news checks, the weekly one) in (since, now]."""
     races = pd.read_parquet(PROCESSED_DIR / "races.parquet")
     # Every planned run of a race lies within about three days before and one day after its start.
     low = since.replace(tzinfo=None) - timedelta(days=1)
@@ -111,7 +122,8 @@ def due_runs(since: datetime, now: datetime) -> list[dict]:
     due = []
     for _, race in nearby.iterrows():
         plan = refresh_plan(race)
-        for task in plan["tasks"]:
+        checks = news_runs(race)
+        for task in plan["tasks"] + checks:
             run_at = datetime.fromisoformat(task["runAtIso"])
             if since < run_at <= now:
                 due.append(task)
@@ -151,6 +163,21 @@ def refresh_plan(race: pd.Series) -> dict:
         "raceName": str(race["raceName"]),
         "tasks": tasks,
     }
+
+
+def news_runs(race: pd.Series) -> list[dict]:
+    """Penalties-only checks on the whole hour, every NEWS_EVERY, in race week until the start."""
+    race_start = race.get("raceUtc")
+    if race_start is None or pd.isna(race_start):
+        return []
+    start_utc = race_start.to_pydatetime().replace(tzinfo=timezone.utc)
+    run_at = (start_utc - NEWS_FROM_BEFORE).replace(minute=0, second=0, microsecond=0)
+    tasks = []
+    while run_at < start_utc:
+        task = _task(NEWS_TASK, run_at, "news check: grid penalties")
+        tasks.append(task)
+        run_at += NEWS_EVERY
+    return tasks
 
 
 def _task(name: str, run_at: datetime, note: str) -> dict:

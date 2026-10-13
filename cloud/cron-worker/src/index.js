@@ -1,7 +1,12 @@
 // F1nsight alarm clock: a Cloudflare Worker whose cron triggers start the GitHub Actions
 // workflows on time. GitHub's own `schedule` runs late, or not at all for hours; the dispatch
 // API does not. Each dispatch passes gate=true, so the workflow still stops in about a minute
-// when nothing is due, exactly like a scheduled run. Deployed by .github/workflows/cron-worker.yml.
+// when nothing is due, exactly like a scheduled run.
+//
+// Deploy from this folder with `npx wrangler deploy` (wrangler logged in to the account that
+// hosts the f1nsight Pages project). The secret GITHUB_TOKEN is a fine-grained token for this
+// repository with Actions read and write; set-token.ps1 stores a new one here and as the GitHub
+// secret F1_DISPATCH_TOKEN.
 
 const REPO = "karroge10/F1nsight";
 const BRANCH = "master";

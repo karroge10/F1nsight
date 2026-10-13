@@ -36,7 +36,9 @@ on:
   # later, race morning, Monday 06:00 UTC weekly) fell due since the last cloud run
   # (python -m f1p.weekend --due) and stops in about a minute if not. GitHub often runs this late
   # or skips it, so the Cloudflare Worker in cloud/cron-worker dispatches the same run with
-  # gate=true on the same minutes; this schedule stays as a backup.
+  # gate=true on the same minutes; this schedule stays as a backup. From 3.5 days before a race
+  # until its start the gate also passes a news check every 2 hours: only the penalties step and
+  # the forecast run, and the site is rebuilt only if the forecast changed.
   schedule:
     - cron: "7,37 * * * *"
 
@@ -86,6 +88,8 @@ jobs:
           echo "$result"
           due=$(echo "$result" | jq -r '.due | length')
           force=$(echo "$result" | jq -r '.force')
+          news=$(echo "$result" | jq -r '.newsOnly')
+          if [ "$news" = "true" ]; then echo "only=penalties,predict" >> "$GITHUB_OUTPUT"; fi
           if [ "$due" -gt 0 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
           echo "force=$force" >> "$GITHUB_OUTPUT"
           echo "pulled=true" >> "$GITHUB_OUTPUT"
@@ -126,7 +130,7 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         env:
           FORCE: ${{ steps.gate.outputs.force }}
-          ONLY: ${{ inputs.only }}
+          ONLY: ${{ inputs.only || steps.gate.outputs.only }}
           SKIP: ${{ inputs.skip }}
         run: |
           # Same split as refresh.ps1: "images" is a site step, the rest go to f1p.refresh.
@@ -142,9 +146,11 @@ jobs:
             uv run python -m f1p.refresh "${args[@]}" || code=$?
           fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          predicted=$(jq -r '.steps[] | select(.name == "predict") | .status' "$GITHUB_WORKSPACE/logs/refresh-last.json" 2>/dev/null || true)
+          echo "predicted=$predicted" >> "$GITHUB_OUTPUT"
 
       - name: Site images
-        if: steps.gate.outputs.run == 'true' && (inputs.only == '' || contains(inputs.only, 'images')) && !contains(inputs.skip, 'images')
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.only == '' && (inputs.only == '' || contains(inputs.only, 'images')) && !contains(inputs.skip, 'images')
         continue-on-error: true
         working-directory: site
         run: |
@@ -155,7 +161,8 @@ jobs:
         id: build
         # The outcome check matters: when the gate skips Refresh, its empty code compares equal
         # to '0' (expressions coerce both strings to numbers).
-        if: steps.refresh.outcome == 'success' && steps.refresh.outputs.code == '0' && (github.event_name == 'schedule' || inputs.publish)
+        # a news check only rebuilds the site when the forecast changed
+        if: steps.refresh.outcome == 'success' && steps.refresh.outputs.code == '0' && (steps.gate.outputs.only == '' || steps.refresh.outputs.predicted == 'ok') && (github.event_name == 'schedule' || inputs.publish)
         working-directory: site
         env:
           NODE_OPTIONS: --disable-warning=ExperimentalWarning

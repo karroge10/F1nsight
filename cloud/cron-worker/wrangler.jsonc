@@ -1,6 +1,8 @@
 {
   // Cron-only Worker, no public URL. Keep the crons in sync with WORKFLOW_BY_CRON in src/index.js.
   "name": "f1nsight-cron",
+  // the Cloudflare account that hosts the f1nsight Pages project
+  "account_id": "844c3690d8a81e3891fb57b9e314b17d",
   "main": "src/index.js",
   "compatibility_date": "2026-10-01",
   "workers_dev": false,
