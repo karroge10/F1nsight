@@ -27,12 +27,12 @@ GROUPS = {
     "race_pace": ["lr_gap", "lr_rank", "lr_deg"],
     "sprint": ["sq_pos", "sq_gap", "sp_fin", "sp_dnf", "sp_gain"],
     "form": ["d_fin_e3", "d_fin_e10", "d_pts_e5", "d_fin_s", "d_last_fin", "d_fin_ps",
-             "d_sprint_fin_e"],
+             "d_sprint_fin_e", "dp_driver", "dp_total", "dp_sd"],
     "quali_pace": ["d_q_e3", "d_q_e10", "d_qgap_e3", "d_qgap_e10", "d_q_s", "d_qgap_s",
                    "d_qgap_ps"],
     "championship": ["d_champ_pos", "d_champ_share", "t_champ_pos"],
     "team": ["t_qgap_e3", "t_qgap_e8", "t_qgap_s", "t_qgap_ps", "t_fin_e3", "t_fin_e8",
-             "t_fin_s", "t_pts_e5", "t_n_s"],
+             "t_fin_s", "t_pts_e5", "t_n_s", "dp_team"],
     "track_type": ["t_cluster_qgap"],
     "track_history": ["d_circ_tm", "d_circ_gain", "d_circ_fin", "d_circ_visits"],
     "teammate": ["d_tm_qgap_e", "d_tm_fin_e"],
@@ -141,7 +141,8 @@ def fixed_factors(row: pd.Series, impacts: np.ndarray) -> list[dict]:
 
 def group_impacts(booster, gated: pd.DataFrame, stage: str) -> np.ndarray:
     """(rows, groups) field-relative SHAP contribution of each feature group."""
-    columns = feat.stage_columns(stage)
+    stage_columns = feat.stage_columns(stage)
+    columns = gbm.trained_columns(booster, stage_columns)
     contributions = gbm.contributions(booster, gated, columns)[:, :-1]
     relative = contributions - contributions.mean(axis=0, keepdims=True)
     index = {name: i for i, name in enumerate(columns)}

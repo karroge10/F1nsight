@@ -35,6 +35,11 @@ ERA_DISCOUNT = 1.0
 # half-life of 6 was tested on the 2024-26 scorecard (label dnf6) and was neutral, so it is off.
 SEASON_DNF_HALFLIFE = None
 DEG_CLIP = 0.3
+# Earlier visits per circuit in the typical lap speed c_speed.
+SPEED_VISITS = 5
+# Long run gap and rank from `longrun` (fuel, tyre age and compound corrected, FastF1, OpenF1 or
+# live timing laps) instead of `data.long_run_pace` (FastF1 only). Experiment switch, off.
+LONGRUN2 = os.environ.get("F1ML_LONGRUN2", "0") == "1"
 # Weight of each practice session in fp_best_gap (FP1 runs are more varied: set-up work, test
 # items, rookies, so it says less about the weekend than FP2 and FP3).
 SESSION_WEIGHTS = {"fp1_gap": 0.5, "fp2_gap": 1.0, "fp3_gap": 1.0, "FP4": 1.0}
@@ -68,7 +73,20 @@ QUALI_COLS = ["grid", "q_pos", "q_gap", "grid_pen", "pitlane", "q_tm_delta", "q_
 EVENT_FLOAT_COLS = ["finish_c", "quali_pos", "quali_gap", "season", "pts_modern", "dnf_acc",
                     "tm_qgap_delta", "tm_fin_delta", "gain", "sprint_fin", "dnf"]
 TEAM_FLOAT_COLS = ["best_qgap", "best_fin", "points", "best_pts", "mech_rate", "season", "dnf_rate"]
-PRE_COLS = CONTEXT_COLS + DRIVER_COLS + TEAM_COLS
+# Point-in-time Plackett-Luce driver and team strengths (`dynpl`). On by default since 2026-10-13
+# (scorecard exp_dynpl: pre-weekend NLL better, nothing worse); F1ML_DYNPL=0 leaves them out.
+DYNPL = os.environ.get("F1ML_DYNPL", "1") == "1"
+DYNPL_COLS = ["dp_driver", "dp_team", "dp_total", "dp_sd"] if DYNPL else []
+FASTFORM = os.environ.get("F1ML_FASTFORM", "0") == "1"
+SIMILARITY = os.environ.get("F1ML_SIMILARITY", "0") == "1"
+IDEA_COLS = []
+if FASTFORM or SIMILARITY:
+    from f1ml import team_ideas
+    if FASTFORM:
+        IDEA_COLS += team_ideas.FORM_COLS
+    if SIMILARITY:
+        IDEA_COLS += team_ideas.SIM_COLS
+PRE_COLS = CONTEXT_COLS + DRIVER_COLS + TEAM_COLS + DYNPL_COLS + IDEA_COLS
 LABEL_COLS = ["y_finish", "y_classified", "y_dnf", "y_dsq", "y_quali", "y_grid", "y_points",
               "y_sprint_finish", "y_sprint_dnf"]
 META_COLS = ["raceId", "cutoff", "driverId", "constructorId", "team", "circuitId", "number",
@@ -157,7 +175,12 @@ class History:
     def __init__(self, events, team_races, circuit_races, weekend, races, standings, drivers,
                  era_discount: float = ERA_DISCOUNT):
         self.era_discount = era_discount
+        self.idea_params = team_ideas.load_params() if IDEA_COLS else None
         self.events = events
+        self.dynpl = None
+        if DYNPL:
+            from f1ml import dynpl
+            self.dynpl = dynpl.Filter(events, dynpl.DEFAULT_PARAMS)
         self.team_races = team_races
         self.circuit_races = circuit_races
         self.weekend = weekend
@@ -277,6 +300,9 @@ class History:
             for column in empty_cols:
                 frame[column] = np.nan
             frame["sprint_pre_q"] = 0
+        if self.dynpl is not None:
+            strengths = self.dynpl.features(frame, target.cutoff)
+            frame[DYNPL_COLS] = strengths
         frame["fp_vs_form"] = frame["fp_best_gap"] - frame["d_qgap_e3"]
         frame["q_vs_form"] = frame["q_gap"] - frame["d_qgap_e3"]
         return frame
@@ -433,6 +459,15 @@ class History:
             features["t_champ_pos"] = self._team_best_car_standing(team, target)
         else:
             features["t_champ_pos"] = self._team_standing(team, target)
+        if FASTFORM:
+            extra = team_ideas.form_features(qgap, finish, seasons, target.season,
+                                            self.idea_params['fastform'])
+            features.update(extra)
+        if SIMILARITY:
+            race_ids = self.team_race[rows]
+            extra = team_ideas.similarity_features(qgap, race_ids, self.races,
+                                                  target.race_id, self.idea_params['similarity'])
+            features.update(extra)
         return features
 
     def _cluster_delta(self, qgap, seasons, clusters, target: Target) -> float:
@@ -573,22 +608,29 @@ def _races_frame(core) -> pd.DataFrame:
     meta = data.circuit_meta()
     races = races.merge(meta[["circuitId", "circuitType"]], on="circuitId", how="left")
     speeds = _circuit_speeds(core, races)
-    races = races.merge(speeds, on="circuitId", how="left")
+    races = races.merge(speeds, on="raceId", how="left")
     races["cluster"] = np.where(races["circuitType"] == "STREET", "street",
                                 np.where(races["c_speed"] >= 225, "fast", "medium"))
     return races.set_index("raceId").sort_index()
 
 
 def _circuit_speeds(core, races) -> pd.DataFrame:
-    """Typical race lap speed per circuit (km/h) from fastest laps since 2014."""
+    """Typical race lap speed (km/h) per race: median fastest lap speed of the circuit's last
+    SPEED_VISITS earlier races, so a race never sees its own or later laps. NaN on a first visit."""
     results = core["results"]
-    fastest = results[(results["fastestLapRank"] == 1) & (results["season"] >= 2014)]
-    fastest = fastest[["raceId", "fastestLapTimeMs"]].merge(
-        races[["raceId", "circuitId", "courseLengthKm"]], on="raceId")
+    fastest = results[results["fastestLapRank"] == 1][["raceId", "fastestLapTimeMs"]]
+    fastest = fastest.merge(races[["raceId", "circuitId", "courseLengthKm"]], on="raceId")
     hours = fastest["fastestLapTimeMs"] / 3.6e6
     fastest["speed"] = fastest["courseLengthKm"] / hours
-    speeds = fastest.groupby("circuitId", as_index=False)["speed"].median()
-    return speeds.rename(columns={"speed": "c_speed"})
+    fastest = fastest.dropna(subset=["speed"]).sort_values("raceId")
+    rows = []
+    for circuit_id, visits in races[["raceId", "circuitId"]].groupby("circuitId"):
+        measured = fastest[fastest["circuitId"] == circuit_id]
+        for race_id in visits["raceId"]:
+            earlier = measured[measured["raceId"] < race_id]["speed"].tail(SPEED_VISITS)
+            speed = earlier.median() if len(earlier) else np.nan
+            rows.append((race_id, speed))
+    return pd.DataFrame(rows, columns=["raceId", "c_speed"])
 
 
 def _build_events(core, races) -> pd.DataFrame:
@@ -782,7 +824,20 @@ def _long_run_features() -> pd.DataFrame:
     main["lr_rank"] = main.groupby("raceId")["longRunS"].rank(method="min")
     field_slope = main.groupby("raceId")["degSlope"].transform("median")
     main["lr_deg"] = (main["degSlope"] - field_slope).clip(-DEG_CLIP, DEG_CLIP)
+    if LONGRUN2:
+        main = _with_longrun2(main[columns])
     return main[columns]
+
+
+def _with_longrun2(v1: pd.DataFrame) -> pd.DataFrame:
+    """lr_gap and lr_rank from `longrun.race_long_runs`, lr_deg kept from the v1 table."""
+    from f1ml import longrun
+    runs = longrun.race_long_runs()[["raceId", "driverId", "lr2_s", "lr2_gap"]]
+    runs = runs.dropna(subset=["lr2_gap"])
+    runs["lr_rank"] = runs.groupby("raceId")["lr2_s"].rank(method="min")
+    runs = runs.rename(columns={"lr2_gap": "lr_gap"})[["raceId", "driverId", "lr_gap", "lr_rank"]]
+    degradation = v1[["raceId", "driverId", "lr_deg"]]
+    return runs.merge(degradation, on=["raceId", "driverId"], how="outer")
 
 
 def _weekend_quali(core, events) -> pd.DataFrame:

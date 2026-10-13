@@ -103,6 +103,7 @@ def train_dnf(frame: pd.DataFrame, columns: list[str], params: dict,
 
 def predict(booster: xgb.Booster, frame: pd.DataFrame, columns: list[str],
             margin: bool = True) -> np.ndarray:
+    columns = trained_columns(booster, columns)
     features = frame[columns].to_numpy(dtype=np.float32)
     matrix = xgb.DMatrix(features, feature_names=columns, missing=np.nan)
     return booster.predict(matrix, output_margin=margin)
@@ -110,9 +111,17 @@ def predict(booster: xgb.Booster, frame: pd.DataFrame, columns: list[str],
 
 def contributions(booster: xgb.Booster, frame: pd.DataFrame, columns: list[str]) -> np.ndarray:
     """Exact TreeSHAP contributions (n_rows, n_features + 1), last column is the bias."""
+    columns = trained_columns(booster, columns)
     features = frame[columns].to_numpy(dtype=np.float32)
     matrix = xgb.DMatrix(features, feature_names=columns, missing=np.nan)
     return booster.predict(matrix, pred_contribs=True)
+
+
+def trained_columns(booster, columns: list[str]) -> list[str]:
+    """The columns the booster was trained on, so a model from before a feature was added keeps
+    working until the next retrain; `columns` when the booster does not record them."""
+    names = booster.feature_names
+    return list(names) if names else columns
 
 
 def importance(booster: xgb.Booster) -> dict[str, float]:
@@ -139,6 +148,10 @@ class BoosterBag:
             for name, value in scores.items():
                 totals[name] = totals.get(name, 0.0) + value / len(self.boosters)
         return totals
+
+    @property
+    def feature_names(self) -> list[str] | None:
+        return self.boosters[0].feature_names
 
     def set_param(self, values: dict) -> None:
         for booster in self.boosters:
