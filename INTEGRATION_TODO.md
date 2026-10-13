@@ -55,10 +55,11 @@ Everything runs free in the cloud with the PC off; details in README.md, "Cloud 
 
 - **Model: be better than the other public F1 prediction models.** Work through
   `research/prediction-model-roadmap.md`, judging every change by `research/evaluation-protocol.md`.
-  First experiment: team strength counts the team-mate's results, which underrates a strong
-  driver in a weak second car (Verstappen); try the team's best car instead. To claim "better than
-  others" we also need their numbers: archive an outside benchmark each weekend (betting market
-  prices, for example Polymarket's public API) and score it next to ours.
+  Done 2026-10-13: best-car team form, rating features (dynpl), circuit speed leak fix, the
+  Polymarket winner market pooled into the forecast. Tried and left off (neutral): calibration,
+  team fast form, circuit similarity, corrected long run pace. Next: after the season, score the
+  pooled forecast on the archived prices (`data/raw/polymarket`, 2026 R18 on) against the model
+  alone and refit the pooling weights (`f1ml/market.py`).
 - **Fantasy: redesign.** The owner does not like the current fantasy implementation (feature and
   page); revisit after the model work.
 - **Live timing on the hosted site:** host f1live (see Hosting).
