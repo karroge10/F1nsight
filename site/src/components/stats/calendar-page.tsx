@@ -31,7 +31,7 @@ export async function CalendarPageContent({ season }: { season: number }) {
           </>
         }
         title={`${season} calendar and results`}
-        dek={`${calendar.length} rounds, ${completed} completed. Click a race for results, qualifying, pit stops and the lap chart.`}
+        dek={completed < calendar.length ? `${completed} of ${calendar.length} rounds completed.` : `${calendar.length} rounds.`}
         aside={<SeasonPicker seasons={seasons.map((s) => s.season)} current={season} hrefFor={(s) => `/races/${s}`} />}
       />
       <div className="mx-auto mt-6 max-w-[1440px] px-4 sm:px-6">

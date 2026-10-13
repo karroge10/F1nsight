@@ -22,7 +22,7 @@ export default async function CircuitsPage() {
 
   return (
     <>
-      <PageIntro label="Circuits" title={`${circuits.length} circuits have hosted a Grand Prix`} dek={`${current.length} on the ${season} calendar.`} />
+      <PageIntro label="Circuits" title={`${circuits.length} circuits since 1950`} dek={`${current.length} on the ${season} calendar.`} />
       <Section title={`${season} calendar`} icon={IconCalendar} flush>
         <CircuitTable circuits={current} lookups={lookups} calendarRound={(id) => calendar.find((r) => r.circuitId === id)?.round ?? null} />
       </Section>

@@ -25,7 +25,7 @@ export default async function DriversPage() {
 
   return (
     <>
-      <PageIntro label="Drivers" title={`The ${season} grid and every driver since 1950`} dek={`${entries.drivers.length} drivers this season, ${drivers.length} all time.`} />
+      <PageIntro label="Drivers" title={`${drivers.length} drivers since 1950`} dek={`${entries.drivers.length} on the ${season} grid.`} />
       <Section title={`${season} grid`} icon={IconHelmet} flush>
         {/* one column read top to bottom, capped so the few columns stay close together */}
         <div className="max-w-3xl">

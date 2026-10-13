@@ -25,7 +25,7 @@ export default async function TeamsPage() {
 
   return (
     <>
-      <PageIntro label="Teams" title={`${entries.constructors.length} constructors in ${season}, ${constructors.length} since 1950`} />
+      <PageIntro label="Teams" title={`${constructors.length} constructors since 1950`} dek={`${entries.constructors.length} on the ${season} grid.`} />
       <Section title={`${season} constructors`} icon={IconGarage} flush>
         {/* one column read top to bottom, capped so the few columns stay close together */}
         <div className="max-w-3xl">
