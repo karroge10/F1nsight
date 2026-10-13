@@ -6,6 +6,8 @@
 # then starts this workflow. See "Cloud refresh" in README.md.
 #
 # Manual run: gh workflow run refresh.yml [-f force=true] [-f only=fastf1,predict] [-f publish=false]
+# A push to master that touches the site rebuilds and uploads it from the current state, with no
+# data steps.
 
 name: Refresh
 
@@ -41,6 +43,11 @@ on:
   # the forecast run, and the site is rebuilt only if the forecast changed.
   schedule:
     - cron: "7,37 * * * *"
+  push:
+    branches: [master]
+    paths:
+      - "site/**"
+      - ".github/workflows/refresh.yml"
 
 permissions:
   contents: write
@@ -108,7 +115,7 @@ jobs:
           du -sh data/* ml/models logs 2>/dev/null || true
 
       - name: ML environment
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && github.event_name != 'push'
         run: uv sync --project ml
 
       - uses: actions/setup-node@v5
@@ -127,7 +134,7 @@ jobs:
 
       - name: Refresh
         id: refresh
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && github.event_name != 'push'
         env:
           FORCE: ${{ steps.gate.outputs.force }}
           ONLY: ${{ inputs.only || steps.gate.outputs.only }}
@@ -150,7 +157,7 @@ jobs:
           echo "predicted=$predicted" >> "$GITHUB_OUTPUT"
 
       - name: Site images
-        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.only == '' && (inputs.only == '' || contains(inputs.only, 'images')) && !contains(inputs.skip, 'images')
+        if: steps.gate.outputs.run == 'true' && github.event_name != 'push' && steps.gate.outputs.only == '' && (inputs.only == '' || contains(inputs.only, 'images')) && !contains(inputs.skip, 'images')
         continue-on-error: true
         working-directory: site
         run: |
@@ -161,8 +168,8 @@ jobs:
         id: build
         # The outcome check matters: when the gate skips Refresh, its empty code compares equal
         # to '0' (expressions coerce both strings to numbers).
-        # a news check only rebuilds the site when the forecast changed
-        if: steps.refresh.outcome == 'success' && steps.refresh.outputs.code == '0' && (steps.gate.outputs.only == '' || steps.refresh.outputs.predicted == 'ok') && (github.event_name == 'schedule' || inputs.publish)
+        # a news check only rebuilds the site when the forecast changed; a push always rebuilds
+        if: (github.event_name == 'push' && steps.gate.outputs.run == 'true') || (steps.refresh.outcome == 'success' && steps.refresh.outputs.code == '0' && (steps.gate.outputs.only == '' || steps.refresh.outputs.predicted == 'ok') && (github.event_name == 'schedule' || inputs.publish))
         working-directory: site
         env:
           NODE_OPTIONS: --disable-warning=ExperimentalWarning
@@ -194,7 +201,7 @@ jobs:
           if [ "$result" = "due" ]; then gh workflow run retrain-live.yml --ref "$GITHUB_REF_NAME" -f gate=true; fi
 
       - name: Keep the logs
-        if: always() && steps.gate.outputs.run == 'true'
+        if: always() && steps.gate.outputs.run == 'true' && github.event_name != 'push'
         uses: actions/upload-artifact@v4
         with:
           name: refresh-logs-${{ github.run_id }}
@@ -202,7 +209,7 @@ jobs:
           retention-days: 14
 
       - name: Result
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.run == 'true' && github.event_name != 'push'
         env:
           CODE: ${{ steps.refresh.outputs.code }}
         run: |
