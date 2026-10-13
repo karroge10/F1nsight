@@ -154,7 +154,7 @@ export function Player({ state, controls }: PlayerProps) {
         disabled={!ready}
         className="h-6 w-full cursor-pointer accent-[var(--accent)] disabled:cursor-default disabled:opacity-50"
       />
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-3">
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 lg:justify-start">
         <div className="flex items-center gap-1">
           <IconButton label="Back one lap (Shift + Left)" onClick={() => skipLap(-1)} disabled={!ready}>
             <IconSkipBack size="1.125rem" />
@@ -211,7 +211,7 @@ export function Player({ state, controls }: PlayerProps) {
           />
         </form>
 
-        <div role="group" aria-label="Playback speed (Up and Down arrows)" className="ml-auto inline-flex rounded-control border border-rule p-0.5">
+        <div role="group" aria-label="Playback speed (Up and Down arrows)" className="inline-flex rounded-control border border-rule p-0.5 lg:ml-auto">
           {SPEEDS.map((s) => (
             <button
               key={s}

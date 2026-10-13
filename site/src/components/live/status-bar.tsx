@@ -8,15 +8,18 @@ interface StatusBarProps {
   state: LiveState;
   /** The calendar's race name, preferred over the feed's meeting name. */
   raceName: string | null;
+  /** The pit stops and race control menus, on the right. */
+  actions: ReactNode;
 }
 
 const ICON_SIZE = "1.125rem";
 
 /**
- * One line above the map: track state with its icon, lap or clock, the session, and on the
- * right the weather readout (or the connection state while nothing plays yet).
+ * Above the map: track state with its icon, lap or clock, the session and the weather readout
+ * (or the connection state while nothing plays yet), with the log menus on the right. One line
+ * on wide screens; on phones the left side stacks into rows and the menus stack beside it.
  */
-export function StatusBar({ state, raceName }: StatusBarProps) {
+export function StatusBar({ state, raceName, actions }: StatusBarProps) {
   const status = state.session ? trackStatus(state.trackState) : { label: "No session", icon: null };
   const isRace = state.session?.code === "R" || state.session?.code === "S";
   const lapText = state.lap ? (state.lap.total ? `${state.lap.current} / ${state.lap.total}` : String(state.lap.current)) : "";
@@ -24,35 +27,43 @@ export function StatusBar({ state, raceName }: StatusBarProps) {
   const partText = state.sessionPart ? `Q${state.sessionPart}` : "";
   const pending = pendingLabel(state);
   return (
-    <div className="track-status flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-rule py-2" data-status={!state.session ? "idle" : state.trackState === "vscEnding" ? "vsc" : state.trackState}>
-      <span className="flex items-center gap-2">
-        {/* the track state colour; with no session there is no state to show */}
-        {state.session ? <span className="inline-block h-5 w-1.5 rounded-chip" style={{ background: "var(--status)" }} aria-hidden="true" /> : null}
-        {status.icon ? <span className="text-ink-2">{status.icon}</span> : null}
-        <span className="text-ui font-[550] text-ink">{status.label}</span>
-      </span>
-      {isRace && lapText ? (
-        <span className="flex items-baseline gap-2">
-          <span className="label">Lap</span>
-          <span className="timing text-ui text-ink">{lapText}</span>
+    <div className="track-status flex items-start gap-4 border-y border-rule py-2" data-status={!state.session ? "idle" : state.trackState === "vscEnding" ? "vsc" : state.trackState}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-5">
+        <div className="flex min-h-8 items-center gap-x-5">
+          <span className="flex items-center gap-2">
+            {/* the track state colour; with no session there is no state to show */}
+            {state.session ? <span className="inline-block h-5 w-1.5 rounded-chip" style={{ background: "var(--status)" }} aria-hidden="true" /> : null}
+            {status.icon ? <span className="text-ink-2">{status.icon}</span> : null}
+            <span className="text-ui font-[550] text-ink">{status.label}</span>
+          </span>
+          {isRace && lapText ? (
+            <span className="flex items-baseline gap-2">
+              <span className="label">Lap</span>
+              <span className="timing text-ui text-ink">{lapText}</span>
+            </span>
+          ) : null}
+          {!isRace && (partText || clockText) ? (
+            <span className="flex items-baseline gap-2">
+              {partText ? <span className="timing text-ui text-ink">{partText}</span> : null}
+              {clockText ? <span className="timing text-ui text-ink-2">{clockText}</span> : null}
+            </span>
+          ) : null}
+        </div>
+        {state.session ? (
+          <span className="flex min-h-8 min-w-0 items-center text-ui text-ink-2">
+            <span className="text-pretty lg:truncate">
+              {raceName ?? state.session.meeting ?? state.session.name} {state.session.season}, {state.session.name}
+            </span>
+          </span>
+        ) : null}
+        <span className="flex items-center gap-2 text-caption text-ink-3 lg:ml-auto">
+          {state.connection === "live" ? <span className="live-dot inline-block size-2 rounded-full bg-accent" aria-hidden="true" /> : null}
+          {state.connection === "live" ? <span className="mr-2">Live</span> : null}
+          {state.weather ? <Weather state={state} /> : pending}
         </span>
-      ) : null}
-      {!isRace && (partText || clockText) ? (
-        <span className="flex items-baseline gap-2">
-          {partText ? <span className="timing text-ui text-ink">{partText}</span> : null}
-          {clockText ? <span className="timing text-ui text-ink-2">{clockText}</span> : null}
-        </span>
-      ) : null}
-      {state.session ? (
-        <span className="min-w-0 truncate text-ui text-ink-2">
-          {raceName ?? state.session.meeting ?? state.session.name} {state.session.season}, {state.session.name}
-        </span>
-      ) : null}
-      <span className="ml-auto flex items-center gap-2 text-caption text-ink-3">
-        {state.connection === "live" ? <span className="live-dot inline-block size-2 rounded-full bg-accent" aria-hidden="true" /> : null}
-        {state.connection === "live" ? <span className="mr-2">Live</span> : null}
-        {state.weather ? <Weather state={state} /> : pending}
-      </span>
+      </div>
+      {/* the menus' popovers anchor to this box */}
+      <div className="relative flex shrink-0 flex-col items-end gap-1.5 lg:flex-row lg:items-center lg:gap-2">{actions}</div>
     </div>
   );
 }

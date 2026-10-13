@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Prediction, SeasonStandings } from "@/lib/data";
 import type { EntryList } from "@/lib/data";
-import { formatPercent, formatPoints } from "@/lib/format";
+import { formatPoints } from "@/lib/format";
 import { ProbBar } from "@/components/ui/prob-bar";
 import { TeamLogo } from "@/components/ui/team-logo";
 
@@ -57,7 +57,6 @@ export function TitleOdds({ prediction, standings, entries, totalRounds }: Title
             const info = teamById.get(c.constructorId);
             const standing = teamStanding.get(c.constructorId);
             const pointsText = standing ? formatPoints(standing.points) : "";
-            const percentText = formatPercent(c.pTitle);
             return (
               <li key={c.constructorId} className="flex items-center gap-3 py-2">
                 <TeamLogo constructorId={c.constructorId} name={info?.name ?? c.constructorId} color={info?.color ?? "#8A8F98"} size={24} season={entries.season} />
@@ -65,7 +64,7 @@ export function TitleOdds({ prediction, standings, entries, totalRounds }: Title
                   {info?.name ?? c.constructorId}
                 </Link>
                 <span className="timing hidden text-caption text-ink-3 sm:inline">{pointsText} pts</span>
-                <span className="timing text-table text-ink w-12 text-end">{percentText}</span>
+                <ProbBar value={c.pTitle} width="w-20" label="title" />
               </li>
             );
           })}

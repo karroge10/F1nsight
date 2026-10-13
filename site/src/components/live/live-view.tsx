@@ -21,8 +21,8 @@ interface LiveViewProps {
 }
 
 /**
- * Live page body: the timing tower on the left, the track map on the right with the pit stops
- * and race control menus in its corner, then, for replays, the player. The tower is exactly as
+ * Live page body: the status bar with the pit stops and race control menus, the timing tower on
+ * the left, the track map on the right, then, for replays, the player. The tower is exactly as
  * tall as the right column and scrolls inside if the field does not fit. Clicking a driver in
  * the tower or on the map pins that car: it lights on the map, the rest fade, and the pit stops
  * and race control logs narrow to it; clicking again, Esc or "All drivers" clears. If a session is
@@ -52,15 +52,22 @@ export function LiveView({ replay, preferLive, sessions }: LiveViewProps) {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 sm:px-6">
-      <StatusBar state={state} raceName={listed?.raceName ?? null} />
+      <StatusBar
+        state={state}
+        raceName={listed?.raceName ?? null}
+        actions={
+          state.session ? (
+            <>
+              <PitStopsMenu stops={state.pitStops} drivers={state.drivers} season={season} driver={pinnedDriver} onClearDriver={clearPin} />
+              <RaceControlMenu messages={state.raceControl} driver={pinnedDriver} onClearDriver={clearPin} />
+            </>
+          ) : null
+        }
+      />
 
       <div className={"mt-4 grid gap-4 lg:grid-cols-[28.5rem_minmax(0,1fr)] " + (isReplay ? "lg:grid-rows-[auto_auto]" : "")}>
-        <div className="relative rounded-control bg-bg-sunken p-2 sm:p-4 lg:col-start-2 lg:row-start-1">
+        <div className="rounded-control bg-bg-sunken p-2 sm:p-4 lg:col-start-2 lg:row-start-1">
           <TrackMap state={state} highlight={pinned} onSelect={select} className="mx-auto block h-auto w-full lg:h-[min(64vh,620px)] lg:w-auto lg:max-w-full" />
-          <div className="absolute right-3 top-3 flex items-center gap-2">
-            <PitStopsMenu stops={state.pitStops} drivers={state.drivers} season={season} driver={pinnedDriver} onClearDriver={clearPin} />
-            <RaceControlMenu messages={state.raceControl} driver={pinnedDriver} onClearDriver={clearPin} />
-          </div>
         </div>
 
         {isReplay ? (

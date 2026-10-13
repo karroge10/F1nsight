@@ -795,11 +795,3 @@ select option {
   background: var(--bg);
   box-shadow: var(--shadow-float);
 }
-@media (max-width: 639px) {
-  .rc-menu {
-    position: fixed;
-    inset: 4rem 1rem auto 1rem;
-    width: auto;
-    max-height: calc(100vh - 6rem);
-  }
-}

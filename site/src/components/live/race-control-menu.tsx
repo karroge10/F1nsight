@@ -21,7 +21,7 @@ export function RaceControlMenu({ messages, driver, onClearDriver }: RaceControl
       <span className="font-[550] text-ink">{driver.code}</span> only, {shown.length} of {messages.length}
     </>
   ) : (
-    `${messages.length} messages`
+    `${messages.length} ${messages.length === 1 ? "message" : "messages"}`
   );
   return (
     <MapMenu

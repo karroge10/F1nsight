@@ -7,6 +7,7 @@ import { PageIntro } from "@/components/ui/page-intro";
 import { Section } from "@/components/ui/section";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamName } from "@/components/ui/team-name";
+import { Meter } from "@/components/ui/prob-bar";
 import { IconCalendar, IconCrown, IconFastestLap, IconGarage, IconGridSlot, IconHelmet, IconListNumbers, IconMedal, IconTrophy } from "@/components/icons";
 
 export const metadata: Metadata = {
@@ -109,7 +110,7 @@ function RecordGrid({ groups, hrefBase, teamLookups }: { groups: Awaited<ReturnT
             </h3>
             <ol className="mt-2 divide-y divide-rule">
               {group.entries.slice(0, 8).map((e, i) => {
-                const width = `${((e.value / max) * 100).toFixed(1)}%`;
+                const ratio = e.value / max;
                 const valueText = Number.isInteger(e.value) ? String(e.value) : e.value.toFixed(1);
                 return (
                   <li key={e.id} className="grid grid-cols-[1.25rem_minmax(0,1fr)_4rem_3.5rem] items-center gap-2 py-1.5 text-ui">
@@ -121,9 +122,7 @@ function RecordGrid({ groups, hrefBase, teamLookups }: { groups: Awaited<ReturnT
                         <span className="ml-2 hidden text-caption text-ink-3 sm:inline">{e.detail}</span>
                       </span>
                     </Link>
-                    <span className="relative h-1 rounded-chip bg-bg-sunken" aria-hidden="true">
-                      <span className="absolute inset-y-0 start-0 rounded-chip bg-[var(--prob-4)]" style={{ width }} />
-                    </span>
+                    <Meter ratio={ratio} />
                     <span className="timing text-end text-table text-ink">{valueText}</span>
                   </li>
                 );

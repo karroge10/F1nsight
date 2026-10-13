@@ -12,6 +12,7 @@ import { initialLiveState, liveReducer, type LiveState } from "./reducer";
 import { clampToTimeline } from "./seek";
 
 const UNAVAILABLE = "Replays of this session are not available here yet";
+const LOAD_FAILED = "Could not load this replay, reload to try again";
 
 export interface ReplayTarget {
   season: number;
@@ -88,16 +89,15 @@ export function useLiveSession({ replay, preferLive = true }: UseLiveSessionOpti
 
       try {
         const response = await fetch(`/api/replay/${replay.season}/${replay.round}.json`);
-        if (!response.ok) throw new Error(UNAVAILABLE);
+        if (!response.ok) throw new Error(LOAD_FAILED);
         const payload = (await response.json()) as ReplayPayload;
         if (cancelled) return;
         const stream = new MockLiveStream(payload, { speed: speedRef.current, onMessage });
         mockRef.current = stream;
         dispatch({ type: "connection", connection: "replay", source: "mock" });
         stream.start();
-      } catch (error) {
-        const text = error instanceof Error ? error.message : UNAVAILABLE;
-        dispatch({ type: "error", message: text });
+      } catch {
+        dispatch({ type: "error", message: LOAD_FAILED });
         dispatch({ type: "connection", connection: "offline" });
       }
     }

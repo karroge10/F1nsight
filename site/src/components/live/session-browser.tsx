@@ -21,8 +21,11 @@ interface Weekend {
 
 const ORDER = ["FP1", "FP2", "FP3", "SQ", "S", "Q", "R"];
 
-/** Round, race day, flag, name, chips at the right edge. On phones the date hides and the chips take a line of their own. */
-const GRID = "grid-cols-[var(--round-w)_18px_minmax(0,1fr)] sm:grid-cols-[var(--round-w)_3rem_18px_minmax(0,1fr)_auto]";
+/** Round, race day, flag, name, chips at the right edge. On phones the date hides. */
+const GRID = "grid-cols-[var(--round-w)_18px_minmax(0,1fr)_auto] sm:grid-cols-[var(--round-w)_3rem_18px_minmax(0,1fr)_auto]";
+
+/** On phones a weekend with more chips than this moves them to a line of their own. */
+const INLINE_CHIPS = 2;
 
 /**
  * Replay picker: one compact line per race weekend, newest first: round, race day, flag, name
@@ -58,7 +61,7 @@ function WeekendRow({ weekend, selected, showSeason }: { weekend: Weekend; selec
       <span className="timing hidden text-caption text-ink-3 sm:block">{dateText}</span>
       <Flag of={weekend.country} size={18} />
       <span className={"truncate text-ui " + (isSelected ? "font-[600] text-ink" : "text-ink")}>{weekend.raceName}</span>
-      <span className="col-span-full flex flex-wrap gap-1 sm:col-span-1 sm:justify-end">
+      <span className={"flex flex-wrap gap-1 sm:col-span-1 sm:justify-end " + (weekend.sessions.length > INLINE_CHIPS ? "col-span-full" : "justify-end")}>
         {weekend.sessions.map((s) => (
           <SessionChip key={s.session} session={s} active={isSelected && selected.session === s.session} />
         ))}
@@ -73,7 +76,6 @@ function SessionChip({ session, active }: { session: LiveReplaySession; active: 
   return (
     <Link
       href={href}
-      scroll={false}
       title={session.sessionName}
       aria-label={session.sessionName}
       aria-current={active ? "true" : undefined}
