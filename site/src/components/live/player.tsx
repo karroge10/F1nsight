@@ -8,8 +8,6 @@ import { IconPause, IconPlay, IconSkipBack, IconSkipForward } from "@/components
 interface PlayerProps {
   state: LiveState;
   controls: LiveControls;
-  onStart: () => void;
-  started: boolean;
 }
 
 const SPEEDS = [0.5, 1, 2, 4, 8, 16];
@@ -19,14 +17,15 @@ const SKIP_MS = 10000;
  * Replay player: play/pause, speed, skip 10 s and one lap, jump to lap, a scrubber with
  * markers (safety cars, red flags, pit stops, lead changes), keyboard shortcuts.
  */
-export function Player({ state, controls, onStart, started }: PlayerProps) {
+export function Player({ state, controls }: PlayerProps) {
   const [lapInput, setLapInput] = useState("");
   const timeline = state.timeline;
   const start = timeline?.start ?? 0;
   const end = timeline?.end ?? Math.max(state.t, 1);
   const green = timeline?.green ?? 0;
   const t = Math.min(Math.max(state.t, start), end);
-  const playing = started && !state.playback.paused && !state.playback.ended;
+  const ready = timeline !== null;
+  const playing = !state.playback.paused && !state.playback.ended;
   const span = Math.max(1, end - start);
   const avgLapMs = useMemo(() => averageLap(state.lapMarks), [state.lapMarks]);
 
@@ -48,10 +47,6 @@ export function Player({ state, controls, onStart, started }: PlayerProps) {
   }, [state.statusMarks, state.pitStops, state.leadChanges, state.drivers]);
 
   function togglePlay() {
-    if (!started) {
-      onStart();
-      return;
-    }
     if (state.playback.ended) {
       controls.seek(start);
       controls.resume();
@@ -156,15 +151,15 @@ export function Player({ state, controls, onStart, started }: PlayerProps) {
         onChange={(e) => controls.seek(Number(e.target.value))}
         aria-label="Replay position"
         aria-valuetext={elapsedText}
-        disabled={!started}
+        disabled={!ready}
         className="h-6 w-full cursor-pointer accent-[var(--accent)] disabled:cursor-default disabled:opacity-50"
       />
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="flex items-center gap-1">
-          <IconButton label="Back one lap (Shift + Left)" onClick={() => skipLap(-1)} disabled={!started}>
+          <IconButton label="Back one lap (Shift + Left)" onClick={() => skipLap(-1)} disabled={!ready}>
             <IconSkipBack size="1.125rem" />
           </IconButton>
-          <IconButton label="Back 10 seconds (Left)" onClick={() => skip(-SKIP_MS)} disabled={!started}>
+          <IconButton label="Back 10 seconds (Left)" onClick={() => skip(-SKIP_MS)} disabled={!ready}>
             <span className="timing text-caption">-10s</span>
           </IconButton>
           <button
@@ -175,10 +170,10 @@ export function Player({ state, controls, onStart, started }: PlayerProps) {
           >
             {playing ? <IconPause size="1.25rem" /> : <IconPlay size="1.25rem" />}
           </button>
-          <IconButton label="Forward 10 seconds (Right)" onClick={() => skip(SKIP_MS)} disabled={!started}>
+          <IconButton label="Forward 10 seconds (Right)" onClick={() => skip(SKIP_MS)} disabled={!ready}>
             <span className="timing text-caption">+10s</span>
           </IconButton>
-          <IconButton label="Forward one lap (Shift + Right)" onClick={() => skipLap(1)} disabled={!started}>
+          <IconButton label="Forward one lap (Shift + Right)" onClick={() => skipLap(1)} disabled={!ready}>
             <IconSkipForward size="1.125rem" />
           </IconButton>
         </div>
@@ -211,7 +206,7 @@ export function Player({ state, controls, onStart, started }: PlayerProps) {
             max={state.lap?.total ?? 99}
             value={lapInput}
             onChange={(e) => setLapInput(e.target.value)}
-            disabled={!started}
+            disabled={!ready}
             className="timing h-8 w-16 rounded-control border border-rule bg-bg px-2 text-base text-ink sm:text-ui"
           />
         </form>

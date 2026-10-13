@@ -282,7 +282,8 @@ export async function getFantasyRounds(): Promise<FantasyRoundsFile | null> {
 }
 
 export async function getTelemetryIndex(): Promise<TelemetryIndexEntry[]> {
-  return source.readTelemetryIndex();
+  const index = source.readTelemetryIndex();
+  return index.map((entry) => ({ ...entry, eventName: calendarRaceName(entry.season, entry.round) ?? entry.eventName }));
 }
 
 /** One session's fastest-lap telemetry, with driver names in the site's full-name form (FastF1 has "Kimi Antonelli"). */
@@ -291,12 +292,15 @@ export async function getSessionTelemetry(ref: SessionRef): Promise<SessionTelem
   if (!session) return null;
   const entries = await getEntryList(session.season);
   const drivers = session.drivers.map((d) => ({ ...d, name: entryName(entries, d.code, d.number) ?? d.name }));
-  return { ...session, drivers };
+  const eventName = calendarRaceName(session.season, session.round) ?? session.eventName;
+  return { ...session, eventName, drivers };
 }
 
 /** The exported timing report of one session (practice, qualifying, sprint, race), or null. */
 export async function getSessionReport(season: number, round: number, code: SessionCode): Promise<SessionReport | null> {
-  return source.readSessionReport(season, round, code);
+  const report = source.readSessionReport(season, round, code);
+  if (!report) return null;
+  return { ...report, eventName: calendarRaceName(season, round) ?? report.eventName };
 }
 
 export async function getRaceLapsAvailability(): Promise<{ season: number; round: number }[]> {
@@ -387,6 +391,12 @@ function toSummary(race: FixtureRace, now: Date): RaceSummary {
 }
 
 /** Full name of the season entrant with this code (the car number settles a shared code), or null. */
+/** The calendar's name for a round; FastF1 exports keep the original name of a relocated race ("Bahrain Grand Prix" held in Malaysia). */
+function calendarRaceName(season: number, round: number): string | null {
+  const race = source.readSeason(season)?.races.find((r) => r.round === round);
+  return race?.raceName ?? null;
+}
+
 function entryName(entries: EntryList, code: string, number: string): string | null {
   const byCode = entries.drivers.filter((d) => d.code === code);
   const byNumber = byCode.find((d) => String(d.number) === number);

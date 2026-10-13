@@ -22,8 +22,6 @@ export interface ReplayTarget {
 export interface UseLiveSessionOptions {
   replay: ReplayTarget | null;
   preferLive?: boolean;
-  /** When false, only the live probe runs: a replay is not opened until the user presses play. */
-  enabled?: boolean;
 }
 
 export interface LiveControls {
@@ -33,7 +31,7 @@ export interface LiveControls {
   seek: (t: number) => void;
 }
 
-export function useLiveSession({ replay, preferLive = true, enabled = true }: UseLiveSessionOptions): { state: LiveState; controls: LiveControls } {
+export function useLiveSession({ replay, preferLive = true }: UseLiveSessionOptions): { state: LiveState; controls: LiveControls } {
   const [state, dispatch] = useReducer(liveReducer, undefined, initialLiveState);
   const socketRef = useRef<LiveSocket | null>(null);
   const mockRef = useRef<MockLiveStream | null>(null);
@@ -63,7 +61,7 @@ export function useLiveSession({ replay, preferLive = true, enabled = true }: Us
         return;
       }
 
-      if (!replay || !enabled) {
+      if (!replay) {
         dispatch({ type: "connection", connection: "offline", source: status ? "service" : null });
         return;
       }
@@ -113,7 +111,7 @@ export function useLiveSession({ replay, preferLive = true, enabled = true }: Us
       mockRef.current?.stop();
       mockRef.current = null;
     };
-  }, [replayKey, preferLive, enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [replayKey, preferLive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const send = useCallback((command: LiveCommand) => {
     socketRef.current?.send(command);

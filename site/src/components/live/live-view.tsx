@@ -11,11 +11,12 @@ import { RaceControlMenu } from "./race-control-menu";
 import { PitStopsMenu } from "./pit-stops-menu";
 import { Player } from "./player";
 import { SessionBrowser } from "./session-browser";
-import { IconPlay } from "@/components/icons";
 import "./live.css";
 
 interface LiveViewProps {
   replay: ReplayTarget | null;
+  /** True when no session was picked in the URL: a live session then wins over the default replay. */
+  preferLive: boolean;
   sessions: LiveReplaySession[];
 }
 
@@ -25,18 +26,18 @@ interface LiveViewProps {
  * tall as the right column and scrolls inside if the field does not fit. Clicking a driver in
  * the tower or on the map pins that car: it lights on the map, the rest fade, and the pit stops
  * and race control logs narrow to it; clicking again, Esc or "All drivers" clears. If a session is
- * live and no replay is picked it opens live; picking a session from the list below switches to
- * that replay instead, and nothing plays until the visitor presses play.
+ * live and no replay is picked it opens live, otherwise the newest replay; picking a session from
+ * the list below switches to that replay. Replays start playing straight away.
  */
-export function LiveView({ replay, sessions }: LiveViewProps) {
-  const [started, setStarted] = useState(false);
-  const { state, controls } = useLiveSession({ replay, preferLive: replay === null, enabled: started });
+export function LiveView({ replay, preferLive, sessions }: LiveViewProps) {
+  const { state, controls } = useLiveSession({ replay, preferLive });
   const [pinned, setPinned] = useState<number | null>(null);
   const isLive = state.connection === "live";
   const isReplay = !isLive && replay !== null;
   const isRace = !state.session || state.session.code === "R" || state.session.code === "S";
   const pinnedDriver = pinned !== null ? (state.drivers.get(pinned) ?? null) : null;
   const season = state.session?.season ?? null;
+  const listed = sessions.find((s) => s.season === season && s.round === state.session?.round);
   const select = useCallback((number: number) => setPinned((current) => togglePin(current, number)), []);
   const clearPin = useCallback(() => setPinned(null), []);
 
@@ -51,7 +52,7 @@ export function LiveView({ replay, sessions }: LiveViewProps) {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 sm:px-6">
-      <StatusBar state={state} />
+      <StatusBar state={state} raceName={listed?.raceName ?? null} />
 
       <div className={"mt-4 grid gap-4 lg:grid-cols-[28.5rem_minmax(0,1fr)] " + (isReplay ? "lg:grid-rows-[auto_auto]" : "")}>
         <div className="relative rounded-control bg-bg-sunken p-2 sm:p-4 lg:col-start-2 lg:row-start-1">
@@ -60,19 +61,11 @@ export function LiveView({ replay, sessions }: LiveViewProps) {
             <PitStopsMenu stops={state.pitStops} drivers={state.drivers} season={season} driver={pinnedDriver} onClearDriver={clearPin} />
             <RaceControlMenu messages={state.raceControl} driver={pinnedDriver} onClearDriver={clearPin} />
           </div>
-          {isReplay && !started ? (
-            <div className="absolute inset-0 flex items-center justify-center rounded-control bg-bg">
-              <button type="button" onClick={() => setStarted(true)} className="press selected-pill inline-flex h-12 items-center gap-3 rounded-control px-5 text-ui font-[550]">
-                <IconPlay size="1.125rem" />
-                Play replay
-              </button>
-            </div>
-          ) : null}
         </div>
 
         {isReplay ? (
           <div className="lg:col-start-2 lg:row-start-2">
-            <Player state={state} controls={controls} started={started} onStart={() => setStarted(true)} />
+            <Player state={state} controls={controls} />
           </div>
         ) : null}
 

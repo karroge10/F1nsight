@@ -6,6 +6,8 @@ import { IconChequered, IconDrop, IconFlag, IconRainDrop, IconSafetyCar, IconThe
 
 interface StatusBarProps {
   state: LiveState;
+  /** The calendar's race name, preferred over the feed's meeting name. */
+  raceName: string | null;
 }
 
 const ICON_SIZE = "1.125rem";
@@ -14,7 +16,7 @@ const ICON_SIZE = "1.125rem";
  * One line above the map: track state with its icon, lap or clock, the session, and on the
  * right the weather readout (or the connection state while nothing plays yet).
  */
-export function StatusBar({ state }: StatusBarProps) {
+export function StatusBar({ state, raceName }: StatusBarProps) {
   const status = state.session ? trackStatus(state.trackState) : { label: "No session", icon: null };
   const isRace = state.session?.code === "R" || state.session?.code === "S";
   const lapText = state.lap ? (state.lap.total ? `${state.lap.current} / ${state.lap.total}` : String(state.lap.current)) : "";
@@ -43,7 +45,7 @@ export function StatusBar({ state }: StatusBarProps) {
       ) : null}
       {state.session ? (
         <span className="min-w-0 truncate text-ui text-ink-2">
-          {state.session.meeting ?? state.session.name} {state.session.season}, {state.session.name}
+          {raceName ?? state.session.meeting ?? state.session.name} {state.session.season}, {state.session.name}
         </span>
       ) : null}
       <span className="ml-auto flex items-center gap-2 text-caption text-ink-3">

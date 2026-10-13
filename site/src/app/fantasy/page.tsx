@@ -43,7 +43,6 @@ export default async function FantasyPage() {
   return (
     <>
       <PageIntro
-        compact
         label={
           <>
             Fantasy <span className="mx-1.5 text-ink-3">/</span> Gameday {gameday}

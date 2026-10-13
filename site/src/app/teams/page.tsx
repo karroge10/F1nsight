@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { CSSProperties } from "react";
 import { getConstructors, getCurrentSeason, getEntryList, getLookups, getStandings } from "@/lib/data";
 import type { Constructor, Lookups } from "@/lib/data";
 import { formatPoints } from "@/lib/format";
@@ -28,25 +27,41 @@ export default async function TeamsPage() {
     <>
       <PageIntro label="Teams" title={`${entries.constructors.length} constructors in ${season}, ${constructors.length} since 1950`} />
       <Section title={`${season} constructors`} icon={IconGarage} flush>
-        <ul className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
-          {current.map((c, i) => {
-            const standing = standingById.get(c.constructorId);
-            const drivers = entries.drivers.filter((d) => d.constructorId === c.constructorId).map((d) => d.name);
-            return (
-              <li key={c.constructorId} className="stagger-in border-b border-rule" style={{ "--stagger": Math.min(i, 12) } as CSSProperties}>
-                <Link href={`/teams/${c.constructorId}`} className="flex min-h-11 items-center gap-3 py-3 hover:bg-bg-hover">
-                  <span className="timing w-6 text-end text-table text-ink-3">{standing?.position ?? ""}</span>
-                  <TeamLogo constructorId={c.constructorId} name={c.name} color={c.color} size={36} season={season} />
-                  <span className="min-w-0 flex-1 text-ui font-[550] leading-tight text-ink">
-                    <span className="block truncate">{c.name}</span>
-                    <span className="hidden truncate text-caption font-normal text-ink-3 md:block">{drivers.join(", ")}</span>
-                  </span>
-                  <span className="timing w-12 text-end text-table text-ink">{standing ? formatPoints(standing.points) : 0}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {/* one column read top to bottom, capped so the few columns stay close together */}
+        <div className="max-w-3xl">
+          <div className="scroll-x">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="num w-10">Pos</th>
+                  <th>Constructor</th>
+                  <th className="hidden md:table-cell">Drivers</th>
+                  <th className="num">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {current.map((c) => {
+                  const standing = standingById.get(c.constructorId);
+                  const drivers = entries.drivers.filter((d) => d.constructorId === c.constructorId).map((d) => d.name);
+                  const pointsText = standing ? formatPoints(standing.points) : "0";
+                  return (
+                    <tr key={c.constructorId}>
+                      <td className="num text-ink-2">{standing?.position ?? ""}</td>
+                      <td>
+                        <Link href={`/teams/${c.constructorId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
+                          <TeamLogo constructorId={c.constructorId} name={c.name} color={c.color} size={28} season={season} />
+                          <span className="font-[550]">{c.name}</span>
+                        </Link>
+                      </td>
+                      <td className="hidden text-ink-2 md:table-cell">{drivers.join(", ")}</td>
+                      <td className="num text-ink">{pointsText}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </Section>
       <Section title="All constructors" icon={IconHistory} flush>
         <EntityIndex rows={rows} columns={["Races", "Wins", "Podiums", "Poles", "Titles", "Points"]} hrefBase="/teams" label="constructors" defaultSort={1} />

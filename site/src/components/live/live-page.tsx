@@ -13,6 +13,8 @@ interface LivePageProps {
   /** Races that replay from the files written at build time. */
   sessions: LiveReplaySession[];
   next: { raceName: string; time: string | null } | null;
+  /** This season's race names by "season-round", from the calendar; the archive's names can differ ("Bahrain Grand Prix" held in Malaysia). */
+  raceNames: Record<string, string>;
 }
 
 interface LiveNow {
@@ -27,10 +29,10 @@ const NO_PARAMS: LiveSearchParams = {};
  * state; the replay picked in the URL (`?season=2025&round=16&session=R`), the live session and
  * the live service archive are all resolved in the browser.
  */
-export function LivePage({ sessions, next }: LivePageProps) {
+export function LivePage({ sessions, next, raceNames }: LivePageProps) {
   return (
-    <Suspense fallback={<LiveBody sessions={sessions} next={next} params={NO_PARAMS} />}>
-      <LiveBodyFromUrl sessions={sessions} next={next} />
+    <Suspense fallback={<LiveBody sessions={sessions} next={next} raceNames={raceNames} params={NO_PARAMS} />}>
+      <LiveBodyFromUrl sessions={sessions} next={next} raceNames={raceNames} />
     </Suspense>
   );
 }
@@ -39,48 +41,51 @@ export function LivePage({ sessions, next }: LivePageProps) {
 // helpers
 // ---------------------------------------------------------------------------
 
-function LiveBodyFromUrl({ sessions, next }: LivePageProps) {
+function LiveBodyFromUrl({ sessions, next, raceNames }: LivePageProps) {
   const search = useSearchParams();
   const params: LiveSearchParams = {
     season: search.get("season") ?? undefined,
     round: search.get("round") ?? undefined,
     session: search.get("session") ?? undefined,
   };
-  return <LiveBody sessions={sessions} next={next} params={params} />;
+  return <LiveBody sessions={sessions} next={next} raceNames={raceNames} params={params} />;
 }
 
-function LiveBody({ sessions, next, params }: LivePageProps & { params: LiveSearchParams }) {
+function LiveBody({ sessions, next, raceNames, params }: LivePageProps & { params: LiveSearchParams }) {
   const [serviceSessions, setServiceSessions] = useState<LiveReplaySession[] | null>(null);
   const live = useLiveNow();
   const all = mergeSessions(sessions, serviceSessions ?? []);
-  const requested = pickSession(all, params);
-  const unavailable = params.season !== undefined && requested === null && serviceSessions !== null;
+  const picked = params.season !== undefined;
+  // with nothing in the URL the newest session plays, once the service archive has had its say
+  const fallback = !picked && serviceSessions !== null ? (all[0] ?? null) : null;
+  const requested = picked ? pickSession(all, params) : fallback;
+  const unavailable = picked && requested === null && serviceSessions !== null;
 
   useEffect(() => {
     let cancelled = false;
     const season = new Date().getUTCFullYear();
     fetchServiceReplays(season).then((list) => {
-      if (!cancelled) setServiceSessions(list);
+      if (!cancelled) setServiceSessions(list.map((s) => ({ ...s, raceName: raceNames[`${s.season}-${s.round}`] ?? s.raceName })));
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [raceNames]);
 
   const replay = requested ? { season: requested.season, round: requested.round, session: requested.session } : null;
+  const titled = live && !picked ? null : requested;
   return (
     <>
       <PageIntro
-        compact
         label={
           <>
             Live <span className="mx-1.5 text-ink-3">/</span> Track map and timing
           </>
         }
-        title={requested ? `${requested.raceName} ${requested.season}, ${requested.sessionName.toLowerCase()}` : "Live timing and replays"}
-        dek={unavailable ? "Replays of this session are not available here yet." : <LiveDek live={live} next={next} showWatchLive={requested !== null} />}
+        title={titled ? `${titled.raceName} ${titled.season}, ${titled.sessionName.toLowerCase()}` : "Live timing and replays"}
+        dek={unavailable ? "Replays of this session are not available here yet." : <LiveDek live={live} next={next} showWatchLive={picked} />}
       />
-      <LiveView replay={replay} sessions={all} />
+      <LiveView replay={replay} preferLive={!picked} sessions={all} />
     </>
   );
 }

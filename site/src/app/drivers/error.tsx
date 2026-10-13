@@ -7,7 +7,6 @@ export default function DriversError({ retry }: { error: Error & { digest?: stri
   return (
     <>
       <PageIntro
-        compact
         label={
           <span className="inline-flex items-center gap-2">
             <IconDnf size="1rem" /> Drivers

@@ -3,7 +3,7 @@ import { SkeletonBlock, SkeletonIntro } from "@/components/ui/skeleton";
 export default function Loading() {
   return (
     <>
-      <SkeletonIntro compact />
+      <SkeletonIntro />
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6">
         <SkeletonBlock className="h-11 w-full" />
         <div className="mt-4 grid gap-6 lg:grid-cols-12">

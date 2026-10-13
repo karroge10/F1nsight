@@ -23,7 +23,6 @@ export default async function HindsightPage() {
   return (
     <>
       <PageIntro
-        compact
         label={
           <>
             <Link href="/fantasy" className="hover:text-ink">Fantasy</Link> <span className="mx-1.5 text-ink-3">/</span> Hindsight
@@ -40,7 +39,6 @@ export default async function HindsightPage() {
 function MissingData() {
   return (
     <PageIntro
-      compact
       label={
         <span className="inline-flex items-center gap-2">
           <IconWarning size="1rem" /> Fantasy hindsight

@@ -37,7 +37,7 @@ export function SessionBrowser({ sessions, selected }: SessionBrowserProps) {
   return (
     <div>
       <p className="text-ui text-ink-3">
-        Pick a session, then press play.
+        Pick a session to replay.
       </p>
       <ul className="mt-3 gap-x-10 border-t border-rule lg:columns-2" aria-label="Replayable sessions">
         {weekends.map((weekend) => (

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { CSSProperties } from "react";
 import { getCurrentSeason, getDrivers, getEntryList, getLookups, getStandings } from "@/lib/data";
 import type { Driver, Lookups } from "@/lib/data";
 import { PageIntro } from "@/components/ui/page-intro";
@@ -26,29 +25,46 @@ export default async function DriversPage() {
 
   return (
     <>
-      <PageIntro compact label="Drivers" title={`The ${season} grid and every driver since 1950`} dek={`${entries.drivers.length} drivers this season, ${drivers.length} all time.`} />
+      <PageIntro label="Drivers" title={`The ${season} grid and every driver since 1950`} dek={`${entries.drivers.length} drivers this season, ${drivers.length} all time.`} />
       <Section title={`${season} grid`} icon={IconHelmet} flush>
-        <ul className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {grid.map((d, i) => {
-            const standing = standingById.get(d.driverId);
-            return (
-              <li key={d.driverId} className="stagger-in border-b border-rule" style={{ "--stagger": Math.min(i, 12) } as CSSProperties}>
-                <Link href={`/drivers/${d.driverId}`} className="flex min-h-11 items-center gap-3 py-2 hover:bg-bg-hover">
-                  <span className="timing w-6 text-end text-table text-ink-3">{standing?.position ?? ""}</span>
-                  {/* below md the team line is hidden, so the logo moves in front of the name */}
-                  <TeamLogo constructorId={d.constructorId} name={d.team} color={d.teamColor} size={18} season={season} className="md:hidden" />
-                  <span className="min-w-0 flex-1 text-ui font-[550] leading-tight text-ink">
-                    {d.name}
-                    <span className="hidden text-caption font-normal text-ink-3 md:block">
-                      <TeamName constructorId={d.constructorId} name={d.team} color={d.teamColor} season={season} size={14} />
-                    </span>
-                  </span>
-                  <span className="timing w-10 text-end text-table text-ink">{standing?.points ?? 0}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {/* one column read top to bottom, capped so the few columns stay close together */}
+        <div className="max-w-3xl">
+          <div className="scroll-x">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="num w-10">Pos</th>
+                  <th>Driver</th>
+                  <th className="num hidden w-12 sm:table-cell">No.</th>
+                  <th className="hidden sm:table-cell">Team</th>
+                  <th className="num">Points</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grid.map((d) => {
+                  const standing = standingById.get(d.driverId);
+                  return (
+                    <tr key={d.driverId}>
+                      <td className="num text-ink-2">{standing?.position ?? ""}</td>
+                      <td>
+                        <Link href={`/drivers/${d.driverId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
+                          {/* on phones the team column is hidden, so the logo moves in front of the name */}
+                          <TeamLogo constructorId={d.constructorId} name={d.team} color={d.teamColor} size={18} season={season} className="sm:hidden" />
+                          <span className="font-[550]">{d.name}</span>
+                        </Link>
+                      </td>
+                      <td className="num hidden text-ink-3 sm:table-cell">{d.number ?? ""}</td>
+                      <td className="hidden text-ink-2 sm:table-cell">
+                        <TeamName constructorId={d.constructorId} name={d.team} color={d.teamColor} season={season} size={18} />
+                      </td>
+                      <td className="num text-ink">{standing?.points ?? 0}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </Section>
       <Section title="All drivers" icon={IconHistory} flush>
         <EntityIndex rows={rows} columns={["Starts", "Wins", "Podiums", "Poles", "Titles", "Points"]} hrefBase="/drivers" label="drivers" defaultSort={1} />

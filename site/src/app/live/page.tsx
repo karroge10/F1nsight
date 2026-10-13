@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getNextRace } from "@/lib/data";
+import { getCalendar, getCurrentSeason, getNextRace } from "@/lib/data";
 import { replayableSessions } from "@/lib/live/replay-sessions";
 import { LivePage as LivePageBody } from "@/components/live/live-page";
 
@@ -12,5 +12,8 @@ export default async function LivePage() {
   const sessions = await replayableSessions();
   const race = await getNextRace();
   const next = race ? { raceName: race.raceName, time: race.sessions.race ?? null } : null;
-  return <LivePageBody sessions={sessions} next={next} />;
+  const season = await getCurrentSeason();
+  const calendar = await getCalendar(season);
+  const raceNames = Object.fromEntries(calendar.map((r) => [`${r.season}-${r.round}`, r.raceName]));
+  return <LivePageBody sessions={sessions} next={next} raceNames={raceNames} />;
 }

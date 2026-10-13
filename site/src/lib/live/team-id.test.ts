@@ -5,6 +5,9 @@ describe("constructorIdForTeam", () => {
   it("maps live feed team names to logo ids", () => {
     expect(constructorIdForTeam("Red Bull Racing")).toBe("red_bull");
     expect(constructorIdForTeam("Racing Bulls")).toBe("rb");
+    expect(constructorIdForTeam("RB")).toBe("rb");
+    expect(constructorIdForTeam("Visa Cash App RB")).toBe("rb");
+    expect(constructorIdForTeam("red_bull")).toBe("red_bull");
     expect(constructorIdForTeam("Kick Sauber")).toBe("sauber");
     expect(constructorIdForTeam("Haas F1 Team")).toBe("haas");
     expect(constructorIdForTeam("Aston Martin")).toBe("aston_martin");

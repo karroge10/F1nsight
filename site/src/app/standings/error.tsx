@@ -7,7 +7,6 @@ export default function StandingsError({ retry }: { error: Error & { digest?: st
   return (
     <>
       <PageIntro
-        compact
         label={
           <span className="inline-flex items-center gap-2">
             <IconDnf size="1rem" /> Standings

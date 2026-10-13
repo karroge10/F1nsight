@@ -7,7 +7,6 @@ export default function HindsightError({ retry }: { error: Error & { digest?: st
   return (
     <>
       <PageIntro
-        compact
         label={
           <span className="inline-flex items-center gap-2">
             <IconWarning size="1rem" /> Fantasy hindsight
