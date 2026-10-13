@@ -13,6 +13,7 @@ latest completed round plus the next race). Re-run it whenever new FastF1 / Open
 from __future__ import annotations
 
 import argparse
+import os
 import time
 from dataclasses import dataclass
 
@@ -37,6 +38,9 @@ DEG_CLIP = 0.3
 # Weight of each practice session in fp_best_gap (FP1 runs are more varied: set-up work, test
 # items, rookies, so it says less about the weekend than FP2 and FP3).
 SESSION_WEIGHTS = {"fp1_gap": 0.5, "fp2_gap": 1.0, "fp3_gap": 1.0, "FP4": 1.0}
+# Experiment switch (F1ML_TEAM_BEST_CAR=1): team points form and team championship position use
+# the better car per race instead of both cars, so a weak team-mate does not drag a driver down.
+TEAM_BEST_CAR = os.environ.get("F1ML_TEAM_BEST_CAR") == "1"
 
 CONTEXT_COLS = [
     "season", "round", "n_rounds", "season_progress", "rounds_since_reset", "reset_season",
@@ -62,7 +66,7 @@ SPRINT_COLS = ["sq_pos", "sq_gap", "sp_fin", "sp_dnf", "sp_gain"]
 QUALI_COLS = ["grid", "q_pos", "q_gap", "grid_pen", "pitlane", "q_tm_delta", "q_vs_form"]
 EVENT_FLOAT_COLS = ["finish_c", "quali_pos", "quali_gap", "season", "pts_modern", "dnf_acc",
                     "tm_qgap_delta", "tm_fin_delta", "gain", "sprint_fin", "dnf"]
-TEAM_FLOAT_COLS = ["best_qgap", "best_fin", "points", "mech_rate", "season", "dnf_rate"]
+TEAM_FLOAT_COLS = ["best_qgap", "best_fin", "points", "best_pts", "mech_rate", "season", "dnf_rate"]
 PRE_COLS = CONTEXT_COLS + DRIVER_COLS + TEAM_COLS
 LABEL_COLS = ["y_finish", "y_classified", "y_dnf", "y_dsq", "y_quali", "y_grid", "y_points",
               "y_sprint_finish", "y_sprint_dnf"]
@@ -411,7 +415,8 @@ class History:
         features["t_qgap_e8"] = _ewm(qgap, ages, 8, era)
         features["t_fin_e3"] = _ewm(finish, ages, 3, era)
         features["t_fin_e8"] = _ewm(finish, ages, 8, era)
-        features["t_pts_e5"] = _ewm(tr["points"][rows], ages, 5, era)
+        points = tr["best_pts"][rows] if TEAM_BEST_CAR else tr["points"][rows]
+        features["t_pts_e5"] = _ewm(points, ages, 5, era)
         features["t_mech_e"] = _ewm(mech, ages, 15)
         this_season = seasons == target.season
         previous_season = seasons == target.season - 1
@@ -423,7 +428,10 @@ class History:
         features["t_qgap_ps"] = _nanmean(qgap[previous_season])
         clusters = self.team_cluster[rows]
         features["t_cluster_qgap"] = self._cluster_delta(qgap, seasons, clusters, target)
-        features["t_champ_pos"] = self._team_standing(team, target)
+        if TEAM_BEST_CAR:
+            features["t_champ_pos"] = self._team_best_car_standing(team, target)
+        else:
+            features["t_champ_pos"] = self._team_standing(team, target)
         return features
 
     def _cluster_delta(self, qgap, seasons, clusters, target: Target) -> float:
@@ -463,6 +471,20 @@ class History:
         if not len(row):
             return float(len(standings) + 1)
         return float(row["position"].iloc[0])
+
+    def _team_best_car_standing(self, team: str, target: Target) -> float:
+        """Team rank by season-to-date points of its better car per race (before the cutoff)."""
+        previous = self._previous_round_id(target)
+        if previous is None:
+            return np.nan
+        season_start = target.season * 100
+        race_ids = self.team_races["raceId"]
+        in_season = (race_ids > season_start) & (race_ids < target.cutoff)
+        totals = self.team_races[in_season].groupby("team")["best_pts"].sum()
+        if team not in totals.index:
+            return float(len(totals) + 1)
+        ranks = totals.rank(ascending=False, method="min")
+        return float(ranks[team])
 
     def _previous_round_id(self, target: Target) -> int | None:
         """Latest completed round of the target season before the cutoff."""
@@ -652,7 +674,7 @@ def _build_team_races(events: pd.DataFrame) -> pd.DataFrame:
     team_races = grouped.agg(
         season=("season", "first"), circuitId=("circuitId", "first"),
         best_qgap=("quali_gap", "min"), best_fin=("finish_c", "min"),
-        points=("pts_modern", "sum"), mech=("dnf_mech", "sum"), cars=("driverId", "count"),
+        points=("pts_modern", "sum"), best_pts=("pts_modern", "max"), mech=("dnf_mech", "sum"), cars=("driverId", "count"),
         dnfs=("dnf", "sum"),
     )
     team_races["mech_rate"] = team_races["mech"] / team_races["cars"]
