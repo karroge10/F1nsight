@@ -55,21 +55,21 @@ export function ForecastHero({ prediction, race, now, totalRounds, facts }: Fore
           </p>
           <h1 className="display text-[clamp(5rem,2.25rem+7.75vw,7.75rem)] leading-[0.95] text-ink">{prediction.race.raceName}</h1>
           <dl className="mt-6 grid max-w-xl grid-cols-[1.25rem_auto_1fr] items-baseline gap-x-3 gap-y-2 text-body">
-            <IconMap size="1rem" className="self-center text-ink-3" />
+            <FactIcon><IconMap size="1rem" className="text-ink-3" /></FactIcon>
             <dt className="text-ink-3">Circuit</dt>
             <dd className="text-ink">
               <Link href={`/circuits/${prediction.race.circuitId}`} className="tap-hit hover:underline underline-offset-2">
                 {prediction.race.circuitName}
               </Link>
               <span className="text-ink-2">
-                , <Flag of={prediction.race.country} keepSpace={false} className="mr-1.5" />
-                {prediction.race.country}
+                , <span className="whitespace-nowrap"><Flag of={prediction.race.country} keepSpace={false} className="mr-1.5" />
+                {prediction.race.country}</span>
               </span>
-              {facts.racesHeld ? <span className="text-ink-3">, {facts.racesHeld} races held</span> : null}
+              {facts.racesHeld ? <span className="text-ink-3">, <span className="whitespace-nowrap">{facts.racesHeld} races held</span></span> : null}
             </dd>
             {facts.lastWinner ? (
               <>
-                <IconHistory size="1rem" className="self-center text-ink-3" />
+                <FactIcon><IconHistory size="1rem" className="text-ink-3" /></FactIcon>
                 <dt className="text-ink-3">Last winner</dt>
                 <dd className="text-ink">
                   <Link href={`/drivers/${facts.lastWinner.driverId}`} className="tap-hit hover:underline underline-offset-2">
@@ -81,16 +81,20 @@ export function ForecastHero({ prediction, race, now, totalRounds, facts }: Fore
             ) : null}
             {facts.lapRecord ? (
               <>
-                <IconFastestLap size="1rem" className="self-center text-ink-3" />
+                <FactIcon><IconFastestLap size="1rem" className="text-ink-3" /></FactIcon>
                 <dt className="text-ink-3">Lap record</dt>
                 <dd className="text-ink">
                   <span className="timing">{formatLapTime(facts.lapRecord.timeMs)}</span>
-                  <span className="text-ink-2">, {facts.lapRecord.name}</span>
-                  <span className="timing text-ink-3"> ({facts.lapRecord.season})</span>
+                  <span className="text-ink-2">, </span>
+                  {/* name and year wrap as one piece, so the year is never alone on a line */}
+                  <span className="whitespace-nowrap">
+                    <span className="text-ink-2">{facts.lapRecord.name}</span>
+                    <span className="timing text-ink-3"> ({facts.lapRecord.season})</span>
+                  </span>
                 </dd>
               </>
             ) : null}
-            <IconPulse size="1rem" className="self-center text-accent" />
+            <FactIcon><IconPulse size="1rem" className="text-accent" /></FactIcon>
             <dt className="text-ink-3">Forecast</dt>
             <dd className="flex items-center gap-1.5 text-ink">
               {stage.label}
@@ -184,4 +188,9 @@ function PodiumRow({ driver, place }: { driver: DriverForecast; place: number })
       </span>
     </li>
   );
+}
+
+/** Icon box one text line tall at the top of its row, so it stays beside the first line when a value wraps. */
+function FactIcon({ children }: { children: React.ReactNode }) {
+  return <span className="flex h-[1lh] items-center self-start">{children}</span>;
 }
