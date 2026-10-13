@@ -96,13 +96,18 @@ minutes). `--no-promote` is a dry run, `--force-promote` promotes whatever the c
 ## Cloud runs (GitHub Actions): the primary path
 
 Everything scheduled runs on GitHub's servers (free for a public repo), so the hosted site
-https://f1nsight.pages.dev updates with the PC off. Secrets: `CLOUDFLARE_API_TOKEN` and
-`CLOUDFLARE_ACCOUNT_ID`.
+https://f1nsight.pages.dev updates with the PC off. Secrets: `CLOUDFLARE_API_TOKEN`,
+`CLOUDFLARE_ACCOUNT_ID` and `F1_DISPATCH_TOKEN` (fine-grained, this repo, Actions read and write).
+
+GitHub's `schedule` runs late or skips runs for hours, so the Cloudflare Worker `f1nsight-cron`
+(`cloud/cron-worker`, deployed with `gh workflow run cron-worker.yml`) dispatches Refresh and
+Retrain with `gate=true` on time; the GitHub schedules below stay as a backup. A gated run that
+finds nothing due stops in about a minute.
 
 | Workflow | When (UTC) | What |
 | --- | --- | --- |
 | `refresh.yml` (Refresh) | every 30 minutes, `7,37 * * * *` | the gate (`python -m f1p.weekend --due`) stops in about a minute unless a planned run fell due since the last cloud run: session end + 1 h, a retry 3 h later, race morning, Monday 06:00 forced. Then pull the state, `python -m f1p.refresh` (CPU forecast), site images, build, `check-export.mjs`, `wrangler pages deploy` from the repo root, push the changed groups |
-| `retrain-live.yml` (Retrain) | every 6 hours, `23 */6 * * *` | `retrain_if_better.py --check-due`: only when results have a race newer than the model and the gate has not run for it. Runs the gate (about 2 h); on a promotion pushes `model` and `backtest`, then starts Refresh so the forecast and the site use the new model |
+| `retrain-live.yml` (Retrain) | started by Refresh when it brings new results; also hourly (Worker) and every 6 hours (`23 */6 * * *`) | `retrain_if_better.py --check-due`: only when results have a race newer than the model and the gate has not run for it. Runs the gate (about 2 h); on a promotion pushes `model` and `backtest`, then starts Refresh so the forecast and the site use the new model |
 | `keepalive.yml` | monthly, `0 5 1 * *` | re-enables the scheduled workflows, which GitHub would switch off after 60 days without activity |
 | `retrain.yml` (Retrain trial) | manual | the gate with `--no-promote`, one job per seed: timing and noise checks, pushes nothing |
 

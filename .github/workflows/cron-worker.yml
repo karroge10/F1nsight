@@ -1,0 +1,40 @@
+# F1nsight: deploy the Cloudflare Worker (cloud/cron-worker) that starts refresh.yml and
+# retrain-live.yml on time, and give it the GitHub token it dispatches with.
+#
+# Secret F1_DISPATCH_TOKEN: a fine-grained token for this repository only, permission
+# "Actions: Read and write". Set it with `gh secret set F1_DISPATCH_TOKEN`, then run
+# `gh workflow run cron-worker.yml`. Run again after changing the Worker or the token.
+
+name: Deploy cron worker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: cloud/cron-worker
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Deploy
+        run: npx --yes wrangler@4 deploy
+
+      - name: Token
+        env:
+          DISPATCH_TOKEN: ${{ secrets.F1_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$DISPATCH_TOKEN" ]; then echo "::error::secret F1_DISPATCH_TOKEN is not set"; exit 1; fi
+          printf '%s' "$DISPATCH_TOKEN" | npx --yes wrangler@4 secret put GITHUB_TOKEN

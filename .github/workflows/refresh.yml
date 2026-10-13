@@ -28,14 +28,21 @@ on:
         description: Build the site and upload it to Cloudflare Pages
         type: boolean
         default: true
+      gate:
+        description: Only run when a planned refresh fell due, like the schedule (the cron Worker sets this)
+        type: boolean
+        default: false
   # Every 30 minutes the gate step checks whether a planned run (session end + 1 h, a retry 3 h
   # later, race morning, Monday 06:00 UTC weekly) fell due since the last cloud run
-  # (python -m f1p.weekend --due) and stops in about a minute if not.
+  # (python -m f1p.weekend --due) and stops in about a minute if not. GitHub often runs this late
+  # or skips it, so the Cloudflare Worker in cloud/cron-worker dispatches the same run with
+  # gate=true on the same minutes; this schedule stays as a backup.
   schedule:
     - cron: "7,37 * * * *"
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: refresh
@@ -67,8 +74,9 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           FORCE: ${{ inputs.force }}
+          GATE: ${{ inputs.gate }}
         run: |
-          if [ "$EVENT" != "schedule" ]; then
+          if [ "$EVENT" != "schedule" ] && [ "$GATE" != "true" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
             echo "force=${FORCE:-false}" >> "$GITHUB_OUTPUT"
             exit 0
@@ -80,14 +88,15 @@ jobs:
           force=$(echo "$result" | jq -r '.force')
           if [ "$due" -gt 0 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
           echo "force=$force" >> "$GITHUB_OUTPUT"
+          echo "pulled=true" >> "$GITHUB_OUTPUT"
 
       - name: Pull state
         if: steps.gate.outputs.run == 'true'
         env:
-          EVENT: ${{ github.event_name }}
+          PULLED: ${{ steps.gate.outputs.pulled }}
         run: |
-          # On a schedule the gate already pulled (and updated) these two groups.
-          if [ "$EVENT" = "schedule" ]; then
+          # A gated run already pulled (and updated) these two groups.
+          if [ "$PULLED" = "true" ]; then
             python3 cloud/state.py pull --skip refresh-state,processed
           else
             python3 cloud/state.py pull
@@ -165,6 +174,17 @@ jobs:
       - name: Push state
         if: always() && steps.refresh.outcome == 'success'
         run: python3 cloud/state.py push
+
+      - name: Start the retrain gate
+        if: steps.refresh.outcome == 'success'
+        working-directory: ml
+        # A new race's results arrive with a refresh, so the gate starts here rather than waiting
+        # for the next retrain check. gate=true: if a gate is already running, the queued one
+        # finds the race done and stops.
+        run: |
+          result=$(uv run python scripts/retrain_if_better.py --check-due)
+          echo "$result"
+          if [ "$result" = "due" ]; then gh workflow run retrain-live.yml --ref "$GITHUB_REF_NAME" -f gate=true; fi
 
       - name: Keep the logs
         if: always() && steps.gate.outputs.run == 'true'

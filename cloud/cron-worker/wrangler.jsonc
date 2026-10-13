@@ -1,0 +1,11 @@
+{
+  // Cron-only Worker, no public URL. Keep the crons in sync with WORKFLOW_BY_CRON in src/index.js.
+  "name": "f1nsight-cron",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "triggers": {
+    "crons": ["7,37 * * * *", "23 * * * *"]
+  },
+  "observability": { "enabled": true }
+}
