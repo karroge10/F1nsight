@@ -83,18 +83,16 @@ function PickCard({ id, assetOf, multiplier, changed, replaced, selected, onSele
   const points = asset.points * multiplier;
   return (
     <div className={"group relative grid grid-cols-[minmax(0,1fr)_2.75rem] rounded-float " + surface + " " + ring}>
-      <button type="button" aria-pressed={selected} onClick={onSelect} title="Click to swap" className="press flex h-20 min-w-0 flex-col justify-center gap-0.5 rounded-float py-1.5 ps-3 pe-1 text-start">
+      <button type="button" aria-pressed={selected} onClick={onSelect} title="Click to swap" className="press grid h-14 min-w-0 grid-cols-[minmax(0,1fr)_auto] content-center items-baseline gap-x-1.5 gap-y-0.5 rounded-float py-1.5 ps-2.5 pe-1 text-start">
         <span aria-hidden="true" className="absolute start-0 top-1.5 bottom-1.5 w-[3px] rounded-[2px] bg-[var(--tc)]" style={lineStyle} />
-        <span className="flex items-center gap-1.5 text-[0.9375rem] font-[750] tracking-[0.02em] text-ink">
+        <span className="flex items-center gap-1 text-[0.8125rem] font-[750] tracking-[0.02em] text-ink">
           {asset.code}
-          {multiplier > 1 ? <BoostBadge multiplier={multiplier} /> : null}
+          {multiplier > 1 ? <BoostBadge multiplier={multiplier} small /> : null}
         </span>
-        <span className="timing text-[0.9375rem] font-[700] text-ink">{fixed1(points)} <span className="text-caption font-normal text-ink-3">pts</span></span>
-        <span className="flex w-full flex-wrap items-baseline gap-x-2 text-[0.6875rem]">
-          <span className="text-ink-3">{replaced ? <span className="font-[550] text-delta-up">in for {replaced}</span> : money(asset.price)}</span>
-          <span className={"timing " + tone(asset.priceChange)} title="Expected price change after this race">
-            {signed(asset.priceChange)}M
-          </span>
+        <span className="timing text-end text-[0.8125rem] font-[700] text-ink" title="Projected points">{fixed1(points)}</span>
+        <span className="truncate text-[0.6875rem] text-ink-3">{replaced ? <span className="font-[550] text-delta-up">in for {replaced}</span> : money(asset.price)}</span>
+        <span className={"timing text-end text-[0.6875rem] " + tone(asset.priceChange)} title="Expected price change after this race">
+          {signed(asset.priceChange)}M
         </span>
       </button>
       <button type="button" onClick={onRemove} aria-label={`Remove ${asset.code}`} title={`Remove ${asset.code}`} className="press flex min-h-11 w-11 items-center justify-center rounded-float text-lg text-ink-3 hover:bg-bg-hover hover:text-delta-down focus-visible:text-ink">
@@ -107,7 +105,7 @@ function PickCard({ id, assetOf, multiplier, changed, replaced, selected, onSele
 function EmptyCard({ kind, selected, onSelect }: { kind: SlotKind; selected: boolean; onSelect: () => void }) {
   const ring = selected ? "shadow-[inset_0_0_0_2px_var(--prob-4)] text-ink" : "shadow-[inset_0_0_0_1px_var(--rule-strong)] text-ink-3 hover:text-ink";
   return (
-    <button type="button" aria-pressed={selected} onClick={onSelect} className={"press flex h-20 w-full items-center justify-center rounded-float text-caption " + ring}>
+    <button type="button" aria-pressed={selected} onClick={onSelect} className={"press flex h-14 w-full items-center justify-center rounded-float text-caption " + ring}>
       + {kind === "driver" ? "Driver" : "Constructor"}
     </button>
   );

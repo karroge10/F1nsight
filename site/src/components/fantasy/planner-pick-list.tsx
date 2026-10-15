@@ -7,7 +7,7 @@
 
 import type { ReactNode } from "react";
 import { IconExclude, IconLock } from "@/components/icons";
-import { SortTh, sortRows, useSort, type SortValue } from "@/components/ui/sortable";
+import { ResetSort, SortTh, sortRows, useSort, type SortValue } from "@/components/ui/sortable";
 import { CodeCell, fixed1, money, signed, tone, type AssetLookup, type AssetView } from "@/components/fantasy/planner-parts";
 import type { SlotKind, SlotRef } from "@/components/fantasy/planner-lineup";
 import type { Lineup } from "@/lib/fantasy/lineup";
@@ -40,7 +40,7 @@ export function PickList(props: PickListProps) {
   const targetAsset = target ? assetOf(target) : undefined;
   const room = slots.some((id) => id === null);
   const inLineup = new Set([...draft.drivers, ...draft.constructors]);
-  const { sort, toggle } = useSort<PickSort>("points", "desc");
+  const { sort, toggle, reset, isDefault } = useSort<PickSort>("points", "desc");
   const ofKind = assets.filter((a) => a.kind === kind);
   const rows = sortRows(ofKind, sort, pickValue);
   const settings = locked.length + banned.length;
@@ -82,6 +82,7 @@ export function PickList(props: PickListProps) {
           "Click a card above to swap it, − to remove"
         )}
       </p>
+      <ResetSort onReset={reset} isDefault={isDefault} />
       <table className="w-full table-fixed border-collapse text-table">
         <colgroup>
           <col />

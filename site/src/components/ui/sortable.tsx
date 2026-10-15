@@ -22,7 +22,16 @@ export function useSort<K extends string>(initialKey: K | null = null, initialDi
   function toggle(key: K, firstDir: SortDir = "desc") {
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: firstDir }));
   }
-  return { sort, toggle };
+  function reset() {
+    setSort({ key: initialKey, dir: initialDir });
+  }
+  const isDefault = sort.key === initialKey && sort.dir === initialDir;
+  return { sort, toggle, reset, isDefault };
+}
+
+export function ResetSort({ onReset, isDefault }: { onReset: () => void; isDefault: boolean }) {
+  if (isDefault) return null;
+  return <button type="button" onClick={onReset} className="press inline-flex min-h-11 items-center rounded-control px-2 text-caption text-ink-2 underline underline-offset-4 hover:text-ink">Reset sort</button>;
 }
 
 /** A sorted copy of `rows`; `value` reads the sort value of a row for a column. */
