@@ -7,3 +7,5 @@
 /races/:season/:round/sprint /races/:season/:round?session=sprint 301
 /races/:season/:round/qualifying /races/:season/:round?session=qualifying 301
 /races/:season/:round/race /races/:season/:round?session=race 301
+# The hindsight page is now a view on the fantasy page.
+/fantasy/hindsight /fantasy?view=hindsight 301

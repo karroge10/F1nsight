@@ -142,7 +142,7 @@ export function PickList(props: PickListProps) {
 }
 
 function ActionButton({ label, title, onClick, disabled = false, outline = false }: { label: string; title: string; onClick?: () => void; disabled?: boolean; outline?: boolean }) {
-  const look = outline ? "shadow-[inset_0_0_0_1px_var(--rule-strong)] text-ink-2 hover:text-ink" : "bg-bg-hover text-ink hover:bg-ink hover:text-bg";
+  const look = outline ? "shadow-[inset_0_0_0_1px_var(--rule-strong)] text-ink-2 hover:text-ink" : "bg-bg-hover text-ink invert-hover";
   const off = disabled ? "cursor-not-allowed opacity-35 hover:bg-bg-hover hover:text-ink" : "";
   return (
     <button type="button" title={title} aria-label={title} aria-disabled={disabled || undefined} onClick={disabled ? undefined : onClick} className={"press inline-flex h-[1.375rem] min-w-[1.875rem] items-center justify-center rounded-control text-table font-[700] " + look + " " + off}>
@@ -152,7 +152,7 @@ function ActionButton({ label, title, onClick, disabled = false, outline = false
 }
 
 function ToggleIcon({ on, danger, label, onClick, children }: { on: boolean; danger: boolean; label: string; onClick: () => void; children: ReactNode }) {
-  const active = on ? (danger ? "bg-delta-down text-accent-ink" : "bg-ink text-bg") : "text-ink-2 hover:bg-bg-hover hover:text-ink";
+  const active = on ? (danger ? "danger-pill" : "selected-pill") : "text-ink-2 hover:bg-bg-hover hover:text-ink";
   return (
     <button type="button" aria-pressed={on} aria-label={label} title={label} onClick={onClick} className={"press inline-flex size-[1.375rem] items-center justify-center rounded-control " + active}>
       {children}

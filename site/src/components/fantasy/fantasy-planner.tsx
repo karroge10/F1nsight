@@ -237,7 +237,7 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
             const on = i === teams.active;
             const score = teamScores[i];
             return (
-              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"press inline-flex h-8 items-baseline gap-2.5 rounded-control px-3.5 pt-[0.4375rem] text-ui " + (on ? "bg-ink text-bg" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points of the saved team" : "Empty team"}>
+              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"press inline-flex h-8 items-baseline gap-2.5 rounded-control px-3.5 pt-[0.4375rem] text-ui " + (on ? "selected-pill" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points of the saved team" : "Empty team"}>
                 Team {i + 1}
                 <b className={"timing font-[650] " + (on ? "text-bg" : "text-ink")}>{score === null ? "…" : fixed1(score)}</b>
               </button>

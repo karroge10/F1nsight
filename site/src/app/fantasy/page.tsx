@@ -3,9 +3,12 @@ import { getCalendar, getEntryList, getFantasyBacktest, getFantasyFile, getFanta
 import type { RaceSummary } from "@/lib/data/types";
 import { fantasyDeadline } from "@/lib/fantasy";
 import { recentRoundPoints } from "@/lib/fantasy/thresholds";
+import { hindsightInputs } from "@/lib/fantasy/hindsight";
 import { FantasyViews } from "@/components/fantasy/fantasy-views";
 import { FantasyPlanner } from "@/components/fantasy/fantasy-planner";
 import { BacktestView } from "@/components/fantasy/backtest-view";
+import { HindsightView } from "@/components/fantasy/hindsight-view";
+import { buildHindsightLabels } from "@/components/fantasy/hindsight-labels";
 import type { PlannerMeta, PlannerRace } from "@/components/fantasy/planner-parts";
 
 export const metadata: Metadata = {
@@ -37,8 +40,25 @@ export default async function FantasyPage() {
   const backtestData = await getFantasyBacktest();
   const meta = plannerMeta(file, calendar, entries, rounds);
   const backtest = backtestData ? <BacktestView data={backtestData} /> : <BacktestMissing />;
+  const hindsight = rounds ? await hindsightPanel(rounds, file.season, calendar, entries) : <HindsightMissing />;
 
-  return <FantasyViews planner={<FantasyPlanner meta={meta} />} backtest={backtest} />;
+  return <FantasyViews planner={<FantasyPlanner meta={meta} />} backtest={backtest} hindsight={hindsight} />;
+}
+
+/** Hindsight view for the rounds' season, reusing the calendar and entry list when it is the planner's season. */
+async function hindsightPanel(rounds: NonNullable<RoundsData>, plannerSeason: number, plannerCalendar: RaceSummary[], plannerEntries: EntryListData) {
+  const sameSeason = rounds.season === plannerSeason;
+  const calendar = sameSeason ? plannerCalendar : await getCalendar(rounds.season);
+  const entries = sameSeason ? plannerEntries : await getEntryList(rounds.season);
+  const raceNames = Object.fromEntries(calendar.map((race) => [race.round, race.raceName]));
+  const inputs = hindsightInputs(rounds, raceNames);
+  const labels = buildHindsightLabels(entries, constructorCode);
+  return <HindsightView season={rounds.season} inputs={inputs} labels={labels} />;
+}
+
+/** Shown when the per-round fantasy file has not been exported yet. */
+function HindsightMissing() {
+  return <div className="flex h-40 items-center justify-center rounded-float border border-rule text-ui text-ink-3">Round data not exported yet</div>;
 }
 
 /** Shown when the backtest file has not been generated yet. */

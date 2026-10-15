@@ -62,7 +62,7 @@ export function BestTeams({ teams, savedIds, keepScore, isLoaded, assetOf, onLoa
                   <td className="px-1.5">
                     <span className="flex items-center gap-[3px]">
                       {constructors.map(chip)}
-                      <span className="w-2" aria-hidden="true" />
+                      <span className="w-5" aria-hidden="true" />
                       {drivers.map(chip)}
                     </span>
                   </td>

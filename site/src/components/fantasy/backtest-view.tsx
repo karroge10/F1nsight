@@ -44,6 +44,7 @@ export function BacktestView({ data }: BacktestViewProps) {
       </Section>
       <Section title="Round by round" icon={IconHistory} flush>
         <RoundTable rounds={season.rounds} />
+        <p className="mt-2 text-caption text-ink-2">Green: picked that round. Value and bank in $M after the round.</p>
       </Section>
     </>
   );
@@ -177,6 +178,7 @@ function Legend({ series, label }: { series: SeriesStyle; label: string }) {
 }
 
 function RoundTable({ rounds }: { rounds: BacktestRound[] }) {
+  const constructorCodes = new Set(rounds.flatMap((r) => r.constructors.map((c) => c.code)));
   return (
     <div className="overflow-x-auto rounded-float border border-rule">
       <table className="w-full min-w-[820px] text-ui tabular-nums">
@@ -196,7 +198,7 @@ function RoundTable({ rounds }: { rounds: BacktestRound[] }) {
         </thead>
         <tbody>
           {rounds.map((r) => (
-            <RoundRow key={r.round} round={r} />
+            <RoundRow key={r.round} round={r} constructorCodes={constructorCodes} />
           ))}
         </tbody>
       </table>
@@ -204,13 +206,12 @@ function RoundTable({ rounds }: { rounds: BacktestRound[] }) {
   );
 }
 
-function RoundRow({ round }: { round: BacktestRound }) {
-  const picks = [...round.drivers, ...round.constructors];
+function RoundRow({ round, constructorCodes }: { round: BacktestRound; constructorCodes: Set<string> }) {
   const chip = chipLabel(round.chip);
   const ins = round.transfersIn.map(codeOf);
   const outs = round.transfersOut.map(codeOf);
-  const transfersIn = ins.join(" ");
-  const transfersOut = outs.join(" ");
+  const transfersIn = teamsFirst(ins, constructorCodes);
+  const transfersOut = teamsFirst(outs, constructorCodes);
   return (
     <tr className="border-b border-rule last:border-b-0 hover:bg-bg-raised">
       <td className="whitespace-nowrap px-3 py-1.5" title={round.raceName}>
@@ -221,8 +222,12 @@ function RoundRow({ round }: { round: BacktestRound }) {
         </span>
       </td>
       <td className="px-3 py-1.5">
-        <span className="flex flex-wrap gap-x-2.5 gap-y-1">
-          {picks.map((p) => (
+        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          {round.constructors.map((p) => (
+            <PickChip key={p.code} pick={p} />
+          ))}
+          <span className="w-3" aria-hidden="true" />
+          {round.drivers.map((p) => (
             <PickChip key={p.code} pick={p} />
           ))}
         </span>
@@ -279,6 +284,15 @@ function PickChip({ pick }: { pick: BacktestPick }) {
 // ------------------------------------------------------------------------------ helpers
 
 /** Three-letter code; an id that slipped through without a label ("hadjar") becomes "HAD". */
+/** Constructors first, then drivers, with a wider gap between the two groups. */
+function teamsFirst(codes: string[], constructorCodes: Set<string>): string {
+  const teams = codes.filter((c) => constructorCodes.has(c));
+  const drivers = codes.filter((c) => !constructorCodes.has(c));
+  const teamText = teams.join(" ");
+  const driverText = drivers.join(" ");
+  return [teamText, driverText].filter(Boolean).join(" ");
+}
+
 function codeOf(label: string): string {
   if (label === label.toUpperCase()) return label;
   return label.slice(0, 3).toUpperCase();
