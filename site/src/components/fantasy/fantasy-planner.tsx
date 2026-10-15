@@ -253,19 +253,19 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
             ) : null}
           </p>
         </div>
-        <div className="ms-auto flex flex-wrap gap-1.5" role="group" aria-label="Your teams">
+        <div className="flex basis-full flex-wrap gap-1.5" role="group" aria-label="Your teams">
           {teams.teams.map((team, i) => {
             const on = i === teams.active;
             const score = on && projected !== null ? projected : teamScores[i];
             return (
-              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"press inline-flex h-8 items-center gap-2.5 rounded-control px-3.5 text-ui leading-none " + (on ? "selected-pill" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points" : "Empty team"}>
+              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"press inline-flex min-h-11 items-center gap-2.5 rounded-control px-3.5 text-ui leading-none " + (on ? "selected-pill" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points" : "Empty team"}>
                 Team {i + 1}
                 {score === null ? null : <b className={"timing font-[650] " + (on ? "text-bg" : "text-ink")}>{fixed1(score)}</b>}
               </button>
             );
           })}
           {teams.teams.length < MAX_TEAMS ? (
-            <button type="button" onClick={newTeam} className="press inline-flex h-8 items-center rounded-control px-3.5 text-ui leading-none text-ink-3 shadow-[inset_0_0_0_1px_var(--rule-strong)] hover:text-ink">
+            <button type="button" onClick={newTeam} className="press inline-flex min-h-11 items-center rounded-control px-3.5 text-ui leading-none text-ink-3 shadow-[inset_0_0_0_1px_var(--rule-strong)] hover:text-ink">
               + Add team
             </button>
           ) : null}
@@ -313,16 +313,19 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
                     {t.label}
                   </button>
                 ))}
-                <span className="ms-auto flex items-center gap-3 py-1">
-                  <span className="text-caption text-ink-2">{notes[tab]}</span>
-                  <span className="inline-flex h-7 items-stretch rounded-control border border-rule" role="group" aria-label="Optimiser goal">
-                    {GOALS.map((g) => (
-                      <button key={g.key} type="button" aria-pressed={goal === g.key} title={g.title} onClick={() => setGoal(g.key)} className={"press segment -my-px rounded-control px-2.5 text-caption " + (goal === g.key ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
-                        {g.label}
-                      </button>
-                    ))}
-                  </span>
+              </div>
+              <div className="flex flex-col items-start gap-2 border-b border-rule py-3">
+                <span className="inline-flex min-h-11 shrink-0 items-stretch rounded-control border border-rule" role="group" aria-label="Optimiser goal">
+                  {GOALS.map((g) => (
+                    <button key={g.key} type="button" aria-pressed={goal === g.key} title={g.title} onClick={() => setGoal(g.key)} className={"press segment -my-px whitespace-nowrap rounded-control px-2.5 text-caption " + (goal === g.key ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
+                      {g.label}
+                    </button>
+                  ))}
                 </span>
+                <p className="text-caption text-ink-2">
+                  {goal === "points" ? "Rank by projected points this race." : "Rank by projected points plus expected price rises. This has not beaten points alone in our backtests."}
+                </p>
+                <p className="text-caption text-ink-3">{notes[tab]}</p>
               </div>
               <div className={board.pending ? "opacity-70 transition-opacity" : "transition-opacity"} aria-busy={board.pending}>
                 {board.error ? (

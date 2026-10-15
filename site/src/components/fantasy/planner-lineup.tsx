@@ -43,11 +43,20 @@ export function LineupStrip({ draft, saved, multipliers, selected, assetOf, onSe
     return <PickCard key={key} id={id} assetOf={assetOf} multiplier={multipliers[id] ?? 1} changed={changed} replaced={replaced} selected={isSelected} onSelect={() => onSelect(slot)} onRemove={() => onRemove(id)} />;
   };
   return (
-    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-[repeat(2,minmax(0,1fr))_1.5rem_repeat(5,minmax(0,1fr))]">
-      {card("constructor", 0)}
-      {card("constructor", 1)}
-      <span aria-hidden="true" className="hidden lg:block" />
-      {[0, 1, 2, 3, 4].map((i) => card("driver", i))}
+    <div className="grid gap-4 xl:grid-cols-[2fr_5fr]">
+      <section aria-label="Your constructors" className="min-w-0">
+        <h2 className="mb-2 flex items-baseline gap-2 text-caption font-[650] text-ink-2">Constructors <span className="font-normal text-ink-3">{draft.constructors.filter(Boolean).length} / 2</span></h2>
+        <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-2">
+          {card("constructor", 0)}
+          {card("constructor", 1)}
+        </div>
+      </section>
+      <section aria-label="Your drivers" className="min-w-0 border-t border-rule pt-3 xl:border-s xl:border-t-0 xl:ps-4 xl:pt-0">
+        <h2 className="mb-2 flex items-baseline gap-2 text-caption font-[650] text-ink-2">Drivers <span className="font-normal text-ink-3">{draft.drivers.filter(Boolean).length} / 5</span></h2>
+        <div className="grid grid-cols-1 gap-1.5 min-[360px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-5">
+          {[0, 1, 2, 3, 4].map((i) => card("driver", i))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -73,20 +82,22 @@ function PickCard({ id, assetOf, multiplier, changed, replaced, selected, onSele
   const lineStyle = { "--tc": asset.color } as CSSProperties;
   const points = asset.points * multiplier;
   return (
-    <div className="group relative">
-      <button type="button" aria-pressed={selected} onClick={onSelect} title="Click to swap" className={"press grid h-12 w-full grid-cols-[minmax(0,1fr)_auto] content-center items-baseline gap-x-2 rounded-float py-1.5 ps-3 pe-2.5 text-start " + surface + " " + ring}>
+    <div className={"group relative grid grid-cols-[minmax(0,1fr)_2.75rem] rounded-float " + surface + " " + ring}>
+      <button type="button" aria-pressed={selected} onClick={onSelect} title="Click to swap" className="press flex h-20 min-w-0 flex-col justify-center gap-0.5 rounded-float py-1.5 ps-3 pe-1 text-start">
         <span aria-hidden="true" className="absolute start-0 top-1.5 bottom-1.5 w-[3px] rounded-[2px] bg-[var(--tc)]" style={lineStyle} />
         <span className="flex items-center gap-1.5 text-[0.9375rem] font-[750] tracking-[0.02em] text-ink">
           {asset.code}
           {multiplier > 1 ? <BoostBadge multiplier={multiplier} /> : null}
         </span>
-        <span className="timing text-end text-[0.9375rem] font-[700] text-ink group-hover:invisible">{fixed1(points)}</span>
-        <span className="truncate text-[0.71875rem] text-ink-3">{replaced ? <span className="font-[550] text-delta-up">in for {replaced}</span> : money(asset.price)}</span>
-        <span className={"timing text-end text-[0.71875rem] " + tone(asset.priceChange)} title="Expected price change after this race">
-          {signed(asset.priceChange)}M
+        <span className="timing text-[0.9375rem] font-[700] text-ink">{fixed1(points)} <span className="text-caption font-normal text-ink-3">pts</span></span>
+        <span className="flex w-full flex-wrap items-baseline gap-x-2 text-[0.6875rem]">
+          <span className="text-ink-3">{replaced ? <span className="font-[550] text-delta-up">in for {replaced}</span> : money(asset.price)}</span>
+          <span className={"timing " + tone(asset.priceChange)} title="Expected price change after this race">
+            {signed(asset.priceChange)}M
+          </span>
         </span>
       </button>
-      <button type="button" onClick={onRemove} aria-label={`Remove ${asset.code}`} title="Remove" className="absolute end-1 top-1 hidden size-5 items-center justify-center rounded-control bg-bg-sunken text-[0.75rem] text-ink-2 hover:text-ink group-hover:inline-flex focus-visible:inline-flex">
+      <button type="button" onClick={onRemove} aria-label={`Remove ${asset.code}`} title={`Remove ${asset.code}`} className="press flex min-h-11 w-11 items-center justify-center rounded-float text-lg text-ink-3 hover:bg-bg-hover hover:text-delta-down focus-visible:text-ink">
         ×
       </button>
     </div>
@@ -96,7 +107,7 @@ function PickCard({ id, assetOf, multiplier, changed, replaced, selected, onSele
 function EmptyCard({ kind, selected, onSelect }: { kind: SlotKind; selected: boolean; onSelect: () => void }) {
   const ring = selected ? "shadow-[inset_0_0_0_2px_var(--prob-4)] text-ink" : "shadow-[inset_0_0_0_1px_var(--rule-strong)] text-ink-3 hover:text-ink";
   return (
-    <button type="button" aria-pressed={selected} onClick={onSelect} className={"press flex h-12 w-full items-center justify-center rounded-float text-caption " + ring}>
+    <button type="button" aria-pressed={selected} onClick={onSelect} className={"press flex h-20 w-full items-center justify-center rounded-float text-caption " + ring}>
       + {kind === "driver" ? "Driver" : "Constructor"}
     </button>
   );
