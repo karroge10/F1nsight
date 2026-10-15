@@ -84,6 +84,12 @@ export function tone(value: number): string {
   return "text-ink-3";
 }
 
+/** Projected points of an optimiser result after Boost, chip and transfer penalties. The result's
+ * score is the optimiser's objective, which adds a team value term under "Points + value". */
+export function projectedPoints(result: { expectedPoints: number; penalty: number }): number {
+  return result.expectedPoints - result.penalty;
+}
+
 export function fixed1(value: number): string {
   return value.toFixed(1);
 }

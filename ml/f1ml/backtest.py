@@ -3,6 +3,7 @@
     uv run python -m f1ml.backtest                       # full run, retrain every 3 rounds
     uv run python -m f1ml.backtest --retrain-every 1     # retrain before every race
     uv run python -m f1ml.backtest --label NAME          # experiment: scorecard rows only
+    uv run python -m f1ml.backtest --seasons 2026 --first-race 202617 --label NAME   # holdout
 
 Every run writes scorecard rows (`ml/reports/scorecard/<label>_*.parquet`, label "published" by
 default) for `f1ml.scorecard`. With `--label` the site files (history, backtest.json) and the
@@ -49,6 +50,9 @@ def main() -> None:
     parser.add_argument("--no-history", action="store_true", help="skip history JSON files")
     parser.add_argument("--label", help="experiment run: write scorecard rows only")
     parser.add_argument("--features", help="feature parquet to use instead of the cache")
+    parser.add_argument("--first-race", type=int, default=0,
+                        help="score only races with raceId >= this (training still uses all "
+                             "earlier races); 0 = no limit")
     train.add_ensemble_arguments(parser)
     args = parser.parse_args()
     warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -57,7 +61,8 @@ def main() -> None:
     with gpu.GpuMonitor() as monitor:
         write_history = not args.no_history and not args.label
         result = run_backtest(args.seasons, args.retrain_every, args.sims, not args.no_nn,
-                              args.limit, write_history, args.features, args)
+                              args.limit, write_history, args.features, args,
+                              args.first_race)
     result["summary"]["gpu"] = monitor.summary()
     result["summary"]["seconds"] = round(time.time() - started, 1)
     write_scorecard_rows(result, args.label or "published")
@@ -68,7 +73,7 @@ def main() -> None:
 
 def run_backtest(seasons, retrain_every: int, sims: int, use_nn: bool, limit: int,
                  write_history: bool, features_path: str | None = None,
-                 ensemble: argparse.Namespace | None = None) -> dict:
+                 ensemble: argparse.Namespace | None = None, first_race: int = 0) -> dict:
     """Walk-forward backtest. `ensemble` (--seed, --gbm-bags, --nn-seeds) also moves the
     simulation seeds, so two seeds give two independent runs end to end."""
     features = train.load_features()
@@ -90,9 +95,7 @@ def run_backtest(seasons, retrain_every: int, sims: int, use_nn: bool, limit: in
     trained = None
     trained_info = {}
     for season in seasons:
-        race_ids = sorted(labelled[labelled["season"] == season]["raceId"].unique())
-        if limit:
-            race_ids = race_ids[:limit]
+        race_ids = select_race_ids(labelled, season, limit, first_race)
         for index, race_id in enumerate(race_ids):
             if trained is None or index % retrain_every == 0:
                 train_rows = labelled[labelled["raceId"] < race_id]
@@ -125,6 +128,17 @@ def run_backtest(seasons, retrain_every: int, sims: int, use_nn: bool, limit: in
     summary = summarize(races, probability_rows, fantasy_rows, seasons, retrain_every)
     return {"races": races, "summary": summary, "scorecard_cars": scorecard_cars,
             "scorecard_races": scorecard_races, "fantasy_rows": fantasy_rows}
+
+
+def select_race_ids(labelled: pd.DataFrame, season: int, limit: int = 0,
+                    first_race: int = 0) -> list:
+    """Labelled races of the season to score, from `first_race` on, at most `limit` of them."""
+    race_ids = sorted(labelled[labelled["season"] == season]["raceId"].unique())
+    if first_race:
+        race_ids = [race_id for race_id in race_ids if race_id >= first_race]
+    if limit:
+        race_ids = race_ids[:limit]
+    return race_ids
 
 
 def evaluate_race(trained, trained_info, history, features, race_id, grid_table, champ_table,

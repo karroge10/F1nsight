@@ -73,7 +73,7 @@ export function ControlBar(props: ControlBarProps) {
       </div>
 
       {options.length > 0 ? (
-        <div className="inline-flex h-8 items-stretch rounded-control border border-rule" role="group" aria-label="Optimiser teams by number of transfers">
+        <div className="inline-flex h-8 max-w-full items-stretch overflow-x-auto rounded-control border border-rule" role="group" aria-label="Optimiser teams by number of transfers">
           {options.map((option) => (
             <button key={option.transfers} type="button" aria-pressed={option.pressed} onClick={() => props.onOption(option.transfers)} title={optionTitle(option.transfers)} className={"press segment -my-px flex items-baseline gap-1.5 rounded-control px-2.5 py-1.5 whitespace-nowrap " + (option.pressed ? "segment-on" : "text-ink-2 hover:text-ink")}>
               <span className="text-caption">{optionLabel(option.transfers)}</span>
