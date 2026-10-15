@@ -170,6 +170,7 @@ def _fetch_forecast(race, now: datetime) -> bool:
     target = RAW / "forecast" / f"{int(race['raceId'])}.json"
     existing = _load(target)
     if existing is not None:
+        _snapshot_forecast(existing, int(race["raceId"]))
         fetched_at = datetime.fromisoformat(existing["fetchedAt"])
         age_hours = (now - fetched_at).total_seconds() / 3600.0
         if age_hours < FORECAST_MAX_AGE_HOURS:
@@ -182,8 +183,17 @@ def _fetch_forecast(race, now: datetime) -> bool:
              "hourly": "precipitation,precipitation_probability,temperature_2m,wind_speed_10m"}
     payload = _get(FORECAST_URL, query)
     payload["fetchedAt"] = now.isoformat()
+    _snapshot_forecast(payload, int(race["raceId"]))
     _save(target, payload)
     return True
+
+
+def _snapshot_forecast(payload: dict, race_id: int) -> None:
+    fetched_at = datetime.fromisoformat(payload["fetchedAt"]).astimezone(timezone.utc)
+    stamp = fetched_at.strftime("%Y%m%dT%H%M%S%fZ")
+    target = RAW / "forecast-history" / str(race_id) / f"{stamp}.json"
+    if not target.exists():
+        _save(target, payload)
 
 
 def _archive_summary(payload: dict, row) -> dict:

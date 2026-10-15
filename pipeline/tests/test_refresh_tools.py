@@ -87,7 +87,7 @@ def test_refresh_step_selection():
     args = argparse.Namespace(only="fastf1,predict", skip=None)
     assert refresh._selected_steps(args) == ["fastf1", "predict"]
     args = argparse.Namespace(only=None, skip="openf1")
-    assert refresh._selected_steps(args) == ["history", "fantasy", "fastf1", "penalties", "predict"]
+    assert refresh._selected_steps(args) == ["history", "fantasy", "fastf1", "penalties", "weather", "predict"]
     args = argparse.Namespace(only="penalties,predict", skip=None)
     assert refresh._selected_steps(args) == ["penalties", "predict"]
     with pytest.raises(SystemExit):
