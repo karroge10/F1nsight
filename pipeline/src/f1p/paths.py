@@ -1,9 +1,9 @@
-"""Shared filesystem locations for the pipeline (see v2/SPEC.md)."""
+"""Shared filesystem locations for the pipeline (see SPEC.md)."""
 
 from pathlib import Path
 
-V2_DIR = Path(__file__).resolve().parents[3]
-DATA_DIR = V2_DIR / "data"
+ROOT_DIR = Path(__file__).resolve().parents[3]
+DATA_DIR = ROOT_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
 SERVE_DIR = DATA_DIR / "serve"

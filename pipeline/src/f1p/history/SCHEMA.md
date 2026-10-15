@@ -1,10 +1,10 @@
 # f1.sqlite schema
 
-`v2/data/serve/f1.sqlite` holds the complete official F1 World Championship history from
+`data/serve/f1.sqlite` holds the complete official F1 World Championship history from
 1950 to the latest completed round. It is rebuilt from scratch by
-`uv run python -m f1p.history.update` (run from `v2/pipeline`) and swapped in atomically. Open
+`uv run python -m f1p.history.update` (run from `pipeline`) and swapped in atomically. Open
 it read only. This file is copied next to the database on every build; edit the source at
-`v2/pipeline/src/f1p/history/SCHEMA.md`.
+`pipeline/src/f1p/history/SCHEMA.md`.
 
 Sources: Jolpica-F1 (Ergast successor) dump plus live API, with F1DB (CC BY 4.0) filling
 fastest laps before 2004, qualifying before 2003 and circuit layouts. Credit both on the site.

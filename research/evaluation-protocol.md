@@ -5,7 +5,7 @@ before the change is measured.
 
 ## Run
 
-- `uv run python -m f1ml.backtest --label <name>` from `v2/ml`: walk-forward over 2024, 2025 and
+- `uv run python -m f1ml.backtest --label <name>` from `ml`: walk-forward over 2024, 2025 and
   2026 R1 to R16 (64 races), retrain every 3 rounds on races before the target only, 20,000
   simulations per stage, seed = raceId. `--label` runs write only
   `ml/reports/scorecard/<name>_*.parquet` and never touch `data/predictions`.

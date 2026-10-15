@@ -5,7 +5,7 @@
 #   .\refresh.ps1 -Only fastf1,predict  # a subset: history, openf1, fantasy, fastf1, penalties, predict, images
 #   .\refresh.ps1 -Skip openf1
 #
-# Logs go to v2\logs\refresh-<time>.log, the step summary to v2\logs\refresh-last.json.
+# Logs go to logs\refresh-<time>.log, the step summary to logs\refresh-last.json.
 # Exit code: 0 ok, 1 a step failed (others still ran), 3 another refresh is still running.
 # The images step (driver headshots and team logos for the site) never fails the refresh: a CDN
 # problem logs a warning and the existing images stay. After a successful refresh the static site

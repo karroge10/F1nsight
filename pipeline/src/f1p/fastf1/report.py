@@ -184,7 +184,7 @@ def _dir_size_gb(path) -> float:
 
 PROGRESS_TEMPLATE = """# FastF1 download progress
 
-Updated {stamp}. Regenerate with `uv run python -m f1p.fastf1.report` (from `v2/pipeline`).
+Updated {stamp}. Regenerate with `uv run python -m f1p.fastf1.report` (from `pipeline`).
 
 {table}
 
@@ -194,7 +194,7 @@ Disk: {disk}.
 ## Check and resume
 
 - Is it running? `Get-Process python` (PowerShell) or look at the tail of `download.log` here.
-- Resume or continue after a stop: from `v2/pipeline` run
+- Resume or continue after a stop: from `pipeline` run
   `uv run python -m f1p.fastf1.download` (finished sessions are skipped, newest season first).
 - Only some seasons: `--seasons 2018-2021`. Retry "no data" sessions: `--retry-unavailable`.
 - Rebuild the merged tables at any time: `uv run python -m f1p.fastf1.build_tables`.

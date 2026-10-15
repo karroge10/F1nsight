@@ -18,7 +18,7 @@ Besides the contract fields, `scenarios` carries two optional matrices the engin
 present: `negative` (sum of the negative scoring items, for the No Negative chip, which
 clamps every scoring category at zero) and `race` (Grand Prix points only, for Final Fix).
 
-Run: cd v2/ml && uv run python scripts/synthetic_fantasy.py [--out PATH] [--n 2000]
+Run: cd ml && uv run python scripts/synthetic_fantasy.py [--out PATH] [--n 2000]
 Default output: data/predictions/fantasy.synthetic.json (pass --out to write elsewhere).
 """
 

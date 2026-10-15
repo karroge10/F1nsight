@@ -13,7 +13,7 @@
 # to the cloud refresh state (cloud\state.py push, needs the gh CLI logged in).
 # With -PullState the gate first pulls the cloud refresh's data (every group but the model), so
 # a PC that no longer refreshes by itself still retrains on the latest results.
-# Every check is appended to v2\logs\retrain-gate-checks.log.
+# Every check is appended to logs\retrain-gate-checks.log.
 
 param(
     [switch]$Now,

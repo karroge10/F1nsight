@@ -5,7 +5,7 @@ import parity from "./__fixtures__/scoring_parity.json";
 import { priceChange } from "./priceChange";
 import { scoreConstructor, scoreDriver, scoringRulesFor, type DriverWeekend } from "./scoring";
 
-// Fixtures come from real recorded weekends (v2/pipeline/scripts/export_fantasy_engine_fixtures.py):
+// Fixtures come from real recorded weekends (pipeline/scripts/export_fantasy_engine_fixtures.py):
 // 2026 rounds 1 to 16 with the official overtakes, Driver of the Day and pit stop points, and
 // 2025 driver weekends with Wayback-derived inputs. "python" is f1p.fantasy.scoring's output.
 

@@ -8,7 +8,7 @@
 # reused. Otherwise the site is the static export in site\out (the same files Cloudflare Pages
 # serves), served by site\scripts\serve-static.mjs and rebuilt first when the code or the data is
 # newer than the last build. refresh.ps1 rebuilds after every refresh; the server picks the new
-# files up without a restart. Output: v2\logs\live.log, v2\logs\site.log.
+# files up without a restart. Output: logs\live.log, logs\site.log.
 
 param(
     [switch]$Rebuild,

@@ -1,6 +1,6 @@
 """Download the sessions of the current race weekend that have just finished, then rebuild ff1_*.
 
-Run from v2/pipeline (the refresh does this after every session):
+Run from pipeline (the refresh does this after every session):
     uv run python -m f1p.fastf1.incremental                 # sessions of the last 10 days
     uv run python -m f1p.fastf1.incremental --accept-partial # keep incomplete archives too
     uv run python -m f1p.fastf1.incremental --no-build      # skip the table rebuild

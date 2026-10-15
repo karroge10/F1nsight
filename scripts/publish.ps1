@@ -31,7 +31,7 @@ function Main {
         if (-not (Invoke-Native "node" @("scripts/check-export.mjs"))) { return 1 }
         if ($NoDeploy) { return 0 }
         if (-not (Test-WranglerLogin)) {
-            Write-Host "publish: wrangler is not logged in, skipping the upload. Run 'npx wrangler login' in v2\site once to enable it."
+            Write-Host "publish: wrangler is not logged in, skipping the upload. Run 'npx wrangler login' in site once to enable it."
             return 0
         }
         Write-Host "publish: uploading site\out to Cloudflare Pages ($projectName, $branch)..."

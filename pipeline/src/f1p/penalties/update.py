@@ -1,8 +1,12 @@
-"""Collect the grid penalties announced for the next race into data/processed/grid_penalties.parquet.
+"""Collect the grid penalties announced for the next races into data/processed/grid_penalties.parquet.
 
     uv run python -m f1p.penalties.update                        # the race refresh is heading for
     uv run python -m f1p.penalties.update --season 2026 --round 17
     uv run python -m f1p.penalties.update --no-fia               # race control + manual only
+
+Covers the race the refresh is heading for and the AHEAD_ROUNDS races after it, the rounds the
+fantasy projections look ahead to, so a penalty the FIA publishes early (a power unit change
+announced weeks before the event) reaches those projections as soon as it is out.
 
 Sources, strongest first:
 1. data/manual/grid_penalties.json: hand-written entries. An entry replaces every parsed entry
@@ -41,6 +45,7 @@ COLUMNS = ["season", "round", "raceId", "driverId", "carNumber", "kind", "places
            "appliesTo", "source", "documentId", "title", "url", "session", "decision",
            "publishedUtc"]
 KINDS = ("places", "back_of_grid", "pit_lane")
+AHEAD_ROUNDS = 3  # races after the next one, as many as f1ml.predict.HORIZON_ROUNDS
 
 
 def main() -> int:
@@ -51,29 +56,53 @@ def main() -> int:
         print("no upcoming race in data/processed/races.parquet")
         return 0
     races = pd.read_parquet(PROCESSED_DIR / "races.parquet")
+    targets = [race] + following_races(races, race, AHEAD_ROUNDS)
+    tables = []
+    fia_errors = []
+    for target in targets:
+        table, fia_error = race_penalties(races, target, now, args.no_fia)
+        tables.append(table)
+        if fia_error:
+            fia_errors.append(fia_error)
+    filled = [table for table in tables if len(table)]
+    combined = pd.concat(filled, ignore_index=True) if filled else tables[0]
+    written = write_if_changed(combined)
+    for target, table in zip(targets, tables):
+        _print_table(target, table, written)
+    fia_error = "; ".join(fia_errors) or None
+    season = int(race["season"])
+    round_number = int(race["round"])
+    rounds = [int(target["round"]) for target in targets]
+    summary = {"race": f"{season} R{round_number}", "rounds": rounds,
+               "penalties": len(combined), "written": written, "fiaError": fia_error}
+    summary_text = json.dumps(summary)
+    print(f"RESULT {summary_text}")
+    return 1 if fia_error else 0
+
+
+def race_penalties(races: pd.DataFrame, race: pd.Series, now: datetime,
+                   no_fia: bool) -> tuple[pd.DataFrame, str | None]:
+    """The merged penalties of one race and the FIA error, if fia.com could not be read."""
     previous = previous_race(races, race)
+    if previous is not None and previous["raceUtc"] > now.replace(tzinfo=None):
+        # decisions only move on to this race once the previous race has started
+        previous = None
     season = int(race["season"])
     round_number = int(race["round"])
     numbers = car_numbers(season)
     fia_error = None
     fia_rows: list[dict] = []
-    if not args.no_fia:
+    if not no_fia:
         try:
             fia_rows = fia_penalties(race, previous, numbers)
         except Exception as exc:
-            fia_error = f"{type(exc).__name__}: {exc}"
+            fia_error = f"R{round_number} {type(exc).__name__}: {exc}"
             print(f"warning: FIA documents unavailable ({fia_error}); keeping the FIA rows on file")
             fia_rows = _existing_rows(season, round_number, "fia")
     control_rows = race_control_penalties(races, race, previous, numbers)
     manual_rows = manual_entries(season, round_number, numbers)
     table = combine(fia_rows, control_rows, manual_rows, race)
-    written = write_if_changed(table)
-    _print_table(race, table, written)
-    summary = {"race": f"{season} R{round_number}", "penalties": len(table), "written": written,
-               "fiaError": fia_error}
-    summary_text = json.dumps(summary)
-    print(f"RESULT {summary_text}")
-    return 1 if fia_error else 0
+    return table, fia_error
 
 
 def fia_penalties(race: pd.Series, previous: pd.Series | None, numbers: dict) -> list[dict]:
@@ -185,6 +214,12 @@ def write_if_changed(table: pd.DataFrame) -> bool:
     table.to_parquet(temp_path, index=False)
     temp_path.replace(OUTPUT_PATH)
     return True
+
+
+def following_races(races: pd.DataFrame, race: pd.Series, count: int) -> list[pd.Series]:
+    """The `count` races held after this one, in order."""
+    later = races[races["raceUtc"] > race["raceUtc"]].sort_values("raceUtc").head(count)
+    return [record for _, record in later.iterrows()]
 
 
 def previous_race(races: pd.DataFrame, race: pd.Series) -> pd.Series | None:

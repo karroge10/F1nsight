@@ -1,5 +1,5 @@
 // Builds the fixtures in src/lib/data/fixtures from:
-//   - the Jolpica database dump (v2/data/raw/jolpica/dump/csv), for history, laps, pit stops
+//   - the Jolpica database dump (data/raw/jolpica/dump/csv), for history, laps, pit stops
 //   - the Jolpica API snapshots in scripts/raw (2026 calendar, entries, standings, results)
 //   - the track outlines in scripts/raw/tracks
 // Run with: node scripts/build-fixtures.mjs

@@ -1,6 +1,6 @@
 """Checks for the scorecard scores, the title-odds CRPS and the team retirement shock.
 
-    uv run --with pytest python -m pytest tests -q      (from v2/ml)
+    uv run --with pytest python -m pytest tests -q      (from ml)
 """
 
 import numpy as np

@@ -6,7 +6,7 @@ standings-page, standings-tables}.tsx`.
 
 ## What was checked
 
-**Method.** A Playwright walk (`v2/research/scratch/qa-entities/walk.mjs`, output in `report.json`
+**Method.** A Playwright walk (`research/scratch/qa-entities/walk.mjs`, output in `report.json`
 and `shots/`) loaded 22 routes at 1440 and 390 widths, in light and dark. For each load it recorded
 the HTTP status, console errors, failed requests, horizontal page overflow, elements that extend past
 the viewport (outside `.scroll-x`), text containing `undefined`, `NaN`, `[object` or `null`, broken

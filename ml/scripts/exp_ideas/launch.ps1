@@ -1,5 +1,5 @@
 ﻿$ErrorActionPreference = 'Stop'
-$root = 'D:\Coding\GitHub Repositories\F1-Stats\v2\ml'
+$root = 'D:\Coding\GitHub Repositories\F1nsight\ml'
 foreach ($idea in @('fastform','similarity')) {
     $taskName = "F1-exp-${idea}-once"
     $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue

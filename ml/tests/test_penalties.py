@@ -1,6 +1,6 @@
 """Announced grid penalties: grid order, per-stage inputs, simulation and explanations.
 
-    uv run --with pytest python -m pytest tests -q      (from v2/ml)
+    uv run --with pytest python -m pytest tests -q      (from ml)
 """
 
 import numpy as np

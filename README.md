@@ -41,7 +41,7 @@ contributors are in `SPEC.md`.
 
 ## Commands
 
-All from the `v2` folder in PowerShell unless noted.
+All from the repo root in PowerShell unless noted.
 
 | What | Command |
 | --- | --- |

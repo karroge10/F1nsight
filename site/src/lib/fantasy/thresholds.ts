@@ -1,7 +1,7 @@
 // Price change thresholds: how many points an asset needs this gameday for its price to rise
 // or to avoid the bigger fall. Uses the 2025/2026 rule ported in engine/priceChange.ts
 // (rolling three-gameday points per million, fitted on the official prices, about 99% of
-// observed changes reproduced; see v2/data/raw/fantasy/rules_2026.md, "Price changes").
+// observed changes reproduced; see data/raw/fantasy/rules_2026.md, "Price changes").
 //
 // Every active asset moves after every gameday, there is no "hold" band:
 //   great (PPM >= 1.20): +0.3 (tier A, price >= 18.5M) or +0.6 (tier B)

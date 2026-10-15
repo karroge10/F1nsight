@@ -1,6 +1,6 @@
 """Grid penalty detection: FIA decision text, the documents page, race control and the merge.
 
-    uv run --no-sync --with pytest python -m pytest tests -q      (from v2/pipeline)
+    uv run --no-sync --with pytest python -m pytest tests -q      (from pipeline)
 """
 
 from __future__ import annotations
@@ -152,3 +152,12 @@ def test_next_race_decisions_move_to_the_following_event():
     power_unit = fia.Decision(63, "x", "places", 40, "race", "power_unit", "", True,
                               fia.Document(20, "PU", "u", "2026-10-09T12:03+00:00"), "")
     assert update._for_following_event(power_unit, "2026-10-11T12:00+00:00") is False
+
+
+def test_following_races_are_the_next_ones_in_order():
+    races = pd.DataFrame({"round": [3, 1, 4, 2, 5],
+                          "raceUtc": pd.to_datetime(["2026-03-29", "2026-03-08", "2026-05-03",
+                                                     "2026-03-15", "2026-05-24"])})
+    race = races[races["round"] == 2].iloc[0]
+    following = update.following_races(races, race, 2)
+    assert [int(record["round"]) for record in following] == [3, 4]

@@ -8,7 +8,7 @@ the lag between the newest record and now (Position.z: the newest sample Timesta
 streams: the newest line offset converted with the Heartbeat clock). It also logs whether the
 season Index.json lists the session and what the root SessionInfo.json says is running.
 
-    cd v2/live
+    cd live
     uv run python scripts/probe_static_live.py --season 2026 --round 17 --session FP1
     uv run python scripts/probe_static_live.py --path "2026/2026-10-11_Singapore_Grand_Prix/2026-10-09_Practice_1/"
 

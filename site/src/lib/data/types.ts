@@ -1,5 +1,5 @@
 // Domain types shared by the data layer and the UI. Ids are the stable Jolpica/Ergast
-// string ids (driverId, constructorId, circuitId) as required by v2/SPEC.md.
+// string ids (driverId, constructorId, circuitId) as required by SPEC.md.
 
 export type SessionKey = "fp1" | "fp2" | "fp3" | "sprintQualifying" | "sprint" | "qualifying" | "race";
 
@@ -287,7 +287,7 @@ export interface TrackOutline {
 }
 
 // ---------------------------------------------------------------------------
-// Predictions (contract from v2/SPEC.md)
+// Predictions (contract from SPEC.md)
 // ---------------------------------------------------------------------------
 
 export type ForecastStage = "pre-weekend" | "post-practice" | "post-qualifying";
@@ -481,7 +481,7 @@ export interface FantasyMarket {
 }
 
 // ---------------------------------------------------------------------------
-// Live service contract (v2/live/README.md is authoritative)
+// Live service contract (live/README.md is authoritative)
 // ---------------------------------------------------------------------------
 
 export type LiveMode = "live" | "simulated" | "replay";

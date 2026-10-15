@@ -1,4 +1,4 @@
-// Chooses the storage behind the data layer: sqlite when v2/data/serve/f1.sqlite exists
+// Chooses the storage behind the data layer: sqlite when data/serve/f1.sqlite exists
 // (and F1_DATA_SOURCE is not "fixtures"), otherwise the JSON fixtures.
 
 import * as fixtures from "./fixtures-source";

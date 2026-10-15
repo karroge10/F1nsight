@@ -1,5 +1,5 @@
 // Builds the prediction fixtures (src/lib/data/fixtures/predictions) that follow the
-// contract in v2/SPEC.md. The model is a transparent form-based Monte Carlo: it exists so the
+// contract in SPEC.md. The model is a transparent form-based Monte Carlo: it exists so the
 // site has realistic, internally consistent numbers until the trained model publishes
 // data/predictions/next.json. The same code also produces the backtest history files.
 // Run with: node scripts/build-predictions.mjs

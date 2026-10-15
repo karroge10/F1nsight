@@ -1,6 +1,6 @@
 """Free fallback: best laps and qualifying from the F1 static live timing archive.
 
-`v2/live` caches finished sessions from `livetiming.formula1.com/static/...` under
+`live` caches finished sessions from `livetiming.formula1.com/static/...` under
 `data/raw/livetiming/<season>/<date>_<Event>/<date>_<Session>/<Topic>.jsonStream`. Each
 stream line is `HH:MM:SS.mmm{json patch}`; merging the patches gives the final state.
 

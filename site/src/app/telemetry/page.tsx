@@ -27,7 +27,7 @@ function NoTelemetry() {
         </span>
       }
       title="Telemetry not available"
-      dek="No telemetry exported yet. Run uv run python -m f1p.fastf1.telemetry_export in v2/pipeline (it reads the local FastF1 cache), then rebuild."
+      dek="No telemetry exported yet. Run uv run python -m f1p.fastf1.telemetry_export in pipeline (it reads the local FastF1 cache), then rebuild."
     />
   );
 }

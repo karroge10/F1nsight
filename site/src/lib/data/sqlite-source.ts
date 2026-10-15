@@ -1,4 +1,4 @@
-// SQLite-backed storage for the stats domain, reading v2/data/serve/f1.sqlite read only with
+// SQLite-backed storage for the stats domain, reading data/serve/f1.sqlite read only with
 // Node's built-in sqlite module. Returns the same shapes as fixtures-source so index.ts does
 // not care which one is active. Predictions, fantasy and track outlines still come from the
 // published JSON / fixtures (see fixtures-source).

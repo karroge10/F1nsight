@@ -1,11 +1,11 @@
 # QA follow-up pass
 
 Scope: the eleven requests in the four QA reports (`qa-design-system.md`, `qa-entities.md`,
-`qa-fantasy.md`, `qa-home-live-races.md`). Paths are relative to `v2/site/`.
+`qa-fantasy.md`, `qa-home-live-races.md`). Paths are relative to `site/`.
 
 Checks at the end: `npm run typecheck` passes, `npm test` passes (16 files, 149 tests),
 `npx eslint` on every touched file passes. Browser checks ran with Playwright against the running
-dev server (scripts in `v2/research/scratch/qa-followup-*.mjs`). No screenshot was read in the main
+dev server (scripts in `research/scratch/qa-followup-*.mjs`). No screenshot was read in the main
 session; `scratch/followup-header-390.png` was written for a visual-qa pass if one is wanted.
 
 ## 1. Error boundary prop name

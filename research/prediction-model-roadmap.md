@@ -1,14 +1,14 @@
 # Prediction model roadmap
 
 Research note, 2026-10-08. Scope: race finishing order, win/podium/points odds, title odds and
-fantasy points in `v2/ml`, and how the site uses them (`v2/site/src/components/forecast`,
-`v2/site/src/lib/fantasy`).
+fantasy points in `ml`, and how the site uses them (`site/src/components/forecast`,
+`site/src/lib/fantasy`).
 
 What was done: read `ml/README.md`, `ml/REPORT.md`, `ml/f1ml/` (features, bundle, gbm, plackett,
 simulate, forecast, nn, fantasy, stack2, evaluate, compare), `ml/reports/` (v2 evaluation and
 comparison outputs), `ml/models/params.json`, `data/predictions/history/`, `SPEC.md`,
 `INTEGRATION_TODO.md`, the FastF1 `PROGRESS.md`, and web sources (listed at the end). No training,
-backtest or simulation was run. No file under `v2/data` or `v2/ml/models` was touched. Code
+backtest or simulation was run. No file under `data` or `ml/models` was touched. Code
 findings are from reading, not from tests, except where a number is quoted from an existing report.
 
 ---
@@ -265,9 +265,9 @@ error). Each item lists how to measure it and the files it touches. Nothing here
 ### 4.1 Quick wins (days)
 
 **QW1. Lock the protocol.** Write the tuning, selection and holdout split (section 3) into
-`v2/research/` before the next experiment. Mark 2026 round 17 onward as the holdout.
+`research/` before the next experiment. Mark 2026 round 17 onward as the holdout.
 - Impact: prevents further optimism in the reported numbers. Low compute.
-- Measure: n/a (process). Files: `v2/research/` only.
+- Measure: n/a (process). Files: `research/` only.
 
 **QW2. Scorecard from the history files.** Write a read-only script that scores every
 `data/predictions/history/*.json` file on RPS, log likelihood of the realised order, Brier and log
@@ -509,9 +509,9 @@ Papers and reports (web search, 2026-10-08):
 
 Repository files used (read only):
 
-- `v2/ml/README.md`, `v2/ml/REPORT.md`, `v2/ml/f1ml/{features,bundle,gbm,plackett,simulate,forecast,
-  fantasy,nn,stack2,evaluate,compare,longrun,weather,chaos}.py`, `v2/ml/models/params.json`
-- `v2/ml/reports/v2/{eval_v2.log,eval_no_weather.log,eval_no_chaos_sprint.log,compare_v2.md,
+- `ml/README.md`, `ml/REPORT.md`, `ml/f1ml/{features,bundle,gbm,plackett,simulate,forecast,
+  fantasy,nn,stack2,evaluate,compare,longrun,weather,chaos}.py`, `ml/models/params.json`
+- `ml/reports/v2/{eval_v2.log,eval_no_weather.log,eval_no_chaos_sprint.log,compare_v2.md,
   compare_no_weather.md,v1_backtest_2019_2023.log}`
-- `v2/data/predictions/history/*.json`, `v2/data/raw/fastf1/PROGRESS.md`
-- `v2/SPEC.md`, `v2/INTEGRATION_TODO.md`
+- `data/predictions/history/*.json`, `data/raw/fastf1/PROGRESS.md`
+- `SPEC.md`, `INTEGRATION_TODO.md`

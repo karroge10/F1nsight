@@ -1,6 +1,6 @@
 """Turn raw OpenF1 JSON into data/processed/openf1_<endpoint>.parquet.
 
-Run from v2/pipeline:
+Run from pipeline:
     uv run python -m f1p.openf1.process
 """
 

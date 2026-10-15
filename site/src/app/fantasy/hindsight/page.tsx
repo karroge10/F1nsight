@@ -45,7 +45,7 @@ function MissingData() {
         </span>
       }
       title="Round data not exported yet"
-      dek="Run uv run python -m f1p.fantasy.serve_rounds in v2/pipeline to write data/serve/fantasy_rounds.json, then reload."
+      dek="Run uv run python -m f1p.fantasy.serve_rounds in pipeline to write data/serve/fantasy_rounds.json, then reload."
     />
   );
 }

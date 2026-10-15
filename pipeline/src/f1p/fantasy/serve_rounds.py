@@ -1,6 +1,6 @@
 """Export round-aligned fantasy prices and points for the site: data/serve/fantasy_rounds.json.
 
-`uv run python -m f1p.fantasy.serve_rounds [--season 2026]` (from v2/pipeline). `f1p.fantasy.update`
+`uv run python -m f1p.fantasy.serve_rounds [--season 2026]` (from pipeline). `f1p.fantasy.update`
 runs it after rebuilding the processed tables, so every refresh rewrites the file.
 
 One record per round and game asset (fantasyId; a driver who changed seats mid-season has

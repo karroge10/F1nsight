@@ -1,4 +1,4 @@
-"""Builders for the outgoing WebSocket messages (see "Live contract" in v2/SPEC.md and README).
+"""Builders for the outgoing WebSocket messages (see "Live contract" in SPEC.md and README).
 
 `t` in every message is milliseconds since `init.origin` (the scheduled session start, UTC).
 """
