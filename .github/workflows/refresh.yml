@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
       only:
-        description: "Only these steps, comma separated: history, openf1, fantasy, fastf1, penalties, predict, images"
+        description: "Only these steps, comma separated: history, openf1, fantasy, fastf1, penalties, weather, predict, images"
         type: string
         default: ""
       skip:
@@ -96,7 +96,7 @@ jobs:
           due=$(echo "$result" | jq -r '.due | length')
           force=$(echo "$result" | jq -r '.force')
           news=$(echo "$result" | jq -r '.newsOnly')
-          if [ "$news" = "true" ]; then echo "only=penalties,predict" >> "$GITHUB_OUTPUT"; fi
+          if [ "$news" = "true" ]; then echo "only=penalties,weather,predict" >> "$GITHUB_OUTPUT"; fi
           if [ "$due" -gt 0 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
           echo "force=$force" >> "$GITHUB_OUTPUT"
           echo "pulled=true" >> "$GITHUB_OUTPUT"

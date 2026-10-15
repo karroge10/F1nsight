@@ -58,7 +58,7 @@ All from the repo root in PowerShell unless noted.
 
 ### The refresh
 
-`refresh.ps1` runs `python -m f1p.refresh`, which runs five steps in order, each as its own
+`refresh.ps1` runs `python -m f1p.refresh`, which runs seven steps in order, each as its own
 process so one failing source never stops the others:
 
 1. **history**: `f1p.history.update` (Jolpica + F1DB, rebuilds `f1.sqlite`, runs the data checks).
@@ -71,9 +71,17 @@ process so one failing source never stops the others:
 4. **fastf1**: `f1p.fastf1.incremental`: this weekend's finished sessions, then `build_tables`
    when a session was added. Safe next to the bulk download (per-session claim files,
    `build_tables.lock`); a session whose archive is still incomplete is left for the retry.
-5. **predict**: `f1ml.predict` (picks the stage by itself: pre-weekend, post-practice,
+5. **penalties**: updates the announced grid penalties.
+6. **weather**: `f1ml.weather` collects missing observations and archived forecasts, and refreshes
+   the next race's live forecast at most every 3 hours. Timestamped copies are retained in
+   `data/raw/openmeteo/forecast-history/<raceId>/`, alongside the latest forecast. The cloud's
+   `raw-other` state group preserves these files. Weather remains a research input.
+7. **predict**: `f1ml.predict` (picks the stage by itself: pre-weekend, post-practice,
    post-qualifying) when any input changed since the last forecast; checks that `next.json` was
    rewritten.
+
+Weather collection also runs during the cloud's two-hour news checks before a race, alongside
+penalties and prediction. API calls reuse the three-hour live forecast cache.
 
 Output: `logs/refresh-<time>.log` (every line), `logs/refresh-last.json` (step summary),
 `logs/refresh_state.json` (what the skip rules remember). Exit code 0 when every step succeeded

@@ -49,7 +49,7 @@ import pandas as pd
 from f1p.locks import LockBusy, file_lock
 from f1p.paths import PREDICTIONS_DIR, PROCESSED_DIR, RAW_DIR, SERVE_DIR, ROOT_DIR
 
-STEPS = ["history", "openf1", "fantasy", "fastf1", "penalties", "predict"]
+STEPS = ["history", "openf1", "fantasy", "fastf1", "penalties", "weather", "predict"]
 LOGS_DIR = ROOT_DIR / "logs"
 STATE_PATH = LOGS_DIR / "refresh_state.json"
 SUMMARY_PATH = LOGS_DIR / "refresh-last.json"
@@ -194,6 +194,10 @@ class StepRunner:
             state = "rewritten" if details.get("written") else "unchanged"
             result.reason = f"{details.get('race')}: {details.get('penalties')} grid penalties ({state})"
         self._mark_success("penalties", result)
+
+    def step_weather(self, result: StepResult) -> None:
+        self._run_module(result, "ml", "f1ml.weather")
+        self._mark_success("weather", result)
 
     def step_predict(self, result: StepResult) -> None:
         fingerprint = _prediction_inputs()
