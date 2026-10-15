@@ -8,7 +8,7 @@
 import { chipLabel, type BacktestPick } from "@/lib/fantasy/backtest-data";
 import { Flag } from "@/components/ui/flag";
 import { TeamMark } from "@/components/ui/team-mark";
-import { SortTh, sortRows, useSort, type SortDir, type SortValue } from "@/components/ui/sortable";
+import { ResetSort, SortTh, sortRows, useSort, type SortDir, type SortValue } from "@/components/ui/sortable";
 
 export interface RoundTableRow {
   round: number;
@@ -41,7 +41,7 @@ type RoundSort = "round" | "points" | "costCap" | "left" | "cost";
 const TH = "px-2 py-2 font-normal";
 
 export function RoundTable({ rows }: { rows: RoundTableRow[] }) {
-  const { sort, toggle } = useSort<RoundSort>("round", "asc");
+  const { sort, toggle, reset, isDefault } = useSort<RoundSort>("round", "asc");
   const withCap = rows.some((r) => r.costCap !== null);
   const withCost = !withCap && rows.some((r) => r.cost !== null);
   const sorted = sortRows(rows, sort, roundValue);
@@ -51,32 +51,35 @@ export function RoundTable({ rows }: { rows: RoundTableRow[] }) {
     </SortTh>
   );
   return (
-    <div className="overflow-x-auto rounded-float border border-rule">
-      <table className="w-full min-w-[880px] text-ui tabular-nums">
-        <thead className="text-left text-ink-3">
-          <tr className="border-b border-rule">
-            <SortTh sortKey="round" sort={sort} onSort={toggle} firstDir="asc" align="start" className={TH}>
-              Round
-            </SortTh>
-            <th className={TH}>Team</th>
-            <th className={TH}>In</th>
-            <th className={TH}>Out</th>
-            <th className={TH}>Boost</th>
-            <th className={TH}>Chip</th>
-            {head("points", "Pts")}
-            <th className={TH + " text-right"}>Total</th>
-            {withCap ? head("costCap", "Cost cap") : null}
-            {withCap ? head("left", "Left") : null}
-            {withCost ? head("cost", "Team cost") : null}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((r) => (
-            <Row key={r.round} row={r} withCap={withCap} withCost={withCost} />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <ResetSort onReset={reset} isDefault={isDefault} />
+      <div className="overflow-x-auto rounded-float border border-rule">
+        <table className="w-full min-w-[880px] text-ui tabular-nums">
+          <thead className="text-left text-ink-3">
+            <tr className="border-b border-rule">
+              <SortTh sortKey="round" sort={sort} onSort={toggle} firstDir="asc" align="start" className={TH}>
+                Round
+              </SortTh>
+              <th className={TH}>Team</th>
+              <th className={TH}>In</th>
+              <th className={TH}>Out</th>
+              <th className={TH}>Boost</th>
+              <th className={TH}>Chip</th>
+              {head("points", "Pts")}
+              <th className={TH + " text-right"}>Total</th>
+              {withCap ? head("costCap", "Cost cap") : null}
+              {withCap ? head("left", "Left") : null}
+              {withCost ? head("cost", "Team cost") : null}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => (
+              <Row key={r.round} row={r} withCap={withCap} withCost={withCost} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

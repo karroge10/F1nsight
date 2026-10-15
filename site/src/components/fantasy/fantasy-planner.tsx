@@ -120,9 +120,9 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
     if (!market) return null;
     const team = isLineupComplete(savedLineup) ? { drivers: [...savedLineup.drivers], constructors: [...savedLineup.constructors] } : null;
     const chips = engineChip ? [engineChip] : [];
-    const objective: Objective = goal === "value" ? { kind: "value" } : { kind: "expected" };
+    const objective: Objective = tab === "best" && goal === "value" ? { kind: "value" } : { kind: "expected" };
     return { team, budget: Math.round(cap * 10) / 10, freeTransfers: FREE_TRANSFERS, chipsAvailable: chips, chipsToPlay: chips, teamRacesCompleted: 5, locked: teams.locked, banned: teams.banned, objective };
-  }, [market, savedLineup, cap, engineChip, teams.locked, teams.banned, goal]);
+  }, [market, savedLineup, cap, engineChip, teams.locked, teams.banned, goal, tab]);
 
   const boardDraft = draftFull ? { drivers: [...draft.drivers], constructors: [...draft.constructors] } : null;
   const board = usePlannerBoard(file, userState, { topN: 16, maxTransfers: 3, draft: boardDraft, planRounds: 4 });
@@ -315,16 +315,20 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
                 ))}
               </div>
               <div className="flex flex-col items-start gap-2 border-b border-rule py-3">
-                <span className="inline-flex min-h-11 shrink-0 items-stretch rounded-control border border-rule" role="group" aria-label="Optimiser goal">
-                  {GOALS.map((g) => (
-                    <button key={g.key} type="button" aria-pressed={goal === g.key} title={g.title} onClick={() => setGoal(g.key)} className={"press segment -my-px whitespace-nowrap rounded-control px-2.5 text-caption " + (goal === g.key ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
-                      {g.label}
-                    </button>
-                  ))}
-                </span>
-                <p className="text-caption text-ink-2">
-                  {goal === "points" ? "Rank by projected points this race." : "Rank by projected points plus expected price rises. This has not beaten points alone in our backtests."}
-                </p>
+                {tab === "best" ? (
+                  <>
+                    <span className="inline-flex min-h-11 shrink-0 items-stretch rounded-control border border-rule" role="group" aria-label="Optimiser goal">
+                      {GOALS.map((g) => (
+                        <button key={g.key} type="button" aria-pressed={goal === g.key} title={g.title} onClick={() => setGoal(g.key)} className={"press segment -my-px whitespace-nowrap rounded-control px-2.5 text-caption " + (goal === g.key ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
+                          {g.label}
+                        </button>
+                      ))}
+                    </span>
+                    <p className="text-caption text-ink-2">
+                      {goal === "points" ? "Rank by projected points this race." : "Rank by projected points plus expected price rises. This has not beaten points alone in our backtests."}
+                    </p>
+                  </>
+                ) : null}
                 <p className="text-caption text-ink-3">{notes[tab]}</p>
               </div>
               <div className={board.pending ? "opacity-70 transition-opacity" : "transition-opacity"} aria-busy={board.pending}>

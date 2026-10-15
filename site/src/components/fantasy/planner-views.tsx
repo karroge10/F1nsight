@@ -9,7 +9,7 @@ import type { TeamResult, TransferPlan } from "@/lib/fantasy/engine/types";
 import { placeInSlots, type Lineup } from "@/lib/fantasy/lineup";
 import { priceMoveOdds } from "@/lib/fantasy/thresholds";
 import { Flag } from "@/components/ui/flag";
-import { SortTh, sortRows, useSort, type SortDir, type SortValue } from "@/components/ui/sortable";
+import { ResetSort, SortTh, sortRows, useSort, type SortDir, type SortValue } from "@/components/ui/sortable";
 import { CodeCell, CodeChip, Footnote, fixed1, money, projectedPoints, signed, tone, type AssetLookup, type AssetView, type PlannerMeta } from "@/components/fantasy/planner-parts";
 
 // ---------------------------------------------------------------- Best teams
@@ -27,7 +27,7 @@ interface BestTeamsProps {
 type TeamSort = "rank" | "transfers" | "cost" | "value" | "score" | "change";
 
 export function BestTeams({ teams, savedIds, keepScore, isLoaded, assetOf, onLoad }: BestTeamsProps) {
-  const { sort, toggle } = useSort<TeamSort>("rank", "asc");
+  const { sort, toggle, reset, isDefault } = useSort<TeamSort>("rank", "asc");
   if (teams.length === 0) return <Footnote>No lineup fits the budget with these always and never picks.</Footnote>;
   const pointsOf = (id: string) => assetOf(id)?.points ?? 0;
   const byPoints = (a: string, b: string) => pointsOf(b) - pointsOf(a);
@@ -40,6 +40,7 @@ export function BestTeams({ teams, savedIds, keepScore, isLoaded, assetOf, onLoa
   );
   return (
     <>
+      <ResetSort onReset={reset} isDefault={isDefault} />
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-table">
           <thead>
@@ -131,7 +132,7 @@ export function PriceTables({ drivers, constructors, meta }: PriceTablesProps) {
 type PriceSort = "code" | "price" | "older" | "newer" | "points" | "rise" | "change";
 
 function PriceTable({ title, assets, meta }: { title: string; assets: AssetView[]; meta: PlannerMeta }) {
-  const { sort, toggle } = useSort<PriceSort>("change", "desc");
+  const { sort, toggle, reset, isDefault } = useSort<PriceSort>("change", "desc");
   const [older, newer] = meta.recent.rounds;
   const sorted = sortRows(assets, sort, (asset, key) => priceValue(asset, key, meta));
   const head = (key: PriceSort, label: string, titleText?: string, firstDir: SortDir = "desc", align: "start" | "end" = "end") => (
@@ -140,39 +141,42 @@ function PriceTable({ title, assets, meta }: { title: string; assets: AssetView[
     </SortTh>
   );
   return (
-    <table className="w-full border-collapse text-table">
-      <thead>
-        <tr className="text-[0.6875rem] text-ink-3">
-          {head("code", title, undefined, "asc", "start")}
-          {head("price", "Price", "Price, $M")}
-          {older !== undefined ? head("older", `R${older}`, `Points in round ${older}`) : null}
-          {newer !== undefined ? head("newer", `R${newer}`, `Points in round ${newer}`) : null}
-          {head("points", "Projected", "Projected points this race")}
-          {head("rise", "Price move odds", "Chance of each price move: red falls, green rises. Sorts by the chance of a rise. Hover a bar for numbers.", "desc", "start")}
-          {head("change", "Expected", "Expected price change, $M")}
-        </tr>
-      </thead>
-      <tbody>
-        {sorted.map((asset) => {
-          const recent = meta.recent.points[asset.id] ?? [];
-          return (
-            <tr key={asset.id} className="border-t border-rule hover:bg-bg-raised">
-              <td className="h-8 px-1.5">
-                <CodeCell asset={asset} />
-              </td>
-              <td className="timing px-1.5 text-end text-ink-2">{money(asset.price)}</td>
-              {older !== undefined ? <td className="timing px-1.5 text-end text-ink-3">{recent[0] ?? ""}</td> : null}
-              {newer !== undefined ? <td className="timing px-1.5 text-end text-ink-3">{recent[1] ?? ""}</td> : null}
-              <td className="timing px-1.5 text-end font-[650] text-ink">{fixed1(asset.points)}</td>
-              <td className="px-1.5">
-                <OddsBar asset={asset} />
-              </td>
-              <td className={"timing px-1.5 text-end font-[600] " + tone(asset.priceChange)}>{signed(asset.priceChange, 2)}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <>
+      <ResetSort onReset={reset} isDefault={isDefault} />
+      <table className="w-full border-collapse text-table">
+        <thead>
+          <tr className="text-[0.6875rem] text-ink-3">
+            {head("code", title, undefined, "asc", "start")}
+            {head("price", "Price", "Price, $M")}
+            {older !== undefined ? head("older", `R${older}`, `Points in round ${older}`) : null}
+            {newer !== undefined ? head("newer", `R${newer}`, `Points in round ${newer}`) : null}
+            {head("points", "Projected", "Projected points this race")}
+            {head("rise", "Price move odds", "Chance of each price move: red falls, green rises. Sorts by the chance of a rise. Hover a bar for numbers.", "desc", "start")}
+            {head("change", "Expected", "Expected price change, $M")}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((asset) => {
+            const recent = meta.recent.points[asset.id] ?? [];
+            return (
+              <tr key={asset.id} className="border-t border-rule hover:bg-bg-raised">
+                <td className="h-8 px-1.5">
+                  <CodeCell asset={asset} />
+                </td>
+                <td className="timing px-1.5 text-end text-ink-2">{money(asset.price)}</td>
+                {older !== undefined ? <td className="timing px-1.5 text-end text-ink-3">{recent[0] ?? ""}</td> : null}
+                {newer !== undefined ? <td className="timing px-1.5 text-end text-ink-3">{recent[1] ?? ""}</td> : null}
+                <td className="timing px-1.5 text-end font-[650] text-ink">{fixed1(asset.points)}</td>
+                <td className="px-1.5">
+                  <OddsBar asset={asset} />
+                </td>
+                <td className={"timing px-1.5 text-end font-[600] " + tone(asset.priceChange)}>{signed(asset.priceChange, 2)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
   );
 }
 
