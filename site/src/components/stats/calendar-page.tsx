@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/format";
 import { PageIntro } from "@/components/ui/page-intro";
 import { Flag } from "@/components/ui/flag";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { SeasonPicker } from "./season-picker";
 
 export async function CalendarPageContent({ season }: { season: number }) {
@@ -36,26 +37,15 @@ export async function CalendarPageContent({ season }: { season: number }) {
       />
       <div className="mx-auto mt-6 max-w-[1440px] px-4 sm:px-6">
         <div className="scroll-x">
-          <table className="data-table min-w-[640px]">
-            <thead>
-              <tr>
-                <th className="num w-10">Rd</th>
-                <th>Grand Prix</th>
-                <th className="hidden md:table-cell">Circuit</th>
-                <th>Date</th>
-                <th>Winner</th>
-                <th className="hidden lg:table-cell">Pole</th>
-                <th className="hidden sm:table-cell">Format</th>
-              </tr>
-            </thead>
-            <tbody>
-              {calendar.map((race) => {
+          <SortableTable className="data-table min-w-[640px]" columns={CALENDAR_COLUMNS} initialKey="round" initialDir="asc"
+            rows={calendar.map((race) => {
                 const winner = winners.get(race.round) ?? null;
                 const pole = poles.get(race.round) ?? null;
                 const dateText = formatDate(race.date, { day: "numeric", month: "short" });
                 const isNext = race.status === "next";
-                return (
-                  <tr key={race.round} className={race.status === "upcoming" ? "text-ink-3" : ""}>
+                const values = { round: race.round, name: race.raceName, circuit: race.circuitName, winner: winner ? lookups.driverName(winner.driverId) : null, pole: pole ? lookups.driverName(pole.driverId) : null };
+                const tr = (
+                  <tr className={race.status === "upcoming" ? "text-ink-3" : ""}>
                     <td className="num text-ink-2">{race.round}</td>
                     <td>
                       <Link href={`/races/${season}/${race.round}`} className="font-[550] text-ink hover:underline underline-offset-2">
@@ -93,11 +83,21 @@ export async function CalendarPageContent({ season }: { season: number }) {
                     <td className="hidden text-caption text-ink-3 sm:table-cell">{race.hasSprint ? "Sprint weekend" : ""}</td>
                   </tr>
                 );
+                return { key: String(race.round), values, row: tr };
               })}
-            </tbody>
-          </table>
+          />
         </div>
       </div>
     </>
   );
 }
+
+const CALENDAR_COLUMNS: SortColumn[] = [
+  { key: "round", label: "Rd", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Grand Prix", firstDir: "asc" },
+  { key: "circuit", label: "Circuit", firstDir: "asc", className: "hidden md:table-cell" },
+  { label: "Date" },
+  { key: "winner", label: "Winner", firstDir: "asc" },
+  { key: "pole", label: "Pole", firstDir: "asc", className: "hidden lg:table-cell" },
+  { label: "Format", className: "hidden sm:table-cell" },
+];

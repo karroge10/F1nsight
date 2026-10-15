@@ -6,6 +6,7 @@ import { PageIntro } from "@/components/ui/page-intro";
 import { Section } from "@/components/ui/section";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamName } from "@/components/ui/team-name";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { EntityIndex, type IndexRow } from "@/components/stats/entity-index";
 import { IconHelmet, IconHistory } from "@/components/icons";
 
@@ -30,21 +31,12 @@ export default async function DriversPage() {
         {/* one column read top to bottom, capped so the few columns stay close together */}
         <div className="max-w-3xl">
           <div className="scroll-x">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="num w-10">Pos</th>
-                  <th>Driver</th>
-                  <th className="num hidden w-12 sm:table-cell">No.</th>
-                  <th className="hidden sm:table-cell">Team</th>
-                  <th className="num">Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grid.map((d) => {
+            <SortableTable className="data-table" columns={GRID_COLUMNS} initialKey="pos" initialDir="asc"
+              rows={grid.map((d, i) => {
                   const standing = standingById.get(d.driverId);
-                  return (
-                    <tr key={d.driverId}>
+                  const values = { pos: i, name: d.name, number: d.number, team: d.team, points: standing?.points ?? 0 };
+                  const tr = (
+                    <tr>
                       <td className="num text-ink-2">{standing?.position ?? ""}</td>
                       <td>
                         <Link href={`/drivers/${d.driverId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
@@ -60,9 +52,9 @@ export default async function DriversPage() {
                       <td className="num text-ink">{standing?.points ?? 0}</td>
                     </tr>
                   );
+                  return { key: d.driverId, values, row: tr };
                 })}
-              </tbody>
-            </table>
+            />
           </div>
         </div>
       </Section>
@@ -72,6 +64,14 @@ export default async function DriversPage() {
     </>
   );
 }
+
+const GRID_COLUMNS: SortColumn[] = [
+  { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Driver", firstDir: "asc" },
+  { key: "number", label: "No.", firstDir: "asc", className: "num hidden w-12 sm:table-cell" },
+  { key: "team", label: "Team", firstDir: "asc", className: "hidden sm:table-cell" },
+  { key: "points", label: "Points", className: "num" },
+];
 
 function indexRow(d: Driver, lookups: Lookups): IndexRow {
   const lastTeam = d.career.constructorIds[d.career.constructorIds.length - 1] ?? "";

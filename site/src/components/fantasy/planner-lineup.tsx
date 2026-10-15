@@ -43,7 +43,7 @@ export function LineupStrip({ draft, saved, multipliers, selected, assetOf, onSe
     return <PickCard key={key} id={id} assetOf={assetOf} multiplier={multipliers[id] ?? 1} changed={changed} replaced={replaced} selected={isSelected} onSelect={() => onSelect(slot)} onRemove={() => onRemove(id)} />;
   };
   return (
-    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-[repeat(2,minmax(0,1fr))_0.375rem_repeat(5,minmax(0,1fr))]">
+    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-[repeat(2,minmax(0,1fr))_1.5rem_repeat(5,minmax(0,1fr))]">
       {card("constructor", 0)}
       {card("constructor", 1)}
       <span aria-hidden="true" className="hidden lg:block" />

@@ -12,6 +12,7 @@ import { TeamName, TeamNames } from "@/components/ui/team-name";
 import { Sparkline } from "@/components/ui/sparkline";
 import { IconCalendar, IconHistory, IconTrophy } from "@/components/icons";
 import { DriverPortrait } from "@/components/ui/driver-portrait";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 
 type Params = Promise<{ id: string }>;
 
@@ -87,25 +88,21 @@ export default async function DriverPage({ params }: { params: Params }) {
       {seasonResults.length > 0 ? (
         <Section title={`${activeSeason} season`} icon={IconCalendar} aside={<Sparkline values={positions.map((p) => (p === null ? null : 23 - p))} width={140} height={24} title="finishing positions" />} flush>
           <div className="scroll-x">
-            <table className="data-table min-w-[560px]">
-              <thead>
-                <tr>
-                  <th className="num w-10">Rd</th>
-                  <th>Grand Prix</th>
-                  <th className="hidden md:table-cell">Team</th>
-                  <th className="num">Grid</th>
-                  <th className="num">Quali</th>
-                  <th className="num">Finish</th>
-                  <th className="num hidden sm:table-cell">Sprint</th>
-                  <th className="num">Pts</th>
-                  <th className="num hidden lg:table-cell">Fastest lap</th>
-                </tr>
-              </thead>
-              <tbody>
-                {seasonResults.map(({ race, result, sprint, qualifying }) => {
+            <SortableTable className="data-table min-w-[560px]" columns={SEASON_COLUMNS} initialKey="round" initialDir="asc"
+              rows={seasonResults.map(({ race, result, sprint, qualifying }) => {
                   const points = (result?.points ?? 0) + (sprint?.points ?? 0);
-                  return (
-                    <tr key={race.round}>
+                  const values = {
+                    round: race.round,
+                    name: race.raceName,
+                    grid: result?.grid === 0 ? 100 : result?.grid,
+                    quali: qualifying?.position,
+                    finish: result ? result.position ?? 100 : null,
+                    sprint: sprint ? sprint.position ?? 100 : null,
+                    points,
+                    fastest: result?.fastestLapRank,
+                  };
+                  const tr = (
+                    <tr>
                       <td className="num text-ink-2">{race.round}</td>
                       <td>
                         <Link href={`/races/${race.season}/${race.round}`} className="text-ink hover:underline underline-offset-2">
@@ -123,9 +120,9 @@ export default async function DriverPage({ params }: { params: Params }) {
                       <td className={"num hidden lg:table-cell " + (result?.fastestLapRank === 1 ? "text-sector-purple" : "text-ink-3")}>{result?.fastestLapMs ? formatLapTime(result.fastestLapMs) : ""}</td>
                     </tr>
                   );
+                  return { key: String(race.round), values, row: tr };
                 })}
-              </tbody>
-            </table>
+            />
           </div>
         </Section>
       ) : null}
@@ -134,21 +131,12 @@ export default async function DriverPage({ params }: { params: Params }) {
         <div className="lg:col-span-7">
           <Section title="Career" icon={IconHistory} flush>
             <div className="scroll-x">
-              <table className="data-table min-w-[400px]">
-                <thead>
-                  <tr>
-                    <th>Season</th>
-                    <th>Team</th>
-                    <th className="num">Pos</th>
-                    <th className="num">Points</th>
-                    <th className="num">Wins</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {seasonsDesc.map((s) => {
+              <SortableTable className="data-table min-w-[400px]" columns={CAREER_COLUMNS} initialKey="season" initialDir="desc"
+                rows={seasonsDesc.map((s) => {
                     const seasonTeams = teamItems(s.constructorIds, lookups);
-                    return (
-                      <tr key={s.season}>
+                    const values = { season: s.season, pos: s.position, points: s.points, wins: s.wins };
+                    const tr = (
+                      <tr>
                         <td>
                           <Link href={`/standings/${s.season}`} className="timing text-ink hover:underline underline-offset-2">
                             {s.season}
@@ -162,9 +150,9 @@ export default async function DriverPage({ params }: { params: Params }) {
                         <td className="num text-ink-2">{s.wins}</td>
                       </tr>
                     );
+                    return { key: String(s.season), values, row: tr };
                   })}
-                </tbody>
-              </table>
+              />
             </div>
           </Section>
         </div>
@@ -191,6 +179,26 @@ export default async function DriverPage({ params }: { params: Params }) {
     </>
   );
 }
+
+const SEASON_COLUMNS: SortColumn[] = [
+  { key: "round", label: "Rd", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Grand Prix", firstDir: "asc" },
+  { label: "Team", className: "hidden md:table-cell" },
+  { key: "grid", label: "Grid", firstDir: "asc", className: "num" },
+  { key: "quali", label: "Quali", firstDir: "asc", className: "num" },
+  { key: "finish", label: "Finish", firstDir: "asc", className: "num" },
+  { key: "sprint", label: "Sprint", firstDir: "asc", className: "num hidden sm:table-cell" },
+  { key: "points", label: "Pts", className: "num" },
+  { key: "fastest", label: "Fastest lap", firstDir: "asc", className: "num hidden lg:table-cell", title: "Sorted by fastest lap rank" },
+];
+
+const CAREER_COLUMNS: SortColumn[] = [
+  { key: "season", label: "Season" },
+  { label: "Team" },
+  { key: "pos", label: "Pos", firstDir: "asc", className: "num" },
+  { key: "points", label: "Points", className: "num" },
+  { key: "wins", label: "Wins", className: "num" },
+];
 
 function teamItems(constructorIds: string[], lookups: Lookups) {
   return constructorIds.map((id) => ({ constructorId: id, name: lookups.teamName(id), color: lookups.teamColor(id) }));

@@ -174,6 +174,23 @@ def order_log_likelihood(strength: np.ndarray, schedule, first_bonus, finish: np
     return -order_ll, -float(dnf_ll)
 
 
+def chain_log_likelihood(chain, finish: np.ndarray, classified: np.ndarray) -> tuple[float, float]:
+    """(order NLL, retirement NLL) of a realised race under a qualifying chain
+    (`forecast.RaceChain`): the total is -log of the mean over the chain's qualifying orders of
+    each order's exact likelihood (order and retirements). The retirement part is scored on the
+    mean DNF chance; the order part is the rest of the total."""
+    log_likelihoods = []
+    for world in range(len(chain.strength)):
+        strength = chain.strength[world] + chain.shift
+        order_nll, dnf_nll = order_log_likelihood(strength, chain.schedule, chain.bonus[world],
+                                                  finish, classified, chain.p_dnf[world])
+        log_likelihoods.append(-(order_nll + dnf_nll))
+    total = -(logsumexp(log_likelihoods) - np.log(len(log_likelihoods)))
+    mean_dnf = np.clip(chain.p_dnf.mean(axis=0), EPS, 1 - EPS)
+    dnf_nll = -float(np.where(classified, np.log(1 - mean_dnf), np.log(mean_dnf)).sum())
+    return float(total) - dnf_nll, dnf_nll
+
+
 def binary_log_loss(probabilities: np.ndarray, outcomes: np.ndarray) -> float:
     clipped = np.clip(probabilities, EPS, 1 - EPS)
     losses = outcomes * np.log(clipped) + (~outcomes) * np.log(1 - clipped)

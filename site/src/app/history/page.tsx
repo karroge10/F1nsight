@@ -8,6 +8,7 @@ import { Section } from "@/components/ui/section";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamName } from "@/components/ui/team-name";
 import { Meter } from "@/components/ui/prob-bar";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { IconCalendar, IconGarage, IconHelmet } from "@/components/icons";
 
 export const metadata: Metadata = {
@@ -34,22 +35,23 @@ export default async function HistoryPage() {
 
       <Section title={`${seasons.length} seasons`} icon={IconCalendar} flush>
         <div className="scroll-x">
-          <table className="data-table min-w-[640px]">
-            <thead>
-              <tr>
-                <th>Season</th>
-                <th className="num">Rounds</th>
-                <th>Drivers&apos; champion</th>
-                <th className="hidden md:table-cell">Car</th>
-                <th className="num">Points</th>
-                <th className="num hidden sm:table-cell">Wins</th>
-                <th>Constructors&apos; champion</th>
-                <th className="num hidden lg:table-cell">Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {seasons.map((s) => (
-                <tr key={s.season}>
+          <SortableTable
+            className="data-table min-w-[640px]"
+            columns={SEASON_COLUMNS}
+            rows={seasons.map((s) => ({
+              key: String(s.season),
+              values: {
+                season: s.season,
+                rounds: s.rounds,
+                driver: s.driverChampion ? lookups.driverName(s.driverChampion.driverId) : null,
+                car: s.driverChampion?.constructorId ? lookups.teamName(s.driverChampion.constructorId) : null,
+                points: s.driverChampion?.points,
+                wins: s.driverChampion?.wins,
+                constructor: s.constructorChampion ? lookups.teamName(s.constructorChampion.constructorId) : null,
+                constructorPoints: s.constructorChampion?.points,
+              },
+              row: (
+                <tr>
                   <td>
                     <Link href={`/standings/${s.season}`} className="timing text-ink hover:underline underline-offset-2">
                       {s.season}
@@ -86,14 +88,25 @@ export default async function HistoryPage() {
                   </td>
                   <td className="num hidden text-ink lg:table-cell">{s.constructorChampion ? formatPoints(s.constructorChampion.points) : ""}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              ),
+            }))}
+          />
         </div>
       </Section>
     </>
   );
 }
+
+const SEASON_COLUMNS: SortColumn[] = [
+  { key: "season", label: "Season" },
+  { key: "rounds", label: "Rounds", className: "num" },
+  { key: "driver", label: "Drivers' champion", firstDir: "asc" },
+  { key: "car", label: "Car", firstDir: "asc", className: "hidden md:table-cell" },
+  { key: "points", label: "Points", className: "num" },
+  { key: "wins", label: "Wins", className: "num hidden sm:table-cell" },
+  { key: "constructor", label: "Constructors' champion", firstDir: "asc" },
+  { key: "constructorPoints", label: "Points", className: "num hidden lg:table-cell" },
+];
 
 /** Top-ten lists. Constructor lists pass `teamLookups`, so each team carries its logo. */
 function RecordGrid({ groups, hrefBase, teamLookups }: { groups: Awaited<ReturnType<typeof getRecords>>; hrefBase: string; teamLookups?: Lookups }) {

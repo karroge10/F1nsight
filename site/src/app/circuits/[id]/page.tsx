@@ -10,6 +10,7 @@ import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamName } from "@/components/ui/team-name";
 import { CircuitOutline } from "@/components/stats/circuit-outline";
 import { IconHistory, IconMap, IconTrophy } from "@/components/icons";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 
 type Params = Promise<{ id: string }>;
 
@@ -97,19 +98,19 @@ export default async function CircuitPage({ params }: { params: Params }) {
         <div className="lg:col-span-7">
           <Section title={`${circuit.races.length} Grands Prix`} icon={IconHistory} flush>
             <div className="scroll-x">
-              <table className="data-table min-w-[480px]">
-                <thead>
-                  <tr>
-                    <th>Season</th>
-                    <th>Race</th>
-                    <th>Winner</th>
-                    <th className="hidden md:table-cell">Team</th>
-                    <th className="hidden lg:table-cell">Pole</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {circuit.races.map((r) => (
-                    <tr key={`${r.season}-${r.round}`}>
+              <SortableTable
+                className="data-table min-w-[480px]"
+                columns={RACE_COLUMNS}
+                rows={circuit.races.map((r) => ({
+                  key: `${r.season}-${r.round}`,
+                  values: {
+                    season: r.season,
+                    winner: r.winnerDriverId ? lookups.driverName(r.winnerDriverId) : null,
+                    team: r.winnerConstructorId ? lookups.teamName(r.winnerConstructorId) : null,
+                    pole: r.poleDriverId ? lookups.driverName(r.poleDriverId) : null,
+                  },
+                  row: (
+                    <tr>
                       <td className="timing text-ink-2">{r.season}</td>
                       <td>
                         <Link href={`/races/${r.season}/${r.round}`} className="text-ink hover:underline underline-offset-2">
@@ -132,9 +133,9 @@ export default async function CircuitPage({ params }: { params: Params }) {
                       </td>
                       <td className="hidden text-ink-2 lg:table-cell">{r.poleDriverId ? lookups.driverName(r.poleDriverId) : ""}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  ),
+                }))}
+              />
             </div>
           </Section>
         </div>
@@ -142,3 +143,11 @@ export default async function CircuitPage({ params }: { params: Params }) {
     </>
   );
 }
+
+const RACE_COLUMNS: SortColumn[] = [
+  { key: "season", label: "Season" },
+  { label: "Race" },
+  { key: "winner", label: "Winner", firstDir: "asc" },
+  { key: "team", label: "Team", firstDir: "asc", className: "hidden md:table-cell" },
+  { key: "pole", label: "Pole", firstDir: "asc", className: "hidden lg:table-cell" },
+];

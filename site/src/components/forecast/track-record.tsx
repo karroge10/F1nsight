@@ -1,9 +1,9 @@
 import { predictedOrder } from "@/lib/forecast";
-import Link from "next/link";
 import type { PredictionHistoryEntry, Prediction } from "@/lib/data";
 import type { EntryList } from "@/lib/data";
 import { formatPercent } from "@/lib/format";
 import { Figure } from "@/components/ui/figure";
+import { TrackRecordTable, type TrackRecordRow } from "./track-record-table";
 
 interface TrackRecordProps {
   prediction: Prediction;
@@ -22,6 +22,7 @@ export function TrackRecord({ prediction, history, entries }: TrackRecordProps) 
   const baselineText = metrics.baseline.spearman.toFixed(2);
   const brierText = metrics.brier.toFixed(3);
   const racesText = metrics.races ? `${metrics.races} races, ${metrics.seasons.join(", ")}` : metrics.seasons.join(", ");
+  const rows = recent.map((entry) => recordRow(entry, metrics, code));
 
   return (
     <div className="grid gap-10 lg:grid-cols-12">
@@ -37,80 +38,36 @@ export function TrackRecord({ prediction, history, entries }: TrackRecordProps) 
         </p>
       </div>
       <div className="lg:col-span-8 scroll-x">
-        <table className="data-table sm:min-w-[520px]">
-          <thead>
-            <tr>
-              <th>Race</th>
-              <th>
-                <span className="sm:hidden">Pred.</span>
-                <span className="hidden sm:inline">Predicted winner</span>
-              </th>
-              <th>
-                <span className="sm:hidden">Actual</span>
-                <span className="hidden sm:inline">Actual winner</span>
-              </th>
-              <th className="hidden sm:table-cell">Predicted podium</th>
-              <th className="hidden sm:table-cell">Actual podium</th>
-              <th className="num">Corr.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recent.map((entry) => {
-              const predicted = predictedOrder(entry.drivers);
-              const predictedWinner = predicted[0];
-              const predictedPodium = predicted.slice(0, 3);
-              const actualOrder = [...entry.actual.results].filter((r) => r.classified && r.position !== null).sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
-              const actualWinner = actualOrder[0];
-              const actualPodium = actualOrder.slice(0, 3);
-              const correlation = entryCorrelation(entry, metrics);
-              const hit = actualWinner && predictedWinner.driverId === actualWinner.driverId;
-              const predictedWinText = formatPercent(predictedWinner.pWin);
-              return (
-                <tr key={`${entry.race.season}-${entry.race.round}-${entry.race.stage}`}>
-                  <td>
-                    <Link href={`/races/${entry.race.season}/${entry.race.round}`} className="tap-hit text-ink hover:underline underline-offset-2">
-                      <span className="timing mr-2 text-caption text-ink-3">
-                        {entry.race.season} R{entry.race.round}
-                      </span>
-                      {entry.race.raceName.replace(" Grand Prix", " GP")}
-                    </Link>
-                  </td>
-                  <td>
-                    <span className={"timing " + (hit ? "text-ink" : "text-ink-2")}>{predictedWinner.code}</span>
-                    <span className="timing ml-2 text-caption text-ink-3">{predictedWinText}</span>
-                  </td>
-                  <td className="timing text-ink">
-                    {code(actualWinner?.driverId)}
-                    <span className={"ml-2 inline-block size-1.5 rounded-full align-middle " + (hit ? "bg-delta-up" : "bg-rule-strong")} aria-label={hit ? "hit" : "miss"} />
-                  </td>
-                  <td className="timing hidden text-ink-2 sm:table-cell">
-                    {predictedPodium.map((d) => {
-                      const inActual = actualPodium.some((a) => a.driverId === d.driverId);
-                      return (
-                        <span key={d.driverId} className={"mr-2 " + (inActual ? "text-ink" : "text-ink-3")}>
-                          {d.code}
-                        </span>
-                      );
-                    })}
-                  </td>
-                  <td className="timing hidden text-ink sm:table-cell">
-                    {actualPodium.map((a) => (
-                      <span key={a.driverId} className="mr-2">
-                        {code(a.driverId)}
-                      </span>
-                    ))}
-                  </td>
-                  <td className="num text-ink-2">{correlation === null ? "" : correlation.toFixed(2)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <TrackRecordTable rows={rows} />
       </div>
     </div>
   );
 }
 
+/** One recent race as plain data for the sortable table: predicted and actual winner and podium. */
+function recordRow(entry: PredictionHistoryEntry, metrics: Prediction["model"]["backtest"], code: (id: string | null | undefined) => string): TrackRecordRow {
+  const predicted = predictedOrder(entry.drivers);
+  const predictedWinner = predicted[0];
+  const actualOrder = [...entry.actual.results].filter((r) => r.classified && r.position !== null).sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
+  const actualWinner = actualOrder[0];
+  const actualPodium = actualOrder.slice(0, 3);
+  const actualIds = actualPodium.map((a) => a.driverId);
+  const predictedPodium = predicted.slice(0, 3).map((d) => ({ driverId: d.driverId, code: d.code, inActual: actualIds.includes(d.driverId) }));
+  const hit = Boolean(actualWinner && predictedWinner.driverId === actualWinner.driverId);
+  return {
+    key: `${entry.race.season}-${entry.race.round}-${entry.race.stage}`,
+    season: entry.race.season,
+    round: entry.race.round,
+    raceName: entry.race.raceName.replace(" Grand Prix", " GP"),
+    predictedCode: predictedWinner.code,
+    predictedWinText: formatPercent(predictedWinner.pWin),
+    actualCode: code(actualWinner?.driverId),
+    hit,
+    predictedPodium,
+    actualPodium: actualPodium.map((a) => ({ driverId: a.driverId, code: code(a.driverId) })),
+    correlation: entryCorrelation(entry, metrics),
+  };
+}
 
 /** Spearman rank correlation between the predicted order and the actual finishing order. */
 function entryCorrelation(entry: PredictionHistoryEntry, metrics: Prediction["model"]["backtest"]): number | null {

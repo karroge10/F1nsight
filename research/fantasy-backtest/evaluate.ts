@@ -21,6 +21,8 @@ const SIGMA = Number(args.sigma ?? 0.03);
 const JOBS = Number(args.jobs ?? 10);
 const SOURCE_A = args.a ?? join(ROOT, "data", "predictions", "history");
 const SOURCE_B = args.b ?? null;
+// Optional chip rule per side (run.ts CHIP_RULE), default none: compare two policies on one forecast.
+const RULE: Record<string, string> = { A: args.ruleA ?? "", B: args.ruleB ?? "" };
 
 const started = Date.now();
 main().catch((error) => {
@@ -141,7 +143,7 @@ async function runPool(tasks: Task[]): Promise<Totals> {
 
 function runTask(task: Task): Promise<Record<number, number>> {
   const spec = `${task.season}:${task.first}:${task.last}:${SIGMA}`;
-  const env = { ...process.env, ROBUST_WORKER: spec, PRED_DIR: task.dir };
+  const env = { ...process.env, ROBUST_WORKER: spec, PRED_DIR: task.dir, CHIP_RULE: RULE[task.source] };
   const script = "research/fantasy-backtest/run.ts";
   return new Promise((resolve, reject) => {
     const child = spawn("npx", ["tsx", script], { cwd: ROOT, env, shell: true });

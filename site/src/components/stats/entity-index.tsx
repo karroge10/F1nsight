@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Flag } from "@/components/ui/flag";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { SortTh, sortRows, useSort, type SortValue } from "@/components/ui/sortable";
 
 export interface IndexRow {
   id: string;
@@ -29,22 +30,16 @@ interface EntityIndexProps {
 /** Filterable, sortable all-time index for drivers or teams. Hundreds of rows, plain table. */
 export function EntityIndex({ rows, columns, hrefBase, label, defaultSort = 0 }: EntityIndexProps) {
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<{ col: number; dir: 1 | -1 }>({ col: defaultSort, dir: -1 });
+  const { sort, toggle } = useSort<string>(String(defaultSort), "desc");
+  // by name first, so rows that tie on a number stay in name order
+  const byName = useMemo(() => [...rows].sort((a, b) => a.name.localeCompare(b.name)), [rows]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const filtered = q ? rows.filter((r) => r.name.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q)) : rows;
-    const sorted = [...filtered].sort((a, b) => {
-      if (sort.col === -1) return a.name.localeCompare(b.name) * -sort.dir;
-      const diff = (a.numbers[sort.col] ?? 0) - (b.numbers[sort.col] ?? 0);
-      return diff * sort.dir || a.name.localeCompare(b.name);
-    });
+    const filtered = q ? byName.filter((r) => r.name.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q)) : byName;
+    const sorted = sortRows(filtered, sort, indexValue);
     return sorted.slice(0, 400);
-  }, [rows, query, sort]);
-
-  function toggle(col: number) {
-    setSort((s) => (s.col === col ? { col, dir: s.dir === 1 ? -1 : 1 } : { col, dir: col === -1 ? 1 : -1 }));
-  }
+  }, [byName, query, sort]);
 
   return (
     <div>
@@ -67,18 +62,14 @@ export function EntityIndex({ rows, columns, hrefBase, label, defaultSort = 0 }:
         <table className="data-table min-w-[640px]">
           <thead>
             <tr>
-              <th>
-                <button type="button" onClick={() => toggle(-1)} className="hover:text-ink">
-                  Name {sort.col === -1 ? (sort.dir === 1 ? "↑" : "↓") : ""}
-                </button>
-              </th>
+              <SortTh sortKey="name" sort={sort} onSort={toggle} firstDir="asc" align="start">
+                Name
+              </SortTh>
               <th className="hidden md:table-cell">Seasons</th>
               {columns.map((c, i) => (
-                <th key={c} className="num">
-                  <button type="button" onClick={() => toggle(i)} className={"hover:text-ink " + (sort.col === i ? "text-ink" : "")}>
-                    {c} {sort.col === i ? (sort.dir === 1 ? "↑" : "↓") : ""}
-                  </button>
-                </th>
+                <SortTh key={c} sortKey={String(i)} sort={sort} onSort={toggle} className="num">
+                  {c}
+                </SortTh>
               ))}
             </tr>
           </thead>
@@ -108,4 +99,10 @@ export function EntityIndex({ rows, columns, hrefBase, label, defaultSort = 0 }:
       </div>
     </div>
   );
+}
+
+/** Sort value of a row: "name", or the index of a number column. */
+function indexValue(row: IndexRow, key: string): SortValue {
+  if (key === "name") return row.name;
+  return row.numbers[Number(key)] ?? 0;
 }

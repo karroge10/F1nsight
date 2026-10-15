@@ -3,6 +3,7 @@ import type { Lookups, QualifyingRow, ResultRow } from "@/lib/data";
 import { formatGap, formatLapTime, formatPoints, formatRaceTime, positionLabel } from "@/lib/format";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamName } from "@/components/ui/team-name";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { DriverTag } from "./driver-tag";
 
 interface ResultsTableProps {
@@ -18,28 +19,16 @@ export function ResultsTable({ results, lookups, compact, season = null }: Resul
   const showFastest = results.some((r) => r.fastestLapRank !== null);
   return (
     <div className="scroll-x">
-      <table className="data-table min-w-[560px]">
-        <thead>
-          <tr>
-            <th className="num w-10">Pos</th>
-            <th>Driver</th>
-            <th className="hidden md:table-cell">Team</th>
-            <th className="num">Grid</th>
-            <th className="num hidden sm:table-cell">Laps</th>
-            <th className="num">Time / status</th>
-            <th className="num">Pts</th>
-            {showFastest && !compact ? <th className="num hidden lg:table-cell">Fastest lap</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {results.map((row, i) => {
+      <SortableTable className="data-table min-w-[560px]" columns={showFastest && !compact ? [...RESULT_COLUMNS, FASTEST_COLUMN] : RESULT_COLUMNS} initialKey="pos" initialDir="asc"
+        rows={results.map((row, i) => {
             const label = positionLabel(row.positionText);
             const time = row.position === 1 ? formatRaceTime(row.timeMs) : row.timeMs !== null && winnerTime !== null && row.classified ? formatGap(row.timeMs - winnerTime) : row.status;
             const gained = row.grid && row.position ? row.grid - row.position : null;
             const pointsText = row.points ? formatPoints(row.points) : "";
             const fastest = row.fastestLapMs ? formatLapTime(row.fastestLapMs) : "";
-            return (
-              <tr key={`${row.driverId}-${row.number ?? i}`} className={row.classified ? "" : "text-ink-3"}>
+            const values = { pos: i, name: lookups.driverName(row.driverId), grid: row.grid === 0 ? 100 : row.grid, laps: row.laps, points: row.points, fastest: row.fastestLapMs || null };
+            const tr = (
+              <tr className={row.classified ? "" : "text-ink-3"}>
                 <td className="num text-ink-2">{label}</td>
                 <td>
                   <Link href={`/drivers/${row.driverId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
@@ -68,9 +57,9 @@ export function ResultsTable({ results, lookups, compact, season = null }: Resul
                 ) : null}
               </tr>
             );
+            return { key: `${row.driverId}-${row.number ?? i}`, values, row: tr };
           })}
-        </tbody>
-      </table>
+      />
     </div>
   );
 }
@@ -81,24 +70,15 @@ export function QualifyingTable({ qualifying, lookups, season = null }: { qualif
   const bestQ1 = minOf(qualifying.map((q) => q.q1));
   const bestQ2 = minOf(qualifying.map((q) => q.q2));
   const bestQ3 = minOf(qualifying.map((q) => q.q3));
+  const columns = qualifyingColumns(hasQ2, hasQ3);
   return (
     <div className="scroll-x">
-      <table className="data-table phone-tight sm:min-w-[480px]">
-        <thead>
-          <tr>
-            <th className="num w-10">Pos</th>
-            <th>Driver</th>
-            <th className="hidden md:table-cell">Team</th>
-            <th className="num">{hasQ2 ? "Q1" : "Time"}</th>
-            {hasQ2 ? <th className="num">Q2</th> : null}
-            {hasQ3 ? <th className="num">Q3</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {qualifying.map((q) => {
+      <SortableTable className="data-table phone-tight sm:min-w-[480px]" columns={columns} initialKey="pos" initialDir="asc"
+        rows={qualifying.map((q, i) => {
             const team = { constructorId: q.constructorId, name: lookups.teamName(q.constructorId), color: lookups.teamColor(q.constructorId) };
-            return (
-              <tr key={`${q.driverId}-${q.number ?? ""}`}>
+            const values = { pos: i, name: lookups.driverName(q.driverId), q1: q.q1 || null, q2: q.q2 || null, q3: q.q3 || null };
+            const tr = (
+              <tr>
                 <td className="num text-ink-2">{q.position ?? ""}</td>
                 <td>
                   {/* on phones the code stands in for the name, so the three part times fit */}
@@ -112,11 +92,35 @@ export function QualifyingTable({ qualifying, lookups, season = null }: { qualif
                 {hasQ3 ? <td className={"num " + (q.q3 !== null && q.q3 === bestQ3 ? "text-sector-purple" : "text-ink")}>{formatLapTime(q.q3)}</td> : null}
               </tr>
             );
+            return { key: `${q.driverId}-${q.number ?? ""}`, values, row: tr };
           })}
-        </tbody>
-      </table>
+      />
     </div>
   );
+}
+
+const RESULT_COLUMNS: SortColumn[] = [
+  { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Driver", firstDir: "asc" },
+  { label: "Team", className: "hidden md:table-cell" },
+  { key: "grid", label: "Grid", firstDir: "asc", className: "num" },
+  { key: "laps", label: "Laps", className: "num hidden sm:table-cell" },
+  { label: "Time / status", className: "num" },
+  { key: "points", label: "Pts", className: "num" },
+];
+
+const FASTEST_COLUMN: SortColumn = { key: "fastest", label: "Fastest lap", firstDir: "asc", className: "num hidden lg:table-cell" };
+
+function qualifyingColumns(hasQ2: boolean, hasQ3: boolean): SortColumn[] {
+  const columns: SortColumn[] = [
+    { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+    { key: "name", label: "Driver", firstDir: "asc" },
+    { label: "Team", className: "hidden md:table-cell" },
+    { key: "q1", label: hasQ2 ? "Q1" : "Time", firstDir: "asc", className: "num" },
+  ];
+  if (hasQ2) columns.push({ key: "q2", label: "Q2", firstDir: "asc", className: "num" });
+  if (hasQ3) columns.push({ key: "q3", label: "Q3", firstDir: "asc", className: "num" });
+  return columns;
 }
 
 function minOf(values: (number | null)[]): number | null {

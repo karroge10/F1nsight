@@ -124,6 +124,7 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
   const used = savedFull ? transfersIn(savedLineup, draft).length : 0;
   const penalty = unlimited || !savedFull ? 0 : Math.max(0, used - FREE_TRANSFERS) * 10;
   const projected = draftResult ? draftResult.score : null;
+  const pickedCount = [...draft.drivers, ...draft.constructors].filter(Boolean).length;
   const gain = projected !== null && keepResult && used > 0 ? projected - keepResult.score : null;
   const multipliers = boostMultipliers(draftResult);
   const options = transferOptions(board.result?.byTransfers ?? [], draft);
@@ -132,7 +133,13 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
   const savedIds = new Set(savedPicks);
   const changedDraft = draft.drivers.join() !== savedLineup.drivers.join() || draft.constructors.join() !== savedLineup.constructors.join();
 
+  /** Sets the draft; a team with nothing saved yet keeps its first full lineup as the saved team,
+   * so transfers, points change and the optimiser count from it without a Save click. */
   function setDraft(next: Lineup) {
+    if (!savedFull && isLineupComplete(next)) {
+      saveLineup(next);
+      return;
+    }
     setDrafts((d) => ({ ...d, [teams.active]: next }));
   }
   function selectSlot(slot: SlotRef) {
@@ -172,7 +179,11 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
     if (result) loadTeam(result);
   }
   function save() {
-    const team: SavedTeam = { drivers: [...draft.drivers], constructors: [...draft.constructors], bank: Math.round(bank * 10) / 10 };
+    saveLineup(draft);
+  }
+  function saveLineup(lineup: Lineup) {
+    const left = cap - lineupValue(lineup, priceOf);
+    const team: SavedTeam = { drivers: [...lineup.drivers], constructors: [...lineup.constructors], bank: Math.round(left * 10) / 10 };
     const next = updateTeam(teams, team);
     setTeams(next);
     clearDraft();
@@ -185,8 +196,8 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
     });
     setSelected(null);
   }
-  function changeBank(value: number) {
-    const savedBank = value + draftValue - savedValue;
+  function changeCap(value: number) {
+    const savedBank = value - savedValue;
     const team: SavedTeam = { ...saved, bank: Math.round(savedBank * 10) / 10 };
     setTeams((s) => updateTeam(s, team));
   }
@@ -235,16 +246,16 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
         <div className="ms-auto flex flex-wrap gap-1.5" role="group" aria-label="Your teams">
           {teams.teams.map((team, i) => {
             const on = i === teams.active;
-            const score = teamScores[i];
+            const score = on && projected !== null ? projected : teamScores[i];
             return (
-              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"press inline-flex h-8 items-baseline gap-2.5 rounded-control px-3.5 pt-[0.4375rem] text-ui " + (on ? "selected-pill" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points of the saved team" : "Empty team"}>
+              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"press inline-flex h-8 items-center gap-2.5 rounded-control px-3.5 text-ui leading-none " + (on ? "selected-pill" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points" : "Empty team"}>
                 Team {i + 1}
-                <b className={"timing font-[650] " + (on ? "text-bg" : "text-ink")}>{score === null ? "…" : fixed1(score)}</b>
+                {score === null ? null : <b className={"timing font-[650] " + (on ? "text-bg" : "text-ink")}>{fixed1(score)}</b>}
               </button>
             );
           })}
           {teams.teams.length < MAX_TEAMS ? (
-            <button type="button" onClick={newTeam} className="press inline-flex h-8 items-center rounded-control px-3.5 text-ui text-ink-3 shadow-[inset_0_0_0_1px_var(--rule-strong)] hover:text-ink">
+            <button type="button" onClick={newTeam} className="press inline-flex h-8 items-center rounded-control px-3.5 text-ui leading-none text-ink-3 shadow-[inset_0_0_0_1px_var(--rule-strong)] hover:text-ink">
               + Add team
             </button>
           ) : null}
@@ -263,6 +274,7 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
             <LineupStrip draft={draft} saved={savedFull ? savedLineup : lineupOf(emptySaved())} multipliers={multipliers} selected={selected} assetOf={assetOf} onSelect={selectSlot} onRemove={removePick} />
             <ControlBar
               projected={projected}
+              picked={pickedCount}
               gain={gain}
               options={options}
               used={used}
@@ -270,13 +282,14 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
               penalty={penalty}
               unlimited={unlimited || !savedFull}
               chip={chip}
+              cap={cap}
               bank={bank}
               teamName={teamName}
               canSave={changedDraft}
               canReset={changedDraft}
               onOption={chooseOption}
               onChip={setChip}
-              onBank={changeBank}
+              onCap={changeCap}
               onSave={save}
               onReset={clearDraft}
             />

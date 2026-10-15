@@ -152,6 +152,10 @@ interface Policy {
   start?: { index: number; team: TeamSelection; bank: number; lastPrices: Map<string, number> };
   /** Round 3: Boost = argmax of boost forecast + upside x SD of the driver's earlier points this season. */
   upside?: number;
+  /** Round 11: called before each decision with the round, market and state (diagnosis only). */
+  /** Round 11: Wildcard out of engine advice, played when the no-chip team would pay at least this penalty. */
+  wcTrigger?: number;
+  trace?: (r: RoundData, market: Market, state: State) => void;
 }
 interface State { team: TeamSelection | null; bank: number; lastPrices: Map<string, number>; chipsLeft: ChipId[]; races: number }
 
@@ -192,6 +196,11 @@ for (const season of SEASONS) {
 
 if (process.env.R3) {
   roundThree();
+  process.exit(0);
+}
+
+if (process.env.CHIPS_DIAG) {
+  chipsDiag(Number(process.env.CHIPS_DIAG));
   process.exit(0);
 }
 
@@ -472,7 +481,8 @@ function robustWorker(spec: string) {
   const season = Number(seasonText);
   const sigma = Number(sigmaText);
   const base = blendForecast(season, true);
-  const policy: Policy = { ...SITE_POLICY, chips: true, plan: 1 };
+  const rule = process.env.CHIP_RULE ?? "";
+  const policy: Policy = { ...SITE_POLICY, chips: true, plan: 1, ...(rule === "W" ? { wcTrigger: 20 } : {}) };
   const totals: Record<number, number> = {};
   for (let seed = Number(firstText); seed <= Number(lastText); seed++) {
     const forecast = perturbedForecast(base, seed, sigma);
@@ -908,6 +918,7 @@ function playSeason(name: string, season: number, forecast: Forecast, policy: Po
     budgets.push(budget);
     const roundPolicy = policy.value?.live ? livePolicy(policy, market, budget) : policy;
     const chipMarket = policy.chipForecast ? marketFor(r, policy.chipForecast(r), policy.value) : market;
+    if (policy.trace) policy.trace(r, market, state);
     const pick = decide(market, state, roundPolicy, fixedTeam, chipMarket);
     if (policy.boostForecast || policy.upside) reBoost(r, pick, policy);
     const owned = state.team ? new Set([...state.team.drivers, ...state.team.constructors]) : null;
@@ -986,8 +997,13 @@ function decide(market: Market, state: State, policy: Policy, fixedTeam?: TeamSe
   let chip: ChipId | null = null;
   const forced = policy.chips && state.team ? scheduledChip(market, preLock, policy.schedule) : null;
   const reserved = new Set(Object.keys(policy.schedule ?? {}));
+  if (policy.wcTrigger !== undefined) reserved.add("wildcard");
   const free = preLock.filter((c) => !reserved.has(c));
+  const triggered = !forced && policy.chips && state.team && policy.wcTrigger !== undefined && preLock.includes("wildcard") && market.round >= 2
+    ? (optimiseTeam(market, user, { objective, topN: 1, chip: null, maxMs: Number.POSITIVE_INFINITY }).best?.penalty ?? 0) >= policy.wcTrigger
+    : false;
   if (forced) chip = forced;
+  else if (triggered) chip = "wildcard";
   else if (policy.chips && state.team && free.length > 0) {
     const advice = adviseChips(chipMarket, { ...user, chipsAvailable: free }, { maxMs: 200 });
     chip = advice.playNow === "finalFix" ? null : advice.playNow;
@@ -1697,4 +1713,90 @@ function round3(x: number): number {
 
 function round1(x: number): number {
   return Math.round(x * 10) / 10;
+}
+
+// ------------------------------------------------------------------------------ round 11: chips
+
+/**
+ * Chip diagnosis for one season on the site method (unperturbed). Per round on the as-played
+ * path: the engine's forecast gain per chip (adviseChips valueNow with all four chips offered)
+ * and, for Limitless, x3 Boost and Autopilot, the actual one-round gain of playing it there
+ * (chip team minus the no-chip team, actual points). Wildcard and every chip are also replayed
+ * path-aware: the chip forced at round k, the other chips at their as-played rounds.
+ */
+function chipsDiag(season: number) {
+  const forecast = blendForecast(season, true);
+  const policy: Policy = { ...SITE_POLICY, chips: true, plan: 1 };
+  const rows: Record<string, unknown>[] = [];
+  const trace = (r: RoundData, market: Market, state: State) => {
+    if (!state.team) return;
+    const user = { team: state.team, bank: state.bank, freeTransfers: 2, objective: { kind: "expected" as const }, chipsAvailable: [...SCORED_CHIPS], teamRacesCompleted: state.races };
+    const advice = adviseChips(market, user, { maxMs: 200 });
+    const row: Record<string, unknown> = { round: r.round, sprint: r.sprint, left: [...state.chipsLeft] };
+    const none = optimiseTeam(market, user, { objective: { kind: "expected" }, topN: 1, chip: null, maxMs: Number.POSITIVE_INFINITY }).best as TeamResult;
+    const nonePick: Pick = { team: { drivers: none.drivers, constructors: none.constructors }, boost: none.boost, extraBoost: none.extraBoost, chip: null };
+    const noneActual = actualPoints(r, nonePick);
+    const penaltyOf = (t: TeamResult, chip: ChipId | null) => transferPenalty(market.rules, [...t.drivers, ...t.constructors].filter((id) => !(state.team as TeamSelection).drivers.includes(id) && !(state.team as TeamSelection).constructors.includes(id)).length, 2, chip);
+    const noneNet = noneActual - penaltyOf(none, null);
+    for (const a of advice.advice) {
+      if (!SCORED_CHIPS.includes(a.chip)) continue;
+      const entry: Record<string, number> = { forecast: round1(a.valueNow), later: round1(a.holdValue) };
+      if (a.chip !== "wildcard") {
+        const best = optimiseTeam(market, user, { objective: { kind: "expected" }, topN: 1, chip: a.chip, maxMs: Number.POSITIVE_INFINITY }).best as TeamResult;
+        const pick: Pick = { team: { drivers: best.drivers, constructors: best.constructors }, boost: best.boost, extraBoost: best.extraBoost, chip: a.chip };
+        entry.actual = round1(actualPoints(r, pick) - penaltyOf(best, a.chip) - noneNet);
+      }
+      if (a.chip === "limitless") {
+        // Limitless team picked for upside: forecast + k x SD of the asset's earlier points this season.
+        for (const k of [0.5, 1]) {
+          const values = Float64Array.from(market.assets.map((x) => market.mean[x.index] + k * spreadAny(r, x.id, x.kind)));
+          const up = optimiseTeam(market, { ...user, team: null }, { expectedPoints: values, budget: Number.POSITIVE_INFINITY, topN: 1, chip: null, maxMs: Number.POSITIVE_INFINITY }).best as TeamResult;
+          const upPick: Pick = { team: { drivers: up.drivers, constructors: up.constructors }, boost: up.boost, extraBoost: null, chip: "limitless" };
+          entry[`upside${k}`] = round1(actualPoints(r, upPick) - noneNet);
+        }
+        // Hindsight-best unconstrained team (upper bound).
+        const actualVals = Float64Array.from(market.assets.map((x) => r.assets.find((y) => y.id === x.id)?.actual ?? 0));
+        const oracle = optimiseTeam(market, { ...user, team: null }, { expectedPoints: actualVals, budget: Number.POSITIVE_INFINITY, topN: 1, chip: null, maxMs: Number.POSITIVE_INFINITY }).best as TeamResult;
+        entry.oracleTeam = round1(actualPoints(r, { team: { drivers: oracle.drivers, constructors: oracle.constructors }, boost: oracle.boost, extraBoost: null, chip: "limitless" }) - noneNet);
+      }
+      row[a.chip] = entry;
+    }
+    row.played = advice.playNow;
+    rows.push(row);
+  };
+  const site = playSeason("site", season, forecast, { ...policy, trace });
+  const playedAt: Partial<Record<ChipId, number>> = {};
+  for (const c of site.chips) {
+    const [chip, round] = c.split("@R");
+    playedAt[chip as ChipId] = Number(round);
+  }
+  // Path-aware replays: chip c forced at round k, other chips at their as-played rounds.
+  const replay: Record<string, Record<number, number>> = {};
+  const rounds = (data.get(season) ?? []).map((x) => x.round).filter((x) => x >= 2);
+  for (const chip of SCORED_CHIPS) {
+    replay[chip] = {};
+    for (const k of rounds) {
+      if (Object.entries(playedAt).some(([c, at]) => c !== chip && at === k)) continue;
+      const schedule: Partial<Record<ChipId, number>> = { ...playedAt, [chip]: k };
+      const run = playSeason("forced", season, forecast, { ...policy, schedule: exactSchedule(schedule) });
+      replay[chip][k] = Math.round(run.total);
+    }
+  }
+  console.log(JSON.stringify({ season, total: Math.round(site.total), chips: site.chips, perRound: site.perRound.map(round1), rows, replay }));
+}
+
+/** Schedule entries as exact rounds: scheduledChip plays a chip at the first round >= its entry, sorted so earlier chips come first. */
+function exactSchedule(s: Partial<Record<ChipId, number>>): Partial<Record<ChipId, number>> {
+  return Object.fromEntries(Object.entries(s).sort((x, y) => (x[1] as number) - (y[1] as number))) as Partial<Record<ChipId, number>>;
+}
+
+/** SD of an asset's earlier points this season (prior per kind before three races). */
+function spreadAny(r: RoundData, id: string, kind: string): number {
+  const points: number[] = [];
+  for (const x of data.get(r.season) ?? []) {
+    if (x.round >= r.round) break;
+    const a = x.assets.find((y) => y.id === id && y.active);
+    if (a) points.push(a.actual);
+  }
+  return points.length >= 3 ? sd(points) : (PRIOR_SD as Record<string, number>)[kind] ?? 14;
 }

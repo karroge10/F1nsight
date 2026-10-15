@@ -1,19 +1,17 @@
 "use client";
 
-// Hindsight teams for every scored round: the best team on real points with no budget and the
-// best within the user's budget, solved in the browser so the budget can be edited. The budget is
-// shared with the planner (same ?cap= query and stored planner state).
+// Hindsight season: the best team of every scored round on real points, played as a season in
+// the same round by round table as the backtest. "No budget" ignores prices; "Budget" starts at
+// the $100M every game season starts with and carries the Cost Cap from round to round. The x3
+// Boost and (with a budget) Limitless sit on the rounds where they add most.
 
-import { useDeferredValue, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { hindsightSeason, type HindsightRound, type HindsightRoundInput, type HindsightTeam } from "@/lib/fantasy/hindsight";
-import { DEFAULT_COST_CAP, defaultPlannerState, loadStoredState, saveStoredState } from "@/lib/fantasy/planner-state";
-import { COST_CAP_MAX, COST_CAP_MIN } from "@/lib/fantasy/team-selection";
-import { CostCapInput } from "@/components/fantasy/cost-cap-input";
+import { useMemo, useState } from "react";
+import { hindsightPath, STARTING_COST_CAP, type HindsightPathRound, type HindsightRoundInput } from "@/lib/fantasy/hindsight";
+import type { BacktestPick } from "@/lib/fantasy/backtest-data";
+import { RoundTable, type RoundTableRow } from "@/components/fantasy/round-table";
 import { Section } from "@/components/ui/section";
-import { Info } from "@/components/ui/info";
 import { IconHistory, IconTrophy } from "@/components/icons";
 import { formatMoney } from "@/lib/format";
-import { BoostBadge, TeamLine } from "@/components/fantasy/planner-parts";
 
 export interface HindsightLabels {
   codes: Record<string, string>;
@@ -27,196 +25,109 @@ interface HindsightViewProps {
   labels: HindsightLabels;
 }
 
-const ROUNDS_INFO = "Fresh team each round: 5 drivers, 2 constructors, x2 Boost (bolt) on the top driver, no chips. Prices as of that round.";
+type Mode = "free" | "budget";
 
-export function HindsightView({ season: seasonYear, inputs, labels }: HindsightViewProps) {
-  const [cap, setCap] = useState(DEFAULT_COST_CAP);
-  const [ready, setReady] = useState(false);
-  const deferredCap = useDeferredValue(cap);
-  const season = useMemo(() => hindsightSeason(inputs, deferredCap), [inputs, deferredCap]);
-  const newestFirst = useMemo(() => [...season].reverse(), [season]);
-  const freeTotal = sumBy(season, (r) => r.free.score);
-  const cappedTotal = sumBy(season, (r) => r.capped?.score ?? 0);
-  const noTeam = season.filter((r) => r.capped === null).length;
-  const cappedLabel = `Within ${formatMoney(deferredCap)}`;
+const MODES: { key: Mode; label: string }[] = [
+  { key: "free", label: "No budget" },
+  { key: "budget", label: "Budget" },
+];
 
-  useEffect(() => {
-    const initial = initialCap();
-    // the URL and storage only exist in the browser, so the saved budget is read after mount
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCap(initial);
-    setReady(true);
-  }, []);
+const SEASON_INFO =
+  "Best team of every round on the points actually scored, as if every round had unlimited free transfers. x3 Boost and Limitless go on their best rounds; Wildcard and Autopilot add nothing here. Not achievable, it shows the ceiling.";
 
-  useEffect(() => {
-    if (!ready) return;
-    saveCap(cap);
-  }, [cap, ready]);
+export function HindsightView({ season, inputs, labels }: HindsightViewProps) {
+  const [mode, setMode] = useState<Mode>("budget");
+  const free = useMemo(() => hindsightPath(inputs, false), [inputs]);
+  const budget = useMemo(() => hindsightPath(inputs, true), [inputs]);
+  const path = mode === "budget" ? budget : free;
+  const rows = useMemo(() => tableRows(path, labels), [path, labels]);
+  const freeTotal = sumBy(free, (r) => r.team.score);
+  const budgetTotal = sumBy(budget, (r) => r.team.score);
+  const lastCap = budget.length ? (budget[budget.length - 1].costCap ?? STARTING_COST_CAP) : STARTING_COST_CAP;
 
   return (
     <>
-      <Section title={`${seasonYear} best teams in hindsight`} icon={IconTrophy} info="Totals over every scored round." flush tight>
-        <p className="mb-4 text-ui text-ink-3">Each round&apos;s top team on real points, with no budget and within yours.</p>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-float border border-rule p-4 sm:p-5 lg:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <dt className="flex items-center gap-1 text-ui text-ink-3">
-              <label htmlFor="hindsight-cap">Budget</label>
-              <Info text={`Total price limit per round, ${formatMoney(COST_CAP_MIN)} to ${formatMoney(COST_CAP_MAX)}. Shared with the planner.`} />
-            </dt>
-            <dd>
-              <CostCapInput id="hindsight-cap" value={cap} onChange={setCap} note={`${season.length} rounds`} />
-            </dd>
+      <Section title={`${season} best teams in hindsight`} icon={IconTrophy} info={SEASON_INFO} flush tight>
+        <div className="grid gap-4">
+          <div role="tablist" aria-label="Budget" className="inline-flex h-8 w-fit items-stretch rounded-control border border-rule">
+            {MODES.map((m) => {
+              const active = m.key === mode;
+              return (
+                <button key={m.key} type="button" role="tab" aria-selected={active} onClick={() => setMode(m.key)} className={"press segment -my-px rounded-control px-3.5 text-ui " + (active ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
-          <SummaryItem label="No budget" value={freeTotal.toFixed(0)} note="pts" testId="total-free" />
-          <SummaryItem label={cappedLabel} value={cappedTotal.toFixed(0)} note={noTeam ? `pts, ${noTeam} rounds no team` : "pts"} testId="total-capped" />
-        </dl>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-float border border-rule p-4 sm:grid-cols-4">
+            <Stat label="No budget" value={freeTotal.toFixed(0)} note="pts" testId="total-free" />
+            <Stat label="Budget" value={budgetTotal.toFixed(0)} note={`pts from ${formatMoney(STARTING_COST_CAP)}`} testId="total-capped" />
+            <Stat label="Cost cap now" value={formatMoney(lastCap)} note={`R${budget[budget.length - 1]?.round ?? 1}`} />
+            <Stat label="Rounds" value={String(path.length)} />
+          </dl>
+        </div>
       </Section>
 
-      <Section title="Round by round" icon={IconHistory} info={ROUNDS_INFO} flush>
-        <ul className="grid gap-2 md:hidden">
-          {newestFirst.map((r, i) => (
-            <RoundCard key={r.round} round={r} labels={labels} index={i} cappedLabel={cappedLabel} />
-          ))}
-        </ul>
-        <div className="scroll-x hidden md:block">
-          <table className="data-table min-w-[880px] table-fixed">
-            <colgroup>
-              <col className="w-12" />
-              <col className="w-52" />
-              <col />
-              <col className="w-20" />
-              <col />
-              <col className="w-20" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="num">Rd</th>
-                <th>Race</th>
-                <th>No budget</th>
-                <th className="num">Pts</th>
-                <th>{cappedLabel}</th>
-                <th className="num">Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              {newestFirst.map((r, i) => (
-                <RoundRow key={r.round} round={r} labels={labels} index={i} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <Section title="Round by round" icon={IconHistory} flush>
+        <RoundTable rows={rows} />
+        <p className="mt-2 text-caption text-ink-2">
+          Green: new that round. {mode === "budget" ? "Cost cap: team value plus bank going into the round, $M, starting at $100M. Left: money not spent." : "Team cost in $M at that round's prices."}
+        </p>
       </Section>
     </>
   );
 }
 
-function SummaryItem({ label, value, note, testId }: { label: string; value: string; note: string; testId: string }) {
+function Stat({ label, value, note, testId }: { label: string; value: string; note?: string; testId?: string }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1">
       <dt className="text-ui text-ink-3">{label}</dt>
-      <dd className="headline timing text-[1.75rem] leading-none text-ink" data-testid={testId}>
-        {value}
+      <dd className="flex items-baseline gap-1.5">
+        <span className="timing text-lg font-[650] text-ink" data-testid={testId}>
+          {value}
+        </span>
+        {note ? <span className="timing text-ui text-ink-3">{note}</span> : null}
       </dd>
-      <dd className="text-caption text-ink-3">{note}</dd>
     </div>
   );
 }
 
-function RoundRow({ round, labels, index }: { round: HindsightRound; labels: HindsightLabels; index: number }) {
-  const style = rowAnimation(index);
-  const capped = round.capped;
-  return (
-    <tr className="stagger-in" style={style} data-round={round.round}>
-      <td className="num text-ink-3">{round.round}</td>
-      <td className="text-ink">{round.raceName}</td>
-      <td>
-        <TeamChips team={round.free} labels={labels} />
-      </td>
-      <td className="num font-[550] text-ink">{round.free.score.toFixed(0)}</td>
-      <td>{capped ? <TeamChips team={capped} labels={labels} /> : <span className="text-ink-3">No team fits</span>}</td>
-      <td className="num font-[550] text-ink">{capped ? capped.score.toFixed(0) : ""}</td>
-    </tr>
-  );
-}
+// ------------------------------------------------------------------------------ helpers
 
-function RoundCard({ round, labels, index, cappedLabel }: { round: HindsightRound; labels: HindsightLabels; index: number; cappedLabel: string }) {
-  const style = rowAnimation(index);
-  const capped = round.capped;
-  return (
-    <li className="stagger-in min-w-0 rounded-control border border-rule p-4" style={style} data-round={round.round}>
-      <p className="flex min-w-0 items-baseline gap-2">
-        <span className="timing text-caption text-ink-3">R{round.round}</span>
-        <span className="truncate font-[550] text-ink">{round.raceName}</span>
-      </p>
-      <TeamBlock label="No budget" team={round.free} labels={labels} />
-      <TeamBlock label={cappedLabel} team={capped} labels={labels} />
-    </li>
-  );
-}
-
-function TeamBlock({ label, team, labels }: { label: string; team: HindsightTeam | null; labels: HindsightLabels }) {
-  return (
-    <div className="mt-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="label">{label}</span>
-        <span className="timing font-[550] text-ink">{team ? `${team.score.toFixed(0)} pts` : ""}</span>
-      </div>
-      <div className="mt-1">{team ? <TeamChips team={team} labels={labels} /> : <span className="text-caption text-ink-3">No team fits</span>}</div>
-    </div>
-  );
-}
-
-function TeamChips({ team, labels }: { team: HindsightTeam; labels: HindsightLabels }) {
-  return (
-    <span className="flex flex-wrap items-center gap-[3px]">
-      {team.constructors.map((id) => (
-        <Chip key={id} id={id} labels={labels} boosted={false} />
-      ))}
-      <span className="w-5" aria-hidden="true" />
-      {team.drivers.map((id) => (
-        <Chip key={id} id={id} labels={labels} boosted={id === team.boost} />
-      ))}
-      <span className="timing ms-2 text-caption text-ink-3">{formatMoney(team.cost)}</span>
-    </span>
-  );
-}
-
-function Chip({ id, labels, boosted }: { id: string; labels: HindsightLabels; boosted: boolean }) {
-  const name = labels.names[id] ?? id;
-  const code = labels.codes[id] ?? id;
-  const color = labels.colors[id] ?? "var(--rule)";
-  const title = boosted ? `${name}, x2 Boost` : name;
-  return (
-    <span title={title} className="inline-flex h-6 items-center gap-1.5 rounded-control bg-bg-raised ps-1.5 pe-2 text-caption font-[650] text-ink">
-      <TeamLine color={color} className="h-3.5" />
-      {code}
-      {boosted ? <BoostBadge multiplier={2} small /> : null}
-    </span>
-  );
-}
-
-/** Short entry animation: 240ms, at most 120ms of stagger, so every row settles within 360ms. */
-function rowAnimation(index: number): CSSProperties {
-  const delay = Math.min(index, 4) * 30;
-  return { animationDuration: "240ms", animationDelay: `${delay}ms` };
-}
-
-/** Budget from the URL first, then the planner's stored state, then the default. */
-function initialCap(): number {
-  const params = new URLSearchParams(window.location.search);
-  const fromUrl = params.get("cap");
-  const parsed = fromUrl === null ? Number.NaN : Number(fromUrl);
-  if (Number.isFinite(parsed) && parsed >= COST_CAP_MIN && parsed <= COST_CAP_MAX) return parsed;
-  const stored = loadStoredState();
-  return stored?.costCap ?? DEFAULT_COST_CAP;
-}
-
-function saveCap(cap: number) {
-  const stored = loadStoredState() ?? defaultPlannerState();
-  saveStoredState({ ...stored, costCap: cap });
-  const params = new URLSearchParams(window.location.search);
-  params.set("cap", String(cap));
-  window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+/** Table rows: picks marked new against the round before, transfers as the difference. */
+function tableRows(path: HindsightPathRound[], labels: HindsightLabels): RoundTableRow[] {
+  let cumulative = 0;
+  return path.map((r, k) => {
+    const previous = k > 0 ? path[k - 1].team : null;
+    const before = new Set(previous ? [...previous.drivers, ...previous.constructors] : []);
+    const now = new Set([...r.team.drivers, ...r.team.constructors]);
+    cumulative += r.team.score;
+    const code = (id: string) => labels.codes[id] ?? id.slice(0, 3).toUpperCase();
+    const pick = (id: string): BacktestPick => ({ code: code(id), color: labels.colors[id] ?? "var(--rule)", changed: previous !== null && !before.has(id) });
+    const added = (ids: string[]) => (previous ? ids.filter((id) => !before.has(id)).map(code) : []);
+    const removed = (ids: string[]) => ids.filter((id) => !now.has(id)).map(code);
+    return {
+      round: r.round,
+      raceName: r.raceName,
+      raceCode: r.raceCode,
+      country: r.country,
+      constructors: r.team.constructors.map(pick),
+      drivers: r.team.drivers.map(pick),
+      constructorsIn: added(r.team.constructors),
+      driversIn: added(r.team.drivers),
+      constructorsOut: previous ? removed(previous.constructors) : [],
+      driversOut: previous ? removed(previous.drivers) : [],
+      boost: code(r.team.boost),
+      extraBoost: r.team.extraBoost ? code(r.team.extraBoost) : null,
+      chip: r.chip,
+      penalty: 0,
+      points: r.team.score,
+      cumulative,
+      costCap: r.costCap,
+      left: r.left,
+      cost: r.team.cost,
+    };
+  });
 }
 
 function sumBy<T>(items: T[], pick: (item: T) => number): number {

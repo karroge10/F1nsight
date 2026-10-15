@@ -1,8 +1,14 @@
 // Hindsight best teams: for every scored gameday, the best legal team on the points actually
-// scored, once ignoring price and once within the user's budget at that round's prices.
+// scored, once ignoring price and once within a budget at that round's prices.
 //
-// Rules applied: 5 drivers and 2 constructors and the x2 Boost on the team's top scoring driver.
-// Every round is a fresh team: no transfers, no chips, no team value growth.
+// Rules applied: 5 drivers and 2 constructors and the x2 Boost on the team's top scoring driver
+// (with the x3 Boost chip: x3 on the top scorer, x2 on the next). Every round is a fresh team,
+// as if every round had unlimited free transfers.
+//
+// `hindsightPath` plays a season that way. With a budget it starts at the $100M every game season
+// starts with, and the Cost Cap moves with the price changes of the team held. It plays the x3
+// Boost on its best round and, with a budget, Limitless (no cap for one round) on its best other
+// round. Wildcard and Autopilot change nothing when every round is a fresh team.
 
 import { combinations } from "@/lib/fantasy";
 import { DEFAULT_COST_CAP } from "./planner-state";
@@ -14,14 +20,18 @@ export interface HindsightAsset {
   price: number;
   /** What the team is chosen on: the real points of the round. */
   score: number;
+  /** Price after the round (the next round's price), when known. */
+  priceAfter?: number;
 }
 
 export interface HindsightTeam {
   drivers: string[];
   constructors: string[];
   boost: string;
+  /** Driver on the x3 Boost chip, null without it. */
+  extraBoost: string | null;
   cost: number;
-  /** Sum of `score` with the Boost driver counted twice. */
+  /** Sum of `score` with the Boost multipliers applied. */
   score: number;
 }
 
@@ -31,12 +41,16 @@ export interface HindsightRules {
   /** Total price limit in millions; Infinity ignores price. */
   budget: number;
   boostMultiplier: number;
+  /** x3 Boost chip: the top scorer counts three times and the next one twice. */
+  extraBoost?: boolean;
 }
 
 /** One scored round, ready for the solver (prices and real points of that round). */
 export interface HindsightRoundInput {
   round: number;
   raceName: string;
+  raceCode: string;
+  country: string | null;
   assets: HindsightAsset[];
 }
 
@@ -49,7 +63,29 @@ export interface HindsightRound {
   capped: HindsightTeam | null;
 }
 
+/** One round of a hindsight season (`hindsightPath`). */
+export interface HindsightPathRound {
+  round: number;
+  raceName: string;
+  raceCode: string;
+  country: string | null;
+  team: HindsightTeam;
+  chip: "extraBoost" | "limitless" | null;
+  /** Team value plus bank going into the round ($M); null without a budget. */
+  costCap: number | null;
+  /** Money not spent on the team ($M); null without a budget or under Limitless. */
+  left: number | null;
+}
+
+export interface RaceLabel {
+  name: string;
+  code: string;
+  country: string | null;
+}
+
 export const DEFAULT_HINDSIGHT_RULES: HindsightRules = { drivers: 5, constructors: 2, budget: DEFAULT_COST_CAP, boostMultiplier: 2 };
+/** Every F1 Fantasy season starts with a $100M Cost Cap. */
+export const STARTING_COST_CAP = 100;
 
 /** Best team under the budget, Boost on the team's top scoring driver. Null when no legal team exists. */
 export function bestTeam(assets: HindsightAsset[], rules: HindsightRules = DEFAULT_HINDSIGHT_RULES): HindsightTeam | null {
@@ -63,28 +99,40 @@ export function bestTeam(assets: HindsightAsset[], rules: HindsightRules = DEFAU
     const remaining = rules.budget - cost;
     const index = lastIndexWithin(pairs, remaining);
     if (index < 0) continue;
-    const top = topScorer(combo);
-    const driverScore = sumBy(combo, (d) => d.score) + extra * top.score;
+    const [top, second] = topTwo(combo);
+    const boostExtra = rules.extraBoost ? top.score + second.score : 0;
+    const driverScore = sumBy(combo, (d) => d.score) + extra * top.score + boostExtra;
     const pair = pairs[index].bestUpToHere;
     const total = driverScore + pair.score;
     if (best && total <= best.score) continue;
     const teamCost = round1(cost + pair.cost);
-    best = { drivers: combo.map((d) => d.id), constructors: pair.ids, boost: top.id, cost: teamCost, score: total };
+    const boost = rules.extraBoost ? second.id : top.id;
+    const extraBoost = rules.extraBoost ? top.id : null;
+    best = { drivers: combo.map((d) => d.id), constructors: pair.ids, boost, extraBoost, cost: teamCost, score: total };
   }
   return best;
 }
 
-/** Scored rounds of the file, oldest first, with the race names by round. */
-export function hindsightInputs(file: FantasyRoundsFile, raceNames: Record<number, string>): HindsightRoundInput[] {
+/** Scored rounds of the file, oldest first, with each asset's price after the round. */
+export function hindsightInputs(file: FantasyRoundsFile, races: Record<number, RaceLabel>): HindsightRoundInput[] {
   const out: HindsightRoundInput[] = [];
-  for (const entry of file.rounds) {
+  file.rounds.forEach((entry, k) => {
     const scored = entry.assets.filter((a) => a.active && a.price !== null && a.points !== null);
-    if (scored.length === 0) continue;
-    const assets = scored.map((a) => ({ id: a.id, kind: a.kind, price: a.price as number, score: a.points as number }));
-    const raceName = raceNames[entry.round] ?? `Round ${entry.round}`;
-    out.push({ round: entry.round, raceName, assets });
-  }
+    if (scored.length === 0) return;
+    const nextPrices = pricesOf(file.rounds[k + 1]);
+    const assets = scored.map((a) => ({ id: a.id, kind: a.kind, price: a.price as number, score: a.points as number, priceAfter: nextPrices.get(a.id) }));
+    const race = races[entry.round];
+    out.push({ round: entry.round, raceName: race?.name ?? `Round ${entry.round}`, raceCode: race?.code ?? `R${entry.round}`, country: race?.country ?? null, assets });
+  });
   return out;
+}
+
+/** A season of fresh best teams, with or without a budget, x3 Boost and Limitless on their best rounds. */
+export function hindsightPath(inputs: HindsightRoundInput[], budgeted: boolean, rules: HindsightRules = DEFAULT_HINDSIGHT_RULES): HindsightPathRound[] {
+  const noChips: ChipPlan = new Map();
+  const plain = playPath(inputs, budgeted, noChips, rules);
+  const chips = chooseChips(inputs, plain, budgeted, rules);
+  return playPath(inputs, budgeted, chips, rules);
 }
 
 /** Best team without a price limit and within `budget` for every round, oldest first. */
@@ -145,10 +193,76 @@ function lastIndexWithin(sortedByCost: PairOption[], budget: number): number {
   return result;
 }
 
-function topScorer(drivers: HindsightAsset[]): HindsightAsset {
-  let top = drivers[0];
-  for (const d of drivers) if (d.score > top.score) top = d;
-  return top;
+type ChipPlan = Map<number, "extraBoost" | "limitless">;
+
+/** Plays the season round by round. The Cost Cap after a round is the money left plus the held
+ * team at its new prices; it stays put after Limitless, whose team is handed back. */
+function playPath(inputs: HindsightRoundInput[], budgeted: boolean, chips: ChipPlan, rules: HindsightRules): HindsightPathRound[] {
+  const out: HindsightPathRound[] = [];
+  let cap = STARTING_COST_CAP;
+  for (const input of inputs) {
+    const chip = chips.get(input.round) ?? null;
+    const capped = budgeted && chip !== "limitless";
+    const budget = capped ? cap : Number.POSITIVE_INFINITY;
+    const team = bestTeam(input.assets, { ...rules, budget, extraBoost: chip === "extraBoost" });
+    if (!team) continue;
+    const left = capped ? round1(cap - team.cost) : null;
+    out.push({ round: input.round, raceName: input.raceName, raceCode: input.raceCode, country: input.country, team, chip, costCap: budgeted ? round1(cap) : null, left });
+    if (capped) cap = round1(cap - team.cost + valueAfter(team, input.assets));
+  }
+  return out;
+}
+
+/** x3 Boost and (with a budget) Limitless on the two different rounds where they add most. */
+function chooseChips(inputs: HindsightRoundInput[], plain: HindsightPathRound[], budgeted: boolean, rules: HindsightRules): ChipPlan {
+  const byRound = new Map(inputs.map((input) => [input.round, input] as const));
+  const boostGain: number[] = [];
+  const limitlessGain: number[] = [];
+  for (const played of plain) {
+    const assets = byRound.get(played.round)?.assets ?? [];
+    const budget = played.costCap ?? Number.POSITIVE_INFINITY;
+    const boosted = bestTeam(assets, { ...rules, budget, extraBoost: true });
+    boostGain.push(boosted ? boosted.score - played.team.score : 0);
+    const free = budgeted ? bestTeam(assets, { ...rules, budget: Number.POSITIVE_INFINITY }) : null;
+    limitlessGain.push(free ? free.score - played.team.score : 0);
+  }
+  const plan: ChipPlan = new Map();
+  let bestTotal = Number.NEGATIVE_INFINITY;
+  plain.forEach((boostRound, i) => {
+    plain.forEach((limitRound, j) => {
+      if (budgeted && i === j) return;
+      const total = boostGain[i] + (budgeted ? limitlessGain[j] : 0);
+      if (total <= bestTotal) return;
+      bestTotal = total;
+      plan.clear();
+      plan.set(boostRound.round, "extraBoost");
+      if (budgeted) plan.set(limitRound.round, "limitless");
+    });
+  });
+  return plan;
+}
+
+function valueAfter(team: HindsightTeam, assets: HindsightAsset[]): number {
+  const byId = new Map(assets.map((a) => [a.id, a] as const));
+  let total = 0;
+  for (const id of [...team.drivers, ...team.constructors]) {
+    const asset = byId.get(id);
+    if (asset) total += asset.priceAfter ?? asset.price;
+  }
+  return total;
+}
+
+function pricesOf(entry: FantasyRoundsFile["rounds"][number] | undefined): Map<string, number> {
+  const prices = new Map<string, number>();
+  if (!entry) return prices;
+  for (const a of entry.assets) if (a.price !== null) prices.set(a.id, a.price);
+  return prices;
+}
+
+/** The two top scoring drivers, best first. */
+function topTwo(drivers: HindsightAsset[]): [HindsightAsset, HindsightAsset] {
+  const sorted = [...drivers].sort((a, b) => b.score - a.score);
+  return [sorted[0], sorted[1] ?? sorted[0]];
 }
 
 function sumBy<T>(items: T[], pick: (item: T) => number): number {

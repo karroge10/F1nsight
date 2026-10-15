@@ -4,11 +4,10 @@
 // real prices and real points. Season switch, summary line, cumulative chart, then one row per round.
 
 import { useState } from "react";
-import { chipLabel, hindsightShare, signed, type BacktestPick, type BacktestRound, type BacktestSeason, type FantasyBacktest } from "@/lib/fantasy/backtest-data";
+import { hindsightShare, signed, type BacktestRound, type BacktestSeason, type FantasyBacktest } from "@/lib/fantasy/backtest-data";
 import { Section } from "@/components/ui/section";
 import { Info } from "@/components/ui/info";
-import { Flag } from "@/components/ui/flag";
-import { TeamMark } from "@/components/ui/team-mark";
+import { RoundTable, type RoundTableRow } from "@/components/fantasy/round-table";
 import { IconHistory, IconTrophy } from "@/components/icons";
 import { formatMoney } from "@/lib/format";
 
@@ -22,7 +21,10 @@ const METHOD_INFO =
 const RANK_INFO_TAIL = "Points cutoffs for the global league are not public. A rank appears once cutoffs are added to WORLD_RANK_ANCHORS.";
 const AVERAGE_INFO =
   "Average player: every pick weighted by its ownership share, plus the most-owned driver once as the Boost. No penalties, no chips.";
-const FORM_INFO = "Same optimiser and chips, forecast = recent and season average points.";
+const FORM_INFO =
+  "Same optimiser and chips, but every driver and team is ranked by the points it has scored so far (half the last 3 races, half the season average) instead of by our model. The gap is what the model adds.";
+/** Every F1 Fantasy season starts with a $100M Cost Cap. */
+const STARTING_CAP = 100;
 const KEEP_INFO = "Round 1 team kept all season.";
 const HINDSIGHT_INFO = "Best team every round on actual points, same budget, no transfer limit. Not achievable.";
 
@@ -31,6 +33,7 @@ export function BacktestView({ data }: BacktestViewProps) {
   const [selected, setSelected] = useState(latest?.season ?? 0);
   const season = data.seasons.find((s) => s.season === selected) ?? latest;
   if (!season) return null;
+  const rows = tableRows(season.rounds);
 
   return (
     <>
@@ -43,8 +46,8 @@ export function BacktestView({ data }: BacktestViewProps) {
         </div>
       </Section>
       <Section title="Round by round" icon={IconHistory} flush>
-        <RoundTable rounds={season.rounds} />
-        <p className="mt-2 text-caption text-ink-2">Green: picked that round. Value and bank in $M after the round.</p>
+        <RoundTable rows={rows} />
+        <p className="mt-2 text-caption text-ink-2">Green: picked that round. Cost cap: team value plus bank going into the round, $M, starting at $100M. Left: money not spent after that round&apos;s transfers.</p>
       </Section>
     </>
   );
@@ -83,11 +86,11 @@ function Summary({ season }: { season: BacktestSeason }) {
   return (
     <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-float border border-rule p-4 sm:grid-cols-3 lg:grid-cols-7">
       <Stat label="Points" value={String(season.total)} note={`${season.rounds.length} rounds`} />
-      <Stat label={season.leader && !season.worldRank ? "Of leader" : "World rank"} value={rank.value} note={rank.note} info={season.worldRank ? undefined : rankInfo(season)} />
+      <Stat label={rank.label} value={rank.value} note={rank.note} info={season.worldRank ? undefined : rankInfo(season)} />
       <Stat label="vs average player" value={vsAverage} note={season.average === null ? undefined : `${season.average}`} info={AVERAGE_INFO} tone={averageTone} />
       <Stat label="Of hindsight" value={`${share}%`} note={`${season.hindsight} max`} info={HINDSIGHT_INFO} />
       <Stat label="Team value" value={formatMoney(season.finalTeamValue)} />
-      <Stat label="vs form" value={vsForm} note={`${season.form}`} info={FORM_INFO} tone={toneOf(season.total - season.form)} />
+      <Stat label="vs no model" value={vsForm} note={`${season.form}`} info={FORM_INFO} tone={toneOf(season.total - season.form)} />
       <Stat label="vs keep team" value={vsKeep} note={`${season.keep}`} info={KEEP_INFO} tone={toneOf(season.total - season.keep)} />
     </dl>
   );
@@ -139,7 +142,7 @@ function CumulativeChart({ rounds }: { rounds: BacktestRound[] }) {
   const last = rounds[rounds.length - 1].round;
   return (
     <figure className="grid gap-2">
-      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="h-auto w-full" role="img" aria-label="Cumulative points by round: ours, form baseline, average player and hindsight">
+      <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} className="h-auto w-full" role="img" aria-label="Cumulative points by round: ours, no-model baseline, average player and hindsight">
         {ticks.map((t) => {
           const y = yOf(t, scaleTop);
           return (
@@ -158,7 +161,7 @@ function CumulativeChart({ rounds }: { rounds: BacktestRound[] }) {
       </svg>
       <figcaption className="flex flex-wrap gap-4 text-ui text-ink-3">
         <Legend series={SERIES.ours} label="Ours" />
-        <Legend series={SERIES.form} label="Form" />
+        <Legend series={SERIES.form} label="No model (points so far)" />
         {hasAverage ? <Legend series={SERIES.average} label="Average player" /> : null}
         <Legend series={SERIES.hindsight} label="Hindsight" />
       </figcaption>
@@ -177,135 +180,56 @@ function Legend({ series, label }: { series: SeriesStyle; label: string }) {
   );
 }
 
-function RoundTable({ rounds }: { rounds: BacktestRound[] }) {
-  const constructorCodes = new Set(rounds.flatMap((r) => r.constructors.map((c) => c.code)));
-  return (
-    <div className="overflow-x-auto rounded-float border border-rule">
-      <table className="w-full min-w-[820px] text-ui tabular-nums">
-        <thead className="text-left text-ink-3">
-          <tr className="border-b border-rule">
-            <th className="px-3 py-2 font-normal">Round</th>
-            <th className="px-3 py-2 font-normal">Team</th>
-            <th className="px-3 py-2 font-normal">In</th>
-            <th className="px-3 py-2 font-normal">Out</th>
-            <th className="px-3 py-2 font-normal">Boost</th>
-            <th className="px-3 py-2 font-normal">Chip</th>
-            <th className="px-3 py-2 text-right font-normal">Pts</th>
-            <th className="px-3 py-2 text-right font-normal">Total</th>
-            <th className="px-3 py-2 text-right font-normal">Value</th>
-            <th className="px-3 py-2 text-right font-normal">Bank</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rounds.map((r) => (
-            <RoundRow key={r.round} round={r} constructorCodes={constructorCodes} />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function RoundRow({ round, constructorCodes }: { round: BacktestRound; constructorCodes: Set<string> }) {
-  const chip = chipLabel(round.chip);
-  const ins = round.transfersIn.map(codeOf);
-  const outs = round.transfersOut.map(codeOf);
-  const transfersIn = teamsFirst(ins, constructorCodes);
-  const transfersOut = teamsFirst(outs, constructorCodes);
-  return (
-    <tr className="border-b border-rule last:border-b-0 hover:bg-bg-raised">
-      <td className="whitespace-nowrap px-3 py-1.5" title={round.raceName}>
-        <span className="inline-flex items-center gap-2">
-          <span className="w-5 text-ink-3">{round.round}</span>
-          <Flag of={round.country} size={16} />
-          <span className="font-[600]">{round.raceCode}</span>
-        </span>
-      </td>
-      <td className="px-3 py-1.5">
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          {round.constructors.map((p) => (
-            <PickChip key={p.code} pick={p} />
-          ))}
-          <span className="w-3" aria-hidden="true" />
-          {round.drivers.map((p) => (
-            <PickChip key={p.code} pick={p} />
-          ))}
-        </span>
-      </td>
-      <td className="whitespace-nowrap px-3 py-1.5">
-        <span className="timing text-delta-up">{transfersIn}</span>
-        {round.penalty ? <span className="timing ms-2 rounded-chip bg-[color-mix(in_oklch,var(--delta-down)_16%,transparent)] px-1 py-px text-caption font-[650] text-delta-down" title="Points penalty for extra transfers">−{round.penalty}</span> : null}
-      </td>
-      <td className="timing whitespace-nowrap px-3 py-1.5 text-ink-2">{transfersOut}</td>
-      <td className="timing whitespace-nowrap px-3 py-1.5">
-        <BoostCell round={round} />
-      </td>
-      <td className="whitespace-nowrap px-3 py-1.5">{chip ?? ""}</td>
-      <td className="px-3 py-1.5 text-right timing">{Math.round(round.points)}</td>
-      <td className="px-3 py-1.5 text-right timing text-ink-2">{Math.round(round.cumulative)}</td>
-      <td className="px-3 py-1.5 text-right timing text-ink-2">{round.teamValue.toFixed(1)}</td>
-      <td className="px-3 py-1.5 text-right timing text-ink-3">{round.bank.toFixed(1)}</td>
-    </tr>
-  );
-}
-
-/** Boost driver, with the 3x Boost driver first when that chip is played; autopilot shows "auto". */
-function BoostCell({ round }: { round: BacktestRound }) {
-  if (round.chip === "autopilot") return <span className="text-ink-2">auto</span>;
-  const boost = round.boost ? codeOf(round.boost) : null;
-  if (!round.extraBoost) return <>{boost}</>;
-  const extra = codeOf(round.extraBoost);
-  return (
-    <span className="inline-flex items-baseline gap-2">
-      <span>
-        {extra}
-        <span className="ms-0.5 text-caption text-ink-3">x3</span>
-      </span>
-      {boost ? (
-        <span>
-          {boost}
-          <span className="ms-0.5 text-caption text-ink-3">x2</span>
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-function PickChip({ pick }: { pick: BacktestPick }) {
-  const tone = pick.changed ? "text-delta-up" : "text-ink";
-  return (
-    <span className={"timing inline-flex items-center gap-1 " + tone}>
-      <TeamMark color={pick.color} />
-      {pick.code}
-    </span>
-  );
-}
-
 // ------------------------------------------------------------------------------ helpers
 
-/** Three-letter code; an id that slipped through without a label ("hadjar") becomes "HAD". */
-/** Constructors first, then drivers, with a wider gap between the two groups. */
-function teamsFirst(codes: string[], constructorCodes: Set<string>): string {
-  const teams = codes.filter((c) => constructorCodes.has(c));
-  const drivers = codes.filter((c) => !constructorCodes.has(c));
-  const teamText = teams.join(" ");
-  const driverText = drivers.join(" ");
-  return [teamText, driverText].filter(Boolean).join(" ");
+/** Rows of the shared round table: cost cap going into each round (the season starts at $100M),
+ * transfers split into constructors and drivers. */
+function tableRows(rounds: BacktestRound[]): RoundTableRow[] {
+  const constructorCodes = new Set(rounds.flatMap((r) => r.constructors.map((c) => c.code)));
+  const isTeam = (code: string) => constructorCodes.has(code);
+  return rounds.map((r, k) => {
+    const previous = k > 0 ? rounds[k - 1] : null;
+    const costCap = previous ? previous.teamValue + previous.bank : STARTING_CAP;
+    const ins = r.transfersIn.map(codeOf);
+    const outs = r.transfersOut.map(codeOf);
+    return {
+      round: r.round,
+      raceName: r.raceName,
+      raceCode: r.raceCode,
+      country: r.country,
+      constructors: r.constructors,
+      drivers: r.drivers,
+      constructorsIn: ins.filter(isTeam),
+      driversIn: ins.filter((c) => !isTeam(c)),
+      constructorsOut: outs.filter(isTeam),
+      driversOut: outs.filter((c) => !isTeam(c)),
+      boost: r.boost ? codeOf(r.boost) : null,
+      extraBoost: r.extraBoost ? codeOf(r.extraBoost) : null,
+      chip: r.chip,
+      penalty: r.penalty,
+      points: r.points,
+      cumulative: r.cumulative,
+      costCap,
+      left: r.bank,
+      cost: null,
+    };
+  });
 }
 
+/** Three-letter code; an id that slipped through without a label ("hadjar") becomes "HAD". */
 function codeOf(label: string): string {
   if (label === label.toUpperCase()) return label;
   return label.slice(0, 3).toUpperCase();
 }
 
-function rankText(season: BacktestSeason): { value: string; note?: string } {
+function rankText(season: BacktestSeason): { label: string; value: string; note?: string } {
   const rank = season.worldRank;
   const leader = season.leader;
-  if (!rank && leader) return { value: `${leader.share}%`, note: `of leader ${leader.points} (R${leader.round})` };
-  if (!rank) return { value: "Not published" };
+  if (!rank && leader) return { label: `Leader after R${leader.round}`, value: String(leader.points), note: `ours ${leader.share}%` };
+  if (!rank) return { label: "World rank", value: "Not published" };
   const range = `${formatCount(rank.low)} to ${formatCount(rank.high)}`;
   const percentile = rank.percentile === null ? range : `top ${rank.percentile}%, ${range}`;
-  return { value: formatCount(rank.rank), note: percentile };
+  return { label: "World rank", value: formatCount(rank.rank), note: percentile };
 }
 
 function rankInfo(season: BacktestSeason): string {
