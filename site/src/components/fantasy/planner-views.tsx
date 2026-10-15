@@ -141,7 +141,7 @@ function PriceTable({ title, assets, meta }: { title: string; assets: AssetView[
     </SortTh>
   );
   return (
-    <>
+    <div className="min-w-0 overflow-x-auto">
       <ResetSort onReset={reset} isDefault={isDefault} />
       <table className="w-full border-collapse text-table">
         <thead>
@@ -176,7 +176,7 @@ function PriceTable({ title, assets, meta }: { title: string; assets: AssetView[
           })}
         </tbody>
       </table>
-    </>
+    </div>
   );
 }
 
