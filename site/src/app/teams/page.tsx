@@ -5,6 +5,7 @@ import type { Constructor, Lookups } from "@/lib/data";
 import { formatPoints } from "@/lib/format";
 import { PageIntro } from "@/components/ui/page-intro";
 import { Section } from "@/components/ui/section";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { EntityIndex, type IndexRow } from "@/components/stats/entity-index";
 import { IconGarage, IconHistory } from "@/components/icons";
 import { TeamLogo } from "@/components/ui/team-logo";
@@ -30,22 +31,14 @@ export default async function TeamsPage() {
         {/* one column read top to bottom, capped so the few columns stay close together */}
         <div className="max-w-3xl">
           <div className="scroll-x">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="num w-10">Pos</th>
-                  <th>Constructor</th>
-                  <th className="hidden md:table-cell">Drivers</th>
-                  <th className="num">Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {current.map((c) => {
+            <SortableTable className="data-table" columns={TEAM_COLUMNS} initialKey="pos" initialDir="asc"
+              rows={current.map((c, i) => {
                   const standing = standingById.get(c.constructorId);
                   const drivers = entries.drivers.filter((d) => d.constructorId === c.constructorId).map((d) => d.name);
                   const pointsText = standing ? formatPoints(standing.points) : "0";
-                  return (
-                    <tr key={c.constructorId}>
+                  const values = { pos: i, name: c.name, points: standing?.points ?? 0 };
+                  const tr = (
+                    <tr>
                       <td className="num text-ink-2">{standing?.position ?? ""}</td>
                       <td>
                         <Link href={`/teams/${c.constructorId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
@@ -57,9 +50,9 @@ export default async function TeamsPage() {
                       <td className="num text-ink">{pointsText}</td>
                     </tr>
                   );
+                  return { key: c.constructorId, values, row: tr };
                 })}
-              </tbody>
-            </table>
+            />
           </div>
         </div>
       </Section>
@@ -69,6 +62,13 @@ export default async function TeamsPage() {
     </>
   );
 }
+
+const TEAM_COLUMNS: SortColumn[] = [
+  { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Constructor", firstDir: "asc" },
+  { label: "Drivers", className: "hidden md:table-cell" },
+  { key: "points", label: "Points", className: "num" },
+];
 
 function indexRow(c: Constructor, lookups: Lookups): IndexRow {
   const span = c.career.firstSeason === c.career.lastSeason ? String(c.career.firstSeason) : `${c.career.firstSeason} to ${c.career.lastSeason}`;

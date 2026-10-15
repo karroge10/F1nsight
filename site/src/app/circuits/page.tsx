@@ -5,6 +5,7 @@ import { formatLapTime } from "@/lib/format";
 import { Flag } from "@/components/ui/flag";
 import { PageIntro } from "@/components/ui/page-intro";
 import { Section } from "@/components/ui/section";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { IconCalendar, IconMap } from "@/components/icons";
 
 export const metadata: Metadata = {
@@ -24,35 +25,25 @@ export default async function CircuitsPage() {
     <>
       <PageIntro label="Circuits" title={`${circuits.length} circuits since 1950`} dek={`${current.length} on the ${season} calendar.`} />
       <Section title={`${season} calendar`} icon={IconCalendar} flush>
-        <CircuitTable circuits={current} lookups={lookups} calendarRound={(id) => calendar.find((r) => r.circuitId === id)?.round ?? null} />
+        <CircuitTable circuits={current} lookups={lookups} calendarRound={(id) => calendar.find((r) => r.circuitId === id)?.round ?? null} initialKey="round" />
       </Section>
       <Section title="Former circuits" icon={IconMap} info="Lap records are the fastest race laps in the data, not qualifying laps." flush>
-        <CircuitTable circuits={past} lookups={lookups} calendarRound={() => null} />
+        <CircuitTable circuits={past} lookups={lookups} calendarRound={() => null} initialKey="races" />
       </Section>
     </>
   );
 }
 
-function CircuitTable({ circuits, lookups, calendarRound }: { circuits: Awaited<ReturnType<typeof getCircuits>>; lookups: Awaited<ReturnType<typeof getLookups>>; calendarRound: (id: string) => number | null }) {
+function CircuitTable({ circuits, lookups, calendarRound, initialKey }: { circuits: Awaited<ReturnType<typeof getCircuits>>; lookups: Awaited<ReturnType<typeof getLookups>>; calendarRound: (id: string) => number | null; initialKey: "round" | "races" }) {
+  const initialDir = initialKey === "round" ? "asc" : "desc";
   return (
     <div className="scroll-x">
-      <table className="data-table min-w-[640px]">
-        <thead>
-          <tr>
-            <th className="num w-10">Rd</th>
-            <th>Circuit</th>
-            <th className="hidden md:table-cell">Location</th>
-            <th className="num">Races</th>
-            <th className="hidden sm:table-cell">Seasons</th>
-            <th className="num hidden lg:table-cell">Lap record</th>
-            <th className="hidden lg:table-cell">Set by</th>
-          </tr>
-        </thead>
-        <tbody>
-          {circuits.map((c) => {
+      <SortableTable className="data-table min-w-[640px]" columns={CIRCUIT_COLUMNS} initialKey={initialKey} initialDir={initialDir}
+        rows={circuits.map((c) => {
             const round = calendarRound(c.circuitId);
-            return (
-              <tr key={c.circuitId}>
+            const values = { round, name: c.name, location: c.country, races: c.raceCount, first: c.firstSeason, record: c.lapRecord?.timeMs };
+            const tr = (
+              <tr>
                 <td className="num text-ink-2">{round ?? ""}</td>
                 <td>
                   <Link href={`/circuits/${c.circuitId}`} className="font-[550] text-ink hover:underline underline-offset-2">
@@ -69,9 +60,19 @@ function CircuitTable({ circuits, lookups, calendarRound }: { circuits: Awaited<
                 <td className="hidden text-ink-2 lg:table-cell">{c.lapRecord ? `${lookups.driverName(c.lapRecord.driverId)}, ${c.lapRecord.season}` : ""}</td>
               </tr>
             );
+            return { key: c.circuitId, values, row: tr };
           })}
-        </tbody>
-      </table>
+      />
     </div>
   );
 }
+
+const CIRCUIT_COLUMNS: SortColumn[] = [
+  { key: "round", label: "Rd", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Circuit", firstDir: "asc" },
+  { key: "location", label: "Location", firstDir: "asc", className: "hidden md:table-cell" },
+  { key: "races", label: "Races", className: "num" },
+  { key: "first", label: "Seasons", firstDir: "asc", className: "hidden sm:table-cell" },
+  { key: "record", label: "Lap record", firstDir: "asc", className: "num hidden lg:table-cell" },
+  { label: "Set by", className: "hidden lg:table-cell" },
+];

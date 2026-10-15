@@ -1,8 +1,8 @@
 "use client";
 
 // The control bar under the lineup, one line on desktop: projected points of the draft, the
-// optimiser's best team per transfer count, free transfers, chip, bank, Save and Reset. Every
-// control in the row is 2rem tall with the control radius.
+// optimiser's best team per transfer count, free transfers, chip, Cost Cap, Save and Reset. Every
+// control in the row is 2rem tall with the control radius and sits on the row's centre line.
 
 import { useState } from "react";
 import { fixed1, money, signed, tone } from "@/components/fantasy/planner-parts";
@@ -19,6 +19,8 @@ export interface TransferOption {
 
 interface ControlBarProps {
   projected: number | null;
+  /** Picks in the draft (of 7), shown while the projection waits for a full team. */
+  picked: number;
   /** Gain over keeping last week's team, null when there is nothing to compare. */
   gain: number | null;
   options: TransferOption[];
@@ -29,13 +31,16 @@ interface ControlBarProps {
   /** Wildcard or Limitless: transfers are free. */
   unlimited: boolean;
   chip: PlannerChip;
+  /** Team value at today's prices plus the money in the bank ($M). */
+  cap: number;
+  /** Money left after buying the draft ($M), negative when over the cap. */
   bank: number;
   teamName: string;
   canSave: boolean;
   canReset: boolean;
   onOption: (transfers: number) => void;
   onChip: (chip: PlannerChip) => void;
-  onBank: (bank: number) => void;
+  onCap: (cap: number) => void;
   onSave: () => void;
   onReset: () => void;
 }
@@ -48,15 +53,23 @@ const CHIPS: { key: PlannerChip; label: string; title: string }[] = [
 ];
 
 export function ControlBar(props: ControlBarProps) {
-  const { projected, gain, options, used, free, penalty, unlimited, chip, bank, teamName, canSave, canReset } = props;
+  const { projected, picked, gain, options, used, free, penalty, unlimited, chip, cap, bank, teamName, canSave, canReset } = props;
   const over = !unlimited && used > free;
   const transferTitle = unlimited ? "Transfers are free with this chip" : "Each transfer beyond the free ones costs 10 points";
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-float py-2">
-      <div className="flex items-baseline gap-2 whitespace-nowrap">
-        <span className="headline timing text-[1.625rem] leading-none text-ink">{projected === null ? "…" : fixed1(projected)}</span>
-        {gain !== null && Math.abs(gain) > 0.05 ? <span className={"timing text-table font-[650] " + tone(gain)} title="Against keeping last week's team">{signed(gain)}</span> : null}
-        <span className="text-caption text-ink-3">projected pts</span>
+      <div className="flex h-8 items-center whitespace-nowrap">
+        {projected === null ? (
+          <span className="text-caption text-ink-3">
+            <b className="timing font-[600] text-ink">{picked}</b> of 7 picked
+          </span>
+        ) : (
+          <span className="flex items-baseline gap-2">
+            <span className="headline timing text-[1.375rem] leading-none text-ink">{fixed1(projected)}</span>
+            {gain !== null && Math.abs(gain) > 0.05 ? <span className={"timing text-table font-[650] " + tone(gain)} title="Against keeping last week's team">{signed(gain)}</span> : null}
+            <span className="text-caption text-ink-3">projected pts</span>
+          </span>
+        )}
       </div>
 
       {options.length > 0 ? (
@@ -88,7 +101,7 @@ export function ControlBar(props: ControlBarProps) {
         </span>
       </span>
 
-      <BankField bank={bank} unlimited={chip === "limitless"} onBank={props.onBank} />
+      <CostCapField cap={cap} bank={bank} unlimited={chip === "limitless"} onCap={props.onCap} />
 
       <div className="ms-auto flex items-center gap-1.5">
         <button type="button" onClick={props.onSave} disabled={!canSave} title={canSave ? undefined : "No unsaved changes"} className="press h-8 rounded-control bg-accent px-3.5 text-ui font-[650] whitespace-nowrap text-accent-ink disabled:cursor-default disabled:opacity-85">
@@ -102,26 +115,28 @@ export function ControlBar(props: ControlBarProps) {
   );
 }
 
-/** Bank: shows the money left with the draft; click to type the amount the game shows. */
-function BankField({ bank, unlimited, onBank }: { bank: number; unlimited: boolean; onBank: (bank: number) => void }) {
+/** Cost Cap: the total the team may cost (team value plus bank) and what the draft leaves of it.
+ * Click the cap to type the one the game shows. */
+function CostCapField({ cap, bank, unlimited, onCap }: { cap: number; bank: number; unlimited: boolean; onCap: (cap: number) => void }) {
   const [editing, setEditing] = useState<string | null>(null);
   const negative = !unlimited && bank < -0.049;
+  const leftText = unlimited ? "no cap this race" : negative ? `${money(-bank)} over` : `${money(bank)} left`;
   function commit() {
     const value = Number(editing);
-    if (editing !== null && editing.trim() !== "" && Number.isFinite(value)) onBank(value);
+    if (editing !== null && editing.trim() !== "" && Number.isFinite(value)) onCap(value);
     setEditing(null);
   }
   return (
-    <span className="flex items-center gap-2 whitespace-nowrap text-caption text-ink-3" title="Money left in the bank. Click to match it to the game.">
-      Bank
+    <span className="flex h-8 items-center gap-2.5 whitespace-nowrap rounded-control px-2.5 shadow-[inset_0_0_0_1px_var(--rule-strong)]" title="Team value at today's prices plus the bank. Click the amount to match it to the game.">
+      <span className="text-caption text-ink-3">Cost cap</span>
       {editing === null ? (
-        <button type="button" onClick={() => setEditing(bank.toFixed(1))} className={"press timing h-8 rounded-control px-1.5 text-ui font-[600] hover:bg-bg-hover " + (negative ? "text-delta-down" : "text-ink")}>
-          {money(bank)}
+        <button type="button" onClick={() => setEditing(cap.toFixed(1))} className="press timing -mx-1 rounded-control px-1 text-[0.9375rem] font-[700] text-ink hover:bg-bg-hover">
+          {money(cap)}
         </button>
       ) : (
         <input
           autoFocus
-          aria-label="Bank, $M"
+          aria-label="Cost cap, $M"
           type="number"
           step={0.1}
           inputMode="decimal"
@@ -132,9 +147,10 @@ function BankField({ bank, unlimited, onBank }: { bank: number; unlimited: boole
             if (e.key === "Enter") commit();
             if (e.key === "Escape") setEditing(null);
           }}
-          className="timing h-8 w-20 rounded-control border border-rule-strong bg-bg px-2 text-ui text-ink"
+          className="timing h-6 w-20 rounded-control border border-rule-strong bg-bg px-2 text-ui text-ink"
         />
       )}
+      <span className={"timing text-caption font-[600] " + (negative ? "text-delta-down" : "text-ink-2")}>{leftText}</span>
     </span>
   );
 }

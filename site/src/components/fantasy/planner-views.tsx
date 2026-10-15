@@ -9,6 +9,7 @@ import type { TeamResult, TransferPlan } from "@/lib/fantasy/engine/types";
 import { placeInSlots, type Lineup } from "@/lib/fantasy/lineup";
 import { priceMoveOdds } from "@/lib/fantasy/thresholds";
 import { Flag } from "@/components/ui/flag";
+import { SortTh, sortRows, useSort, type SortDir, type SortValue } from "@/components/ui/sortable";
 import { CodeCell, CodeChip, Footnote, fixed1, money, signed, tone, type AssetLookup, type AssetView, type PlannerMeta } from "@/components/fantasy/planner-parts";
 
 // ---------------------------------------------------------------- Best teams
@@ -23,27 +24,39 @@ interface BestTeamsProps {
   onLoad: (team: TeamResult) => void;
 }
 
+type TeamSort = "rank" | "transfers" | "cost" | "value" | "score" | "change";
+
 export function BestTeams({ teams, savedIds, keepScore, isLoaded, assetOf, onLoad }: BestTeamsProps) {
+  const { sort, toggle } = useSort<TeamSort>("rank", "asc");
   if (teams.length === 0) return <Footnote>No lineup fits the budget with these always and never picks.</Footnote>;
   const pointsOf = (id: string) => assetOf(id)?.points ?? 0;
   const byPoints = (a: string, b: string) => pointsOf(b) - pointsOf(a);
+  const ranked = teams.map((team, i) => ({ team, rank: i + 1 }));
+  const rows = sortRows(ranked, sort, (row, key) => teamValue(row.team, row.rank, key));
+  const head = (key: TeamSort, label: string, title: string, firstDir: SortDir = "desc") => (
+    <SortTh sortKey={key} sort={sort} onSort={toggle} firstDir={firstDir} title={title} className={TH_CLASS}>
+      {label}
+    </SortTh>
+  );
   return (
     <>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-table">
           <thead>
             <tr className="text-[0.6875rem] text-ink-3">
-              <Th left className="w-8">#</Th>
+              <SortTh sortKey="rank" sort={sort} onSort={toggle} firstDir="asc" align="start" title="Optimiser rank" className={TH_CLASS + " w-8"}>
+                #
+              </SortTh>
               <Th left>Team</Th>
-              <Th title="Transfers from last week's team">Transfers</Th>
-              <Th title="Total cost">Cost</Th>
-              <Th title="Expected change in team value after this race, $M">Value change</Th>
-              <Th title="Projected points after Boost and transfer penalties">Projected</Th>
-              {keepScore !== null ? <Th title="Gain over keeping last week's team">vs keeping</Th> : null}
+              {head("transfers", "Transfers", "Transfers from last week's team", "asc")}
+              {head("cost", "Cost", "Total cost, $M")}
+              {head("value", "Value change", "Expected change in team value after this race, $M")}
+              {head("score", "Projected", "Projected points after Boost and transfer penalties")}
+              {keepScore !== null ? head("change", "Points change", "Projected points minus keeping last week's team") : null}
             </tr>
           </thead>
           <tbody>
-            {teams.map((team, i) => {
+            {rows.map(({ team, rank }) => {
               const loaded = isLoaded(team);
               const constructors = [...team.constructors].sort(byPoints);
               const drivers = [...team.drivers].sort(byPoints);
@@ -58,7 +71,7 @@ export function BestTeams({ teams, savedIds, keepScore, isLoaded, assetOf, onLoa
               const key = [...team.drivers, ...team.constructors].join(",");
               return (
                 <tr key={key} tabIndex={0} onClick={() => onLoad(team)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onLoad(team)} aria-selected={loaded} className={"cursor-pointer border-t border-rule " + rowTone} title="Load into your lineup">
-                  <td className={"h-9 px-1.5 text-ink-3 " + (loaded ? "shadow-[inset_3px_0_0_var(--prob-4)]" : "")}>{i + 1}</td>
+                  <td className={"h-9 px-1.5 text-ink-3 " + (loaded ? "shadow-[inset_3px_0_0_var(--prob-4)]" : "")}>{rank}</td>
                   <td className="px-1.5">
                     <span className="flex items-center gap-[3px]">
                       {constructors.map(chip)}
@@ -80,9 +93,17 @@ export function BestTeams({ teams, savedIds, keepScore, isLoaded, assetOf, onLoa
           </tbody>
         </table>
       </div>
-      <Footnote>Click a row to load it into your lineup. Green: not in last week&apos;s team. x2: Boost.</Footnote>
+      <Footnote>Click a row to load it into your lineup, a column to sort. Green: not in last week&apos;s team. x2: Boost.</Footnote>
     </>
   );
+}
+
+function teamValue(team: TeamResult, rank: number, key: TeamSort): SortValue {
+  if (key === "rank") return rank;
+  if (key === "transfers") return team.transferCount;
+  if (key === "cost") return team.cost;
+  if (key === "value") return team.expectedValueChange;
+  return team.score;
 }
 
 // ---------------------------------------------------------------- Prices
@@ -107,20 +128,28 @@ export function PriceTables({ drivers, constructors, meta }: PriceTablesProps) {
   );
 }
 
+type PriceSort = "code" | "price" | "older" | "newer" | "points" | "rise" | "change";
+
 function PriceTable({ title, assets, meta }: { title: string; assets: AssetView[]; meta: PlannerMeta }) {
-  const sorted = [...assets].sort((a, b) => b.priceChange - a.priceChange);
+  const { sort, toggle } = useSort<PriceSort>("change", "desc");
   const [older, newer] = meta.recent.rounds;
+  const sorted = sortRows(assets, sort, (asset, key) => priceValue(asset, key, meta));
+  const head = (key: PriceSort, label: string, titleText?: string, firstDir: SortDir = "desc", align: "start" | "end" = "end") => (
+    <SortTh sortKey={key} sort={sort} onSort={toggle} firstDir={firstDir} align={align} title={titleText} className={TH_CLASS}>
+      {label}
+    </SortTh>
+  );
   return (
     <table className="w-full border-collapse text-table">
       <thead>
         <tr className="text-[0.6875rem] text-ink-3">
-          <Th left>{title}</Th>
-          <Th>Price</Th>
-          {older !== undefined ? <Th title={`Points in round ${older}`}>R{older}</Th> : null}
-          {newer !== undefined ? <Th title={`Points in round ${newer}`}>R{newer}</Th> : null}
-          <Th title="Projected points this race">Projected</Th>
-          <Th left title="Chance of each price move: red falls, green rises. Hover for numbers.">Price move odds</Th>
-          <Th title="Expected price change, $M">Expected</Th>
+          {head("code", title, undefined, "asc", "start")}
+          {head("price", "Price", "Price, $M")}
+          {older !== undefined ? head("older", `R${older}`, `Points in round ${older}`) : null}
+          {newer !== undefined ? head("newer", `R${newer}`, `Points in round ${newer}`) : null}
+          {head("points", "Projected", "Projected points this race")}
+          {head("rise", "Price move odds", "Chance of each price move: red falls, green rises. Sorts by the chance of a rise. Hover a bar for numbers.", "desc", "start")}
+          {head("change", "Expected", "Expected price change, $M")}
         </tr>
       </thead>
       <tbody>
@@ -145,6 +174,20 @@ function PriceTable({ title, assets, meta }: { title: string; assets: AssetView[
       </tbody>
     </table>
   );
+}
+
+function priceValue(asset: AssetView, key: PriceSort, meta: PlannerMeta): SortValue {
+  const recent = meta.recent.points[asset.id] ?? [];
+  if (key === "code") return asset.code;
+  if (key === "price") return asset.price;
+  if (key === "older") return recent[0];
+  if (key === "newer") return recent[1];
+  if (key === "points") return asset.points;
+  if (key === "rise") {
+    const odds = priceMoveOdds(asset.price, asset.probs);
+    return odds.smallRise + odds.bigRise;
+  }
+  return asset.priceChange;
 }
 
 function OddsBar({ asset }: { asset: AssetView }) {
@@ -265,6 +308,8 @@ function alignColumns(plan: TransferPlan, draft: Lineup): Lineup[] {
   }
   return columns;
 }
+
+const TH_CLASS = "px-1.5 pt-2.5 pb-1.5 font-[500]";
 
 function Th({ children, left = false, title, className = "" }: { children?: ReactNode; left?: boolean; title?: string; className?: string }) {
   const align = left ? "text-start" : "text-end";

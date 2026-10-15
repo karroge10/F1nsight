@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { combinations } from "@/lib/fantasy";
-import { bestTeam, DEFAULT_HINDSIGHT_RULES, hindsightInputs, hindsightSeason, type HindsightAsset } from "./hindsight";
+import { bestTeam, DEFAULT_HINDSIGHT_RULES, hindsightInputs, hindsightPath, hindsightSeason, STARTING_COST_CAP, type HindsightAsset } from "./hindsight";
 import type { FantasyRoundsFile } from "./thresholds";
 
 const NO_BUDGET = { ...DEFAULT_HINDSIGHT_RULES, budget: Number.POSITIVE_INFINITY };
@@ -82,12 +82,64 @@ describe("hindsight solver", () => {
         { round: 2, assets: assets.map((a) => ({ id: a.id, fantasyId: a.id, kind: a.kind, constructorId: null, price: a.price, points: null, active: true })) },
       ],
     };
-    const inputs = hindsightInputs(rounds, { 1: "Test GP" });
+    const inputs = hindsightInputs(rounds, { 1: { name: "Test GP", code: "TST", country: null } });
     const season = hindsightSeason(inputs, 100);
     expect(season).toHaveLength(1);
     expect(season[0].raceName).toBe("Test GP");
+    expect(inputs[0].raceCode).toBe("TST");
     expect(season[0].capped?.cost ?? 0).toBeLessThanOrEqual(100 + 1e-9);
     expect(season[0].capped?.score ?? 0).toBeLessThanOrEqual(season[0].free.score);
+  });
+
+  it("scores the x3 Boost as x3 on the top driver and x2 on the next", () => {
+    for (const seed of [1, 2, 3]) {
+      const assets = randomAssets(seed);
+      const best = bestTeam(assets, { ...NO_BUDGET, extraBoost: true });
+      const brute = bruteForce(assets, Number.POSITIVE_INFINITY, true);
+      expect(best?.score).toBeCloseTo(brute, 9);
+      expect(best?.extraBoost).not.toBeNull();
+      expect(best?.extraBoost).not.toBe(best?.boost);
+    }
+  });
+});
+
+describe("hindsight season path", () => {
+  const inputs = [1, 2, 3, 4].map((round) => {
+    const assets = randomAssets(round + 10).map((a, i) => ({ ...a, priceAfter: a.price + (i % 3) * 0.2 }));
+    return { round, raceName: `R${round}`, raceCode: `R${round}`, country: null, assets };
+  });
+
+  it("starts the budget at $100M and carries the held team's new prices", () => {
+    const path = hindsightPath(inputs, true);
+    expect(path[0].costCap).toBe(STARTING_COST_CAP);
+    for (let k = 1; k < path.length; k++) {
+      const previous = path[k - 1];
+      if (previous.chip === "limitless") {
+        expect(path[k].costCap).toBe(previous.costCap);
+        continue;
+      }
+      const assets = inputs[k - 1].assets;
+      const held = [...previous.team.drivers, ...previous.team.constructors];
+      const value = held.reduce((sum, id) => sum + (assets.find((a) => a.id === id)?.priceAfter ?? 0), 0);
+      expect(path[k].costCap ?? 0).toBeCloseTo((previous.left ?? 0) + value, 1);
+    }
+  });
+
+  it("plays x3 Boost and Limitless once each on different rounds with a budget", () => {
+    const path = hindsightPath(inputs, true);
+    const boosts = path.filter((r) => r.chip === "extraBoost");
+    const limitless = path.filter((r) => r.chip === "limitless");
+    expect(boosts).toHaveLength(1);
+    expect(limitless).toHaveLength(1);
+    expect(boosts[0].round).not.toBe(limitless[0].round);
+    expect(limitless[0].left).toBeNull();
+  });
+
+  it("plays only the x3 Boost without a budget", () => {
+    const path = hindsightPath(inputs, false);
+    expect(path.filter((r) => r.chip === "extraBoost")).toHaveLength(1);
+    expect(path.some((r) => r.chip === "limitless")).toBe(false);
+    expect(path.every((r) => r.costCap === null)).toBe(true);
   });
 });
 
@@ -103,7 +155,8 @@ function randomAssets(seed: number): HindsightAsset[] {
   return assets;
 }
 
-function bruteForce(assets: HindsightAsset[], budget: number): number {
+/** Every legal team and every Boost placement; with `extraBoost` one driver x3 and another x2. */
+function bruteForce(assets: HindsightAsset[], budget: number, extraBoost = false): number {
   const drivers = assets.filter((a) => a.kind === "driver");
   const constructors = assets.filter((a) => a.kind === "constructor");
   let best = Number.NEGATIVE_INFINITY;
@@ -113,7 +166,13 @@ function bruteForce(assets: HindsightAsset[], budget: number): number {
       const cost = all.reduce((s, a) => s + a.price, 0);
       if (cost > budget + 1e-9) continue;
       const base = all.reduce((s, a) => s + a.score, 0);
-      for (const boost of ds) best = Math.max(best, base + boost.score);
+      for (const boost of ds) {
+        if (!extraBoost) {
+          best = Math.max(best, base + boost.score);
+          continue;
+        }
+        for (const triple of ds) if (triple !== boost) best = Math.max(best, base + boost.score + 2 * triple.score);
+      }
     }
   }
   return best;

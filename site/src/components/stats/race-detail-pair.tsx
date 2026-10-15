@@ -4,6 +4,7 @@ import { SectionTitle } from "@/components/ui/section";
 import { PitStopsPanel, type PitStopRow } from "./pit-stops-table";
 import { DriverTag } from "./driver-tag";
 import { IconFastestLap } from "@/components/icons";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 
 // Holds the title row at the height of the pit stops sort switch on wide screens, so both
 // titles and both tables start level.
@@ -31,19 +32,16 @@ export function RaceDetailPair({ fastestLaps, pitStops, pitInfo, lookups, season
         <div className="flex min-h-0 flex-col">
           <SectionTitle title="Fastest laps" icon={IconFastestLap} aside={TITLE_SPACER} />
           <div className="scroll-x mt-3">
-            <table className="data-table min-w-[320px]">
-              <thead>
-                <tr>
-                  <th className="num w-10">Rank</th>
-                  <th>Driver</th>
-                  <th className="num hidden sm:table-cell">Lap</th>
-                  <th className="num">Time</th>
-                  <th className="num">Gap</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fastestLaps.map((r) => (
-                  <tr key={r.driverId}>
+            <SortableTable
+              className="data-table min-w-[320px]"
+              columns={FASTEST_COLUMNS}
+              initialKey="rank"
+              initialDir="asc"
+              rows={fastestLaps.map((r) => ({
+                key: r.driverId,
+                values: { rank: r.fastestLapRank, name: lookups.driverName(r.driverId), lap: r.fastestLapNumber, time: r.fastestLapMs },
+                row: (
+                  <tr>
                     <td className="num text-ink-2">{r.fastestLapRank}</td>
                     <td className="text-ink">
                       <DriverTag text={lookups.driverName(r.driverId)} team={teamOf(r.constructorId, lookups)} season={season} href={`/drivers/${r.driverId}`} />
@@ -52,9 +50,9 @@ export function RaceDetailPair({ fastestLaps, pitStops, pitInfo, lookups, season
                     <td className={"num " + (r.fastestLapRank === 1 ? "text-sector-purple" : "text-ink")}>{formatLapTime(r.fastestLapMs)}</td>
                     <td className="num text-ink-2">{r.fastestLapRank === 1 ? "" : formatGap((r.fastestLapMs ?? 0) - fastestMs)}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                ),
+              }))}
+            />
           </div>
         </div>
       ) : null}
@@ -66,6 +64,14 @@ export function RaceDetailPair({ fastestLaps, pitStops, pitInfo, lookups, season
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
+
+const FASTEST_COLUMNS: SortColumn[] = [
+  { key: "rank", label: "Rank", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Driver", firstDir: "asc" },
+  { key: "lap", label: "Lap", firstDir: "asc", className: "num hidden sm:table-cell" },
+  { key: "time", label: "Time", firstDir: "asc", className: "num" },
+  { label: "Gap", className: "num" },
+];
 
 function teamOf(constructorId: string, lookups: Lookups) {
   return { constructorId, name: lookups.teamName(constructorId), color: lookups.teamColor(constructorId) };

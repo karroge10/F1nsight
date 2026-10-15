@@ -4,6 +4,7 @@ import { formatGap, formatLapTime } from "@/lib/format";
 import { lapsCompleted, longRuns, partTime, qualifyingGroups } from "@/lib/session-report";
 import { DriverTag } from "./driver-tag";
 import { Figure } from "@/components/ui/figure";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 
 interface ReportTableProps {
   report: SessionReport;
@@ -15,25 +16,14 @@ export function PracticeTable({ report, lookups }: ReportTableProps) {
   const fastest = report.classification.find((r) => r.position === 1)?.bestLapMs ?? null;
   return (
     <div className="scroll-x">
-      <table className="data-table phone-tight sm:min-w-[560px]">
-        <thead>
-          <tr>
-            <th className="num w-10">Pos</th>
-            <th>Driver</th>
-            <th className="hidden md:table-cell">Team</th>
-            <th className="num">Best lap</th>
-            <th className="num">Gap</th>
-            <th className="num hidden sm:table-cell">On lap</th>
-            <th className="num">Tyre</th>
-            <th className="num">Laps run</th>
-          </tr>
-        </thead>
-        <tbody>
-          {report.classification.map((row) => {
+      <SortableTable className="data-table phone-tight sm:min-w-[560px]" columns={PRACTICE_COLUMNS} initialKey="pos" initialDir="asc"
+        rows={report.classification.map((row, i) => {
             const hasLap = row.bestLapMs !== null;
             const gap = hasLap && fastest !== null && row.position !== 1 ? formatGap((row.bestLapMs as number) - fastest) : "";
-            return (
-              <tr key={row.driverId} className={hasLap ? "" : "text-ink-3"}>
+            const laps = lapsCompleted(report, row.driverId);
+            const values = { pos: i, name: lookups.driverName(row.driverId), best: row.bestLapMs, laps };
+            const tr = (
+              <tr className={hasLap ? "" : "text-ink-3"}>
                 <td className="num text-ink-2">{row.positionText || "–"}</td>
                 <DriverCell driverId={row.driverId} lookups={lookups} constructorId={constructorOf(report, row.driverId)} season={report.season} />
                 <TeamCell constructorId={constructorOf(report, row.driverId)} lookups={lookups} />
@@ -43,12 +33,12 @@ export function PracticeTable({ report, lookups }: ReportTableProps) {
                 <td className="num">
                   <TyreChip compound={row.bestLapCompound} />
                 </td>
-                <td className="num text-ink-2">{lapsCompleted(report, row.driverId)}</td>
+                <td className="num text-ink-2">{laps}</td>
               </tr>
             );
+            return { key: row.driverId, values, row: tr };
           })}
-        </tbody>
-      </table>
+      />
     </div>
   );
 }
@@ -89,20 +79,12 @@ export function LongRunsTable({ report, lookups }: ReportTableProps) {
   const fastest = runs[0].averageMs;
   return (
     <div className="scroll-x">
-      <table className="data-table sm:min-w-[420px]">
-        <thead>
-          <tr>
-            <th>Driver</th>
-            <th className="num">Tyre</th>
-            <th className="num">Laps</th>
-            <th className="num">Average</th>
-            <th className="num">Gap</th>
-            <th className="num hidden sm:table-cell">Best</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((run, i) => (
-            <tr key={`${run.driverId}-${i}`}>
+      <SortableTable className="data-table sm:min-w-[420px]" columns={LONG_RUN_COLUMNS} initialKey="average" initialDir="asc"
+        rows={runs.map((run, i) => ({
+          key: `${run.driverId}-${i}`,
+          values: { name: lookups.driverName(run.driverId), laps: run.laps, average: run.averageMs, best: run.bestMs },
+          row: (
+            <tr>
               <DriverCell driverId={run.driverId} lookups={lookups} constructorId={constructorOf(report, run.driverId)} season={report.season} />
               <td className="num">
                 <TyreChip compound={run.compound} />
@@ -112,9 +94,9 @@ export function LongRunsTable({ report, lookups }: ReportTableProps) {
               <td className="num text-ink-2">{i === 0 ? "" : formatGap(run.averageMs - fastest)}</td>
               <td className="num hidden text-ink-3 sm:table-cell">{formatLapTime(run.bestMs)}</td>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          ),
+        }))}
+      />
     </div>
   );
 }
@@ -199,6 +181,26 @@ export function TyreChip({ compound }: { compound: string | null }) {
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
+
+const PRACTICE_COLUMNS: SortColumn[] = [
+  { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+  { key: "name", label: "Driver", firstDir: "asc" },
+  { label: "Team", className: "hidden md:table-cell" },
+  { key: "best", label: "Best lap", firstDir: "asc", className: "num" },
+  { label: "Gap", className: "num" },
+  { label: "On lap", className: "num hidden sm:table-cell" },
+  { label: "Tyre", className: "num" },
+  { key: "laps", label: "Laps run", className: "num" },
+];
+
+const LONG_RUN_COLUMNS: SortColumn[] = [
+  { key: "name", label: "Driver", firstDir: "asc" },
+  { label: "Tyre", className: "num" },
+  { key: "laps", label: "Laps", className: "num" },
+  { key: "average", label: "Average", firstDir: "asc", className: "num" },
+  { label: "Gap", className: "num" },
+  { key: "best", label: "Best", firstDir: "asc", className: "num hidden sm:table-cell" },
+];
 
 interface GroupRowsProps {
   group: ReturnType<typeof qualifyingGroups>[number];

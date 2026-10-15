@@ -3,6 +3,7 @@ import type { Lookups, ResultRow } from "@/lib/data";
 import { formatGap, formatLapTime, formatPoints, formatRaceTime, positionLabel } from "@/lib/format";
 import type { RaceAnalysis } from "@/lib/race-analysis";
 import { TeamName } from "@/components/ui/team-name";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { DriverTag } from "./driver-tag";
 
 interface WeekendResultsTableProps {
@@ -25,31 +26,18 @@ export function WeekendResultsTable({ results, analysis, lookups, season, compac
   const rowsById = new Map((analysis?.rows ?? []).map((r) => [r.driverId, r]));
   const showOvertakes = analysis !== null && analysis.overtakesTotal !== null;
   const showStops = analysis !== null && analysis.rows.some((r) => r.pitStops > 0);
+  const columns = weekendColumns(showOvertakes, showStops, showFastest);
   return (
     <div className="scroll-x">
-      <table className="data-table sm:min-w-[560px]">
-        <thead>
-          <tr>
-            <th className="num w-10">Pos</th>
-            <th>Driver</th>
-            <th className="hidden md:table-cell">Team</th>
-            <th className="num">Grid</th>
-            <th className="num hidden sm:table-cell">Laps</th>
-            <th className="num">Time / status</th>
-            <th className="num">Pts</th>
-            {showOvertakes ? <th className="num hidden sm:table-cell">Overtakes</th> : null}
-            {showStops ? <th className="num hidden sm:table-cell">Stops</th> : null}
-            {showFastest ? <th className="num hidden lg:table-cell">Fastest lap</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {results.map((row, i) => {
+      <SortableTable className="data-table sm:min-w-[560px]" columns={columns} initialKey="pos" initialDir="asc"
+        rows={results.map((row, i) => {
             const extra = rowsById.get(row.driverId) ?? null;
             const team = { constructorId: row.constructorId, name: lookups.teamName(row.constructorId), color: lookups.teamColor(row.constructorId) };
             const time = timeText(row, winnerTime);
             const gained = row.grid && row.position ? row.grid - row.position : null;
-            return (
-              <tr key={`${row.driverId}-${row.number ?? i}`} className={row.classified ? "" : "text-ink-3"}>
+            const values = { pos: i, name: lookups.driverName(row.driverId), grid: row.grid === 0 ? 100 : row.grid, laps: row.laps, points: row.points, overtakes: extra?.overtakes, stops: extra?.pitStops, fastest: row.fastestLapMs || null };
+            const tr = (
+              <tr className={row.classified ? "" : "text-ink-3"}>
                 <td className="num text-ink-2">{positionLabel(row.positionText)}</td>
                 <td>
                   {/* below md the team column is hidden, so the logo stays in front of the name; on phones the code stands in for the name */}
@@ -77,9 +65,9 @@ export function WeekendResultsTable({ results, analysis, lookups, season, compac
                 ) : null}
               </tr>
             );
+            return { key: `${row.driverId}-${row.number ?? i}`, values, row: tr };
           })}
-        </tbody>
-      </table>
+      />
     </div>
   );
 }
@@ -87,6 +75,22 @@ export function WeekendResultsTable({ results, analysis, lookups, season, compac
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
+
+function weekendColumns(showOvertakes: boolean, showStops: boolean, showFastest: boolean): SortColumn[] {
+  const columns: SortColumn[] = [
+    { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+    { key: "name", label: "Driver", firstDir: "asc" },
+    { label: "Team", className: "hidden md:table-cell" },
+    { key: "grid", label: "Grid", firstDir: "asc", className: "num" },
+    { key: "laps", label: "Laps", className: "num hidden sm:table-cell" },
+    { label: "Time / status", className: "num" },
+    { key: "points", label: "Pts", className: "num" },
+  ];
+  if (showOvertakes) columns.push({ key: "overtakes", label: "Overtakes", className: "num hidden sm:table-cell" });
+  if (showStops) columns.push({ key: "stops", label: "Stops", className: "num hidden sm:table-cell" });
+  if (showFastest) columns.push({ key: "fastest", label: "Fastest lap", firstDir: "asc", className: "num hidden lg:table-cell" });
+  return columns;
+}
 
 /** The winner's race time, everyone else's gap to it, or the status for the lapped and retired. */
 function timeText(row: ResultRow, winnerTime: number | null): string {

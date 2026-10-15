@@ -43,8 +43,9 @@ export type AssetLookup = (id: string) => AssetView | undefined;
 /** Code with the team colour line; green tint when new against last week, Boost badge when boosted. */
 export function CodeChip({ asset, changed = false, multiplier = 1 }: { asset: AssetView; changed?: boolean; multiplier?: number }) {
   const tint = changed ? "bg-[color-mix(in_oklch,var(--delta-up)_14%,transparent)] shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--delta-up)_45%,transparent)]" : "bg-bg-raised";
+  const title = `${asset.code}: ${fixed1(asset.points)} pts, ${money(asset.price)}, price ${signed(asset.priceChange, 2)}M`;
   return (
-    <span className={"inline-flex h-6 items-center gap-1.5 rounded-control ps-1.5 pe-2 text-caption font-[650] text-ink " + tint}>
+    <span title={title} className={"inline-flex h-6 items-center gap-1.5 rounded-control ps-1.5 pe-2 text-caption font-[650] text-ink " + tint}>
       <TeamLine color={asset.color} className="h-3.5" />
       {asset.code}
       {multiplier > 1 ? <BoostBadge multiplier={multiplier} small /> : null}

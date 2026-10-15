@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { SectionTitle } from "@/components/ui/section";
 import { DriverTag, type DriverTeam } from "./driver-tag";
 import { IconPitBox } from "@/components/icons";
+import { SortTh, sortRows, useSort, type SortValue } from "@/components/ui/sortable";
 
 /** One pit stop with the driver already resolved, so the table needs no lookups on the client. */
 export interface PitStopRow {
@@ -17,6 +18,9 @@ export interface PitStopRow {
 }
 
 export type PitSort = "fastest" | "lap" | "driver";
+
+/** Header columns; a header click reorders on top of the control's order until the control changes. */
+type PitColumn = "lap" | "driver" | "stop" | "time";
 
 const SORTS: { key: PitSort; label: string }[] = [
   { key: "lap", label: "By lap" },
@@ -56,7 +60,7 @@ export function PitStopsPanel({ pitStops, info, initialSort = "lap", fill = fals
       <SectionTitle title="Pit stops" icon={IconPitBox} info={info} aside={control} />
       <div className={"mt-3 min-h-0 flex-1" + (fill ? " table-fill" : "")}>
         <div className="scroll-x table-scroll">
-          <PitStopsTable pitStops={pitStops} sort={sort} season={season} />
+          <PitStopsTable key={sort} pitStops={pitStops} sort={sort} season={season} />
         </div>
       </div>
     </div>
@@ -67,15 +71,25 @@ export function PitStopsPanel({ pitStops, info, initialSort = "lap", fill = fals
 export function PitStopsTable({ pitStops, sort, season = null }: { pitStops: PitStopRow[]; sort: PitSort; season?: number | null }) {
   const normal = pitStops.filter((p) => p.durationMs !== null && p.durationMs < STOPPAGE_MS);
   const fastest = normal.length ? Math.min(...normal.map((p) => p.durationMs as number)) : null;
-  const sorted = useMemo(() => sortStops(pitStops, sort), [pitStops, sort]);
+  const base = useMemo(() => sortStops(pitStops, sort), [pitStops, sort]);
+  const { sort: column, toggle } = useSort<PitColumn>(null);
+  const sorted = sortRows(base, column, pitValue);
   return (
     <table className="data-table sm:min-w-[360px]">
       <thead>
         <tr>
-          <th className="num w-10">Lap</th>
-          <th>Driver</th>
-          <th className="num">Stop</th>
-          <th className="num">Pit lane time</th>
+          <SortTh sortKey="lap" sort={column} onSort={toggle} firstDir="asc" className="num w-10">
+            Lap
+          </SortTh>
+          <SortTh sortKey="driver" sort={column} onSort={toggle} firstDir="asc" align="start">
+            Driver
+          </SortTh>
+          <SortTh sortKey="stop" sort={column} onSort={toggle} className="num">
+            Stop
+          </SortTh>
+          <SortTh sortKey="time" sort={column} onSort={toggle} firstDir="asc" className="num">
+            Pit lane time
+          </SortTh>
         </tr>
       </thead>
       <tbody>
@@ -120,6 +134,13 @@ function sortStops(stops: PitStopRow[], sort: PitSort): PitStopRow[] {
     list.sort((a, b) => (a.lap ?? 0) - (b.lap ?? 0) || a.stop - b.stop);
   }
   return list;
+}
+
+function pitValue(stop: PitStopRow, key: PitColumn): SortValue {
+  if (key === "lap") return stop.lap;
+  if (key === "driver") return stop.name;
+  if (key === "stop") return stop.stop;
+  return stop.durationMs;
 }
 
 /** Sort key for the fastest-first order: unknown times go last, stoppages before them. */

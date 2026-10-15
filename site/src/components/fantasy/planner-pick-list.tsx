@@ -7,6 +7,7 @@
 
 import type { ReactNode } from "react";
 import { IconExclude, IconLock } from "@/components/icons";
+import { SortTh, sortRows, useSort, type SortValue } from "@/components/ui/sortable";
 import { CodeCell, fixed1, money, signed, tone, type AssetLookup, type AssetView } from "@/components/fantasy/planner-parts";
 import type { SlotKind, SlotRef } from "@/components/fantasy/planner-lineup";
 import type { Lineup } from "@/lib/fantasy/lineup";
@@ -39,7 +40,9 @@ export function PickList(props: PickListProps) {
   const targetAsset = target ? assetOf(target) : undefined;
   const room = slots.some((id) => id === null);
   const inLineup = new Set([...draft.drivers, ...draft.constructors]);
-  const rows = assets.filter((a) => a.kind === kind).sort((a, b) => b.points - a.points);
+  const { sort, toggle } = useSort<PickSort>("points", "desc");
+  const ofKind = assets.filter((a) => a.kind === kind);
+  const rows = sortRows(ofKind, sort, pickValue);
   const settings = locked.length + banned.length;
 
   const action = (asset: AssetView) => {
@@ -90,12 +93,18 @@ export function PickList(props: PickListProps) {
         </colgroup>
         <thead>
           <tr className="text-[0.6875rem] text-ink-3">
-            <th scope="col" className="pt-1 pb-1 ps-1 text-start font-[500]">
+            <SortTh sortKey="code" sort={sort} onSort={toggle} firstDir="asc" align="start" title={kind === "driver" ? "Driver" : "Constructor"} className="pt-1 pb-1 ps-1 font-[500]">
               <span className="sr-only">{kind === "driver" ? "Driver" : "Constructor"}</span>
-            </th>
-            <th scope="col" title="Price, $M" className="cursor-help px-1 pt-1 pb-1 text-end font-[500]">Price</th>
-            <th scope="col" title="Projected points this race" className="cursor-help px-1 pt-1 pb-1 text-end font-[500]">Proj</th>
-            <th scope="col" title="Expected price change after this race, $M" className="cursor-help px-1 pt-1 pb-1 text-end font-[500]">Price chg</th>
+            </SortTh>
+            <SortTh sortKey="price" sort={sort} onSort={toggle} title="Price, $M" className="px-1 pt-1 pb-1 font-[500]">
+              Price
+            </SortTh>
+            <SortTh sortKey="points" sort={sort} onSort={toggle} title="Projected points this race" className="px-1 pt-1 pb-1 font-[500]">
+              Proj
+            </SortTh>
+            <SortTh sortKey="change" sort={sort} onSort={toggle} title="Expected price change after this race, $M" className="px-1 pt-1 pb-1 font-[500]">
+              Price chg
+            </SortTh>
             <th scope="col" title="For the optimiser: always pick or never pick" className="cursor-help px-1 pt-1 pb-1 text-center font-[500]">Optimiser</th>
             <th scope="col" className="pt-1 pb-1">
               <span className="sr-only">Action</span>
@@ -139,6 +148,15 @@ export function PickList(props: PickListProps) {
       ) : null}
     </div>
   );
+}
+
+type PickSort = "code" | "price" | "points" | "change";
+
+function pickValue(asset: AssetView, key: PickSort): SortValue {
+  if (key === "code") return asset.code;
+  if (key === "price") return asset.price;
+  if (key === "points") return asset.points;
+  return asset.priceChange;
 }
 
 function ActionButton({ label, title, onClick, disabled = false, outline = false }: { label: string; title: string; onClick?: () => void; disabled?: boolean; outline?: boolean }) {

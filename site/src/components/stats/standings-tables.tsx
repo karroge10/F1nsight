@@ -4,6 +4,7 @@ import { formatPoints } from "@/lib/format";
 import { IconArrowDown, IconArrowUp, IconMinus } from "@/components/icons";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamNames } from "@/components/ui/team-name";
+import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 
 interface StandingsTablesProps {
   standings: SeasonStandings;
@@ -16,27 +17,16 @@ export function DriverStandingsTable({ standings, lookups, limit }: StandingsTab
   const leaderPoints = rows[0]?.points ?? 0;
   return (
     <div className="scroll-x">
-      <table className="data-table sm:min-w-[420px]">
-        <thead>
-          <tr>
-            <th className="num w-10">Pos</th>
-            <th className="w-6" aria-label="Change since last round" />
-            <th>Driver</th>
-            <th className="hidden sm:table-cell">Team</th>
-            <th className="num">Points</th>
-            <th className="num hidden md:table-cell">Gap</th>
-            <th className="num">Wins</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
+      <SortableTable className="data-table sm:min-w-[420px]" columns={DRIVER_COLUMNS} initialKey="pos" initialDir="asc"
+        rows={rows.map((row) => {
             const teamId = row.constructorIds?.[row.constructorIds.length - 1] ?? "";
             const teams = (row.constructorIds ?? []).map((id) => ({ constructorId: id, name: lookups.teamName(id), color: lookups.teamColor(id) }));
             const gap = leaderPoints - row.points;
             const pointsText = formatPoints(row.points);
             const gapText = gap === 0 ? "" : `−${formatPoints(gap)}`;
-            return (
-              <tr key={row.id}>
+            const values = { pos: row.position, name: lookups.driverName(row.id), points: row.points, gap, wins: row.wins };
+            const tr = (
+              <tr>
                 <td className="num text-ink-2">{row.position ?? ""}</td>
                 <td className="!px-0">
                   <Movement row={row} />
@@ -56,9 +46,9 @@ export function DriverStandingsTable({ standings, lookups, limit }: StandingsTab
                 <td className="num text-ink-2">{row.wins}</td>
               </tr>
             );
+            return { key: row.id, values, row: tr };
           })}
-        </tbody>
-      </table>
+      />
     </div>
   );
 }
@@ -68,24 +58,14 @@ export function ConstructorStandingsTable({ standings, lookups, limit }: Standin
   const leaderPoints = rows[0]?.points ?? 0;
   return (
     <div className="scroll-x">
-      <table className="data-table sm:min-w-[360px]">
-        <thead>
-          <tr>
-            <th className="num w-10">Pos</th>
-            <th className="w-6" aria-label="Change since last round" />
-            <th>Constructor</th>
-            <th className="num">Points</th>
-            <th className="num hidden md:table-cell">Gap</th>
-            <th className="num">Wins</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
+      <SortableTable className="data-table sm:min-w-[360px]" columns={CONSTRUCTOR_COLUMNS} initialKey="pos" initialDir="asc"
+        rows={rows.map((row) => {
             const gap = leaderPoints - row.points;
             const pointsText = formatPoints(row.points);
             const gapText = gap === 0 ? "" : `−${formatPoints(gap)}`;
-            return (
-              <tr key={row.id}>
+            const values = { pos: row.position, name: lookups.teamName(row.id), points: row.points, gap, wins: row.wins };
+            const tr = (
+              <tr>
                 <td className="num text-ink-2">{row.position ?? ""}</td>
                 <td className="!px-0">
                   <Movement row={row} />
@@ -101,12 +81,31 @@ export function ConstructorStandingsTable({ standings, lookups, limit }: Standin
                 <td className="num text-ink-2">{row.wins}</td>
               </tr>
             );
+            return { key: row.id, values, row: tr };
           })}
-        </tbody>
-      </table>
+      />
     </div>
   );
 }
+
+const DRIVER_COLUMNS: SortColumn[] = [
+  { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+  { label: "", className: "w-6", ariaLabel: "Change since last round" },
+  { key: "name", label: "Driver", firstDir: "asc" },
+  { label: "Team", className: "hidden sm:table-cell" },
+  { key: "points", label: "Points", className: "num" },
+  { key: "gap", label: "Gap", firstDir: "asc", className: "num hidden md:table-cell" },
+  { key: "wins", label: "Wins", className: "num" },
+];
+
+const CONSTRUCTOR_COLUMNS: SortColumn[] = [
+  { key: "pos", label: "Pos", firstDir: "asc", className: "num w-10" },
+  { label: "", className: "w-6", ariaLabel: "Change since last round" },
+  { key: "name", label: "Constructor", firstDir: "asc" },
+  { key: "points", label: "Points", className: "num" },
+  { key: "gap", label: "Gap", firstDir: "asc", className: "num hidden md:table-cell" },
+  { key: "wins", label: "Wins", className: "num" },
+];
 
 /** Position change against the previous round: up, down or level. */
 function Movement({ row }: { row: SeasonStandings["drivers"]["list"][number] }) {

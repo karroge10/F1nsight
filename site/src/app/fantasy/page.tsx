@@ -8,7 +8,7 @@ import { FantasyViews } from "@/components/fantasy/fantasy-views";
 import { FantasyPlanner } from "@/components/fantasy/fantasy-planner";
 import { BacktestView } from "@/components/fantasy/backtest-view";
 import { HindsightView } from "@/components/fantasy/hindsight-view";
-import { buildHindsightLabels } from "@/components/fantasy/hindsight-labels";
+import { buildHindsightLabels, buildRaceLabels } from "@/components/fantasy/hindsight-labels";
 import type { PlannerMeta, PlannerRace } from "@/components/fantasy/planner-parts";
 
 export const metadata: Metadata = {
@@ -50,8 +50,8 @@ async function hindsightPanel(rounds: NonNullable<RoundsData>, plannerSeason: nu
   const sameSeason = rounds.season === plannerSeason;
   const calendar = sameSeason ? plannerCalendar : await getCalendar(rounds.season);
   const entries = sameSeason ? plannerEntries : await getEntryList(rounds.season);
-  const raceNames = Object.fromEntries(calendar.map((race) => [race.round, race.raceName]));
-  const inputs = hindsightInputs(rounds, raceNames);
+  const races = buildRaceLabels(calendar);
+  const inputs = hindsightInputs(rounds, races);
   const labels = buildHindsightLabels(entries, constructorCode);
   return <HindsightView season={rounds.season} inputs={inputs} labels={labels} />;
 }
