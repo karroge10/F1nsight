@@ -38,6 +38,8 @@ export interface OptimiseOptions {
   pointsPerMillion?: number;
   /** Search time limit in ms (default 150). When hit, the best teams found so far are returned with exact = false. */
   maxMs?: number;
+  /** Only teams with exactly this many net transfers from the current team (ignored for a new team). */
+  exactTransfers?: number;
 }
 
 export const DEFAULT_MAX_MS = 150;
@@ -228,6 +230,8 @@ interface Search {
   owned: Uint8Array;
   freeTransfers: number;
   penaltyFree: boolean;
+  /** Required net transfer count, or -1 for any. */
+  exactTransfers: number;
   lockedDrivers: number[];
   candidates: number[];
   pairs: Pair[];
@@ -336,6 +340,7 @@ function buildSearch(market: Market, state: UserState, options: OptimiseOptions,
     owned,
     freeTransfers,
     penaltyFree,
+    exactTransfers: team && options.exactTransfers !== undefined ? options.exactTransfers : -1,
     lockedDrivers,
     candidates,
     pairs,
@@ -615,6 +620,8 @@ function runSearch(s: Search): Leaf[] {
       if (bound - minPenalty <= threshold(s)) return;
       if (cost + minCost[j][left] + minPairCost > s.budgetT) return;
       const d = cand[j];
+      const nextTransfers = transfers + (s.owned[d] ? 0 : 1);
+      if (s.exactTransfers >= 0 && nextTransfers > s.exactTransfers) continue;
       const nextCost = cost + s.costT[d];
       if (nextCost + minCost[j + 1][left - 1] + minPairCost > s.budgetT) continue;
       const next = base + K;
@@ -625,7 +632,7 @@ function runSearch(s: Search): Leaf[] {
         mb2[next + k] = Math.max(mb2[base + k], b.uBoost2[d]);
       }
       chosen.push(d);
-      visit(j + 1, left - 1, depth + 1, nextCost, transfers + (s.owned[d] ? 0 : 1));
+      visit(j + 1, left - 1, depth + 1, nextCost, nextTransfers);
       chosen.pop();
       if (s.timedOut) return;
     }
@@ -652,6 +659,7 @@ function evaluatePairs(
     const primary = leafBound[0] + pairU[0][p];
     if (primary - minPenalty <= threshold(s)) break;
     if (pair.cost > remaining) continue;
+    if (s.exactTransfers >= 0 && transfers + pair.transfers !== s.exactTransfers) continue;
     const penalty = penaltyOf(s, transfers + pair.transfers);
     let optimistic = primary;
     for (let k = 1; k < K; k++) optimistic = Math.min(optimistic, leafBound[k] + pairU[k][p]);
@@ -1161,6 +1169,7 @@ function seedTeam(s: Search, leaf: LeafEvaluator, team: TeamResult): void {
     transfers += s.owned[d] ? 0 : 1;
   }
   if (cost > s.budgetT) return;
+  if (s.exactTransfers >= 0 && transfers !== s.exactTransfers) return;
   leaf.reset(drivers);
   const value = leaf.evaluate(pair, Number.NEGATIVE_INFINITY);
   const penalty = penaltyOf(s, transfers);

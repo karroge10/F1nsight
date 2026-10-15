@@ -119,6 +119,8 @@ export {
 export type { OptimiseOptions } from "./optimiser";
 export { planRounds, planTransfers, preparePlan, solvePlan } from "./planner";
 export type { PlanOptions, PreparedPlan } from "./planner";
+export { plannerBoard } from "./board";
+export type { BoardOptions, PlannerBoard } from "./board";
 export { adviseChips, finalFixValue } from "./chips";
 export type { ChipOptions } from "./chips";
 export { explainTeam, explainTransfers } from "./explain";

@@ -80,8 +80,9 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
     if extras is not None and season >= 2023:
         abs_change = float(frame["c_abs_change"].iloc[0])
         entrants = frame[["driverId", "constructorId"]]
-        fantasy_sims = fantasy.score_weekend(weekend, entrants, season, extras, abs_change,
-                                             seed=seed)
+        fantasy_weekend = fantasy_simulation(inputs, weekend, season, sims, seed)
+        fantasy_sims = fantasy.score_weekend(fantasy_weekend, entrants, season, extras,
+                                             abs_change, seed=seed)
     forecast = RaceForecast(int(frame["raceId"].iloc[0]), stage, used, frame, prediction,
                             weekend, summary, fantasy_sims)
     forecast.grid_penalties = {"race": inputs.race_penalties, "sprint": inputs.sprint_penalties,
@@ -91,6 +92,17 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
         forecast.championship = championship(bundle, history, frame, weekend, standings,
                                              sims=sims, seed=seed)
     return forecast
+
+
+def fantasy_simulation(inputs: simulate.WeekendInputs, weekend: simulate.WeekendSims,
+                       season: int, sims: int, seed: int) -> simulate.WeekendSims:
+    """The worlds the fantasy points are scored on: the race forecast's own worlds, or a
+    sharper re-simulation of the same inputs (`fantasy.strength_sharpness`)."""
+    sharpness = fantasy.strength_sharpness(season)
+    if sharpness == 1.0:
+        return weekend
+    sharpened = fantasy.sharpened_inputs(inputs, sharpness)
+    return simulate.simulate_weekend(sharpened, sims=sims, seed=seed)
 
 
 def fit_to_market(inputs: simulate.WeekendInputs, stage: str, market_win: np.ndarray,

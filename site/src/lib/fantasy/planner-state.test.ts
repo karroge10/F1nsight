@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodePlannerState, defaultPlannerState, dropInvalidPicks, encodePlannerState, isTeamComplete, normalizeConstraints, toggleBanned, toggleLocked } from "./planner-state";
+import { addTeam, decodePlannerState, decodeTeamQuery, defaultPlannerState, defaultPlannerTeams, dropInvalidPicks, emptyTeam, encodePlannerState, encodeTeamQuery, isTeamComplete, MAX_TEAMS, mergeSharedTeam, normalizeConstraints, sanitizeTeams, teamsFromLegacy, toggleBanned, toggleLocked, type SavedTeam } from "./planner-state";
 
 describe("planner state codec", () => {
   it("round-trips a full state through the query string", () => {
@@ -8,7 +8,6 @@ describe("planner state codec", () => {
       drivers: ["max_verstappen", "hamilton", "antonelli", "lawson", "bearman"],
       constructors: ["mercedes", "haas"],
       bank: 2.5,
-      freeTransfers: 3,
       chipsAvailable: ["wildcard" as const, "autopilot" as const],
       chipToPlay: "wildcard" as const,
       risk: "safe" as const,
@@ -27,7 +26,6 @@ describe("planner state codec", () => {
     const decoded = decodePlannerState("?d=ver,,,,&c=,&ft=99&play=nonsense&risk=wild");
     expect(decoded.drivers).toEqual(["ver", null, null, null, null]);
     expect(decoded.constructors).toEqual([null, null]);
-    expect(decoded.freeTransfers).toBe(3);
     expect(decoded.chipToPlay).toBeNull();
     expect(decoded.risk).toBe("expected");
     expect(isTeamComplete(decoded)).toBe(false);
@@ -88,5 +86,60 @@ describe("optimiser locks and excludes", () => {
     expect(query).toContain("lock=d1%2Cc1");
     const decoded = decodePlannerState(query);
     expect(normalizeConstraints(decoded, assets)).toEqual(state);
+  });
+});
+
+describe("saved teams", () => {
+  const team: SavedTeam = { drivers: ["norris", "lawson", "bearman", "hulkenberg", "albon"], constructors: ["mclaren", "audi"], bank: 1.2 };
+
+  it("adds empty teams up to the game's limit of three", () => {
+    let state = defaultPlannerTeams();
+    for (let i = 0; i < 5; i++) state = addTeam(state);
+    expect(state.teams).toHaveLength(MAX_TEAMS);
+    expect(state.active).toBe(MAX_TEAMS - 1);
+    expect(state.teams[2]).toEqual(emptyTeam());
+  });
+
+  it("round-trips a team through the share link", () => {
+    const params = encodeTeamQuery(team);
+    const query = params.toString();
+    expect(decodeTeamQuery(query)).toEqual(team);
+    expect(encodeTeamQuery(emptyTeam()).toString()).toBe("");
+    expect(decodeTeamQuery("?view=backtest")).toBeNull();
+  });
+
+  it("merges a shared team: selects a match, fills an empty team, then adds", () => {
+    const start = defaultPlannerTeams();
+    const filled = mergeSharedTeam(start, team);
+    expect(filled.teams).toHaveLength(1);
+    expect(filled.teams[0]).toEqual(team);
+    const again = mergeSharedTeam({ ...filled, active: 0 }, { ...team, drivers: [...team.drivers].reverse() });
+    expect(again.teams).toHaveLength(1);
+    const other: SavedTeam = { ...team, constructors: ["ferrari", "audi"] };
+    const added = mergeSharedTeam(filled, other);
+    expect(added.teams).toHaveLength(2);
+    expect(added.active).toBe(1);
+  });
+
+  it("migrates the old single-team save, turning its Cost Cap into the bank", () => {
+    const legacy = { ...defaultPlannerState(), drivers: team.drivers, constructors: team.constructors, costCap: 104.3, locked: ["norris"] };
+    const migrated = teamsFromLegacy(legacy, () => 14.6);
+    expect(migrated.teams[0].bank).toBeCloseTo(2.1, 6);
+    expect(migrated.locked).toEqual(["norris"]);
+    const empty = teamsFromLegacy(defaultPlannerState(), () => 10);
+    expect(empty.teams[0].bank).toBe(100);
+  });
+
+  it("drops unknown and repeated picks and keeps the active index in range", () => {
+    const assets = [
+      { id: "norris", kind: "driver" as const },
+      { id: "mclaren", kind: "constructor" as const },
+    ];
+    const state = { teams: [{ ...team, drivers: ["norris", "norris", "nobody", null, null] }], active: 4, locked: ["ghost", "norris"], banned: [] };
+    const clean = sanitizeTeams(state, assets);
+    expect(clean.teams[0].drivers).toEqual(["norris", null, null, null, null]);
+    expect(clean.teams[0].constructors).toEqual(["mclaren", null]);
+    expect(clean.active).toBe(0);
+    expect(clean.locked).toEqual(["norris"]);
   });
 });

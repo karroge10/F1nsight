@@ -46,6 +46,28 @@ describe("optimiser: optimal vs brute force on small markets", () => {
   }
 });
 
+describe("optimiser: exact transfer count", () => {
+  const market = prepareMarket(randomFantasyFile({ seed: 3, teams: 5, scenarios: 300 }));
+  const team = { drivers: ["d0_0", "d2_1", "d3_0", "d4_0", "d4_1"], constructors: ["team3", "team4"] };
+  const state: UserState = { team, bank: 2, freeTransfers: 2, objective: { kind: "expected" } };
+  const every = optimiseTeam(market, state, { topN: 5000, maxMs: Number.POSITIVE_INFINITY });
+
+  for (const count of [0, 1, 2, 3, 4]) {
+    it(`returns the top teams with exactly ${count} transfers`, () => {
+      const result = optimiseTeam(market, state, { topN: 4, exactTransfers: count, maxMs: Number.POSITIVE_INFINITY });
+      const reference = every.alternatives.filter((t) => t.transferCount === count).slice(0, 4);
+      expect(result.alternatives.length).toBe(reference.length);
+      for (const t of result.alternatives) expect(t.transferCount).toBe(count);
+      result.alternatives.forEach((t, i) => expect(t.score).toBeCloseTo(reference[i].score, 6));
+    });
+  }
+
+  it("ignores the transfer count for a new team", () => {
+    const fresh = optimiseTeam(market, { team: null }, { topN: 3, exactTransfers: 1 });
+    expect(fresh.alternatives.length).toBe(3);
+  });
+});
+
 describe("optimiser: constraints", () => {
   const file = randomFantasyFile({ seed: 5, teams: 11, scenarios: 500 });
   const market = prepareMarket(file);

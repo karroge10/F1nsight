@@ -1,7 +1,7 @@
 // Backtest of the advice on recorded seasons: real prices going into every round, real points
 // and real price changes afterwards. Each strategy starts from an empty team with the 100M cap
-// and plays the season with the real transfer rules (2 free transfers, one carried over, -10
-// per extra transfer). Chips are not played, so every strategy is on the same footing.
+// and plays the season with 2 free transfers every race, none carried over, and -10 per extra
+// transfer (applied to every season). Chips are not played, so every strategy is on the same footing.
 //
 // Strategies: the engine (one race at a time), the engine with the 3-race planner, a naive
 // "points per million" heuristic, and keeping the first team all season. The hindsight team
@@ -226,7 +226,7 @@ function playSeason(name: string, contexts: RoundContext[], strategy: Strategy):
   let transfers = 0;
   let penalties = 0;
   for (const context of contexts) {
-    const priceNow = new Map(context.rows.map((r) => [r.id, r.price]));
+    const priceNow = priceMap(context.rows, (r) => r.price);
     const kept = keepKnown(state, priceNow);
     const budget = kept.team ? teamValue(kept.team, priceNow) + kept.bank : 100;
     budgets.push(budget);
@@ -243,10 +243,10 @@ function playSeason(name: string, contexts: RoundContext[], strategy: Strategy):
     state.team = decision.team;
     state.bank = budget - cost;
     state.freeTransfers = owned ? nextFreeTransfers(context.rules, kept.freeTransfers, changes, null) : context.rules.freeTransfersPerRace;
-    state.lastPrices = new Map(context.rows.map((r) => [r.id, r.priceAfter ?? r.price]));
+    state.lastPrices = priceMap(context.rows, (r) => r.priceAfter ?? r.price);
   }
   const last = contexts[contexts.length - 1];
-  const finalPrices = last ? new Map(last.rows.map((r) => [r.id, r.priceAfter ?? r.price])) : new Map<string, number>();
+  const finalPrices = last ? priceMap(last.rows, (r) => r.priceAfter ?? r.price) : new Map<string, number>();
   const finalTeamValue = state.team ? teamValue(state.team, finalPrices) + state.bank : 100;
   const total = perRound.reduce((a, b) => a + b, 0);
   return { result: { name, total, perRound, transfers, penalties, finalTeamValue }, budgets };
@@ -461,9 +461,24 @@ function futureRounds(
   });
 }
 
-function seasonRules(season: number): Partial<GameRules> {
-  if (season === 2025) return { season, priceFloor: 4.5, priceCeiling: Number.POSITIVE_INFINITY, seasonRounds: 24 };
-  return { season };
+/** Game rules per season: 2 free transfers every race and no carry-over in every season. */
+export function seasonRules(season: number): Partial<GameRules> {
+  const transfers = { freeTransfersPerRace: 2, maxCarryOver: 0 };
+  if (season === 2024 || season === 2025) {
+    return { season, priceFloor: 4.5, priceCeiling: Number.POSITIVE_INFINITY, seasonRounds: 24, ...transfers };
+  }
+  return { season, ...transfers };
+}
+
+/**
+ * Price per asset id. When an id appears twice (2026 has two Lawson assets, one per team), the
+ * active row wins over the inactive copy.
+ */
+export function priceMap(rows: HistoryRow[], pick: (row: HistoryRow) => number): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const row of rows) if (!row.active) out.set(row.id, pick(row));
+  for (const row of rows) if (row.active) out.set(row.id, pick(row));
+  return out;
 }
 
 /** Asset identity across rounds: 2025 rows have no game id, and 2026 has two Lawson assets (one per team). */

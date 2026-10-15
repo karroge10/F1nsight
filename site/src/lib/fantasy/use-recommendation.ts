@@ -1,15 +1,16 @@
 "use client";
 
-// Runs the fantasy engine's `recommend` in its Web Worker (falls back to the main thread when
-// workers are unavailable). The fantasy file is sent once; later requests reuse the worker's
-// cached market. "pending" is derived: the result carries the key of the state it answers.
+// Runs the fantasy engine in its Web Worker (falls back to the main thread when workers are
+// unavailable). The fantasy file is sent once; later requests reuse the worker's cached market.
+// "pending" is derived: the result carries the key of the request it answers.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { EngineRequest, EngineResponse } from "@/lib/fantasy/engine/worker";
-import type { FantasyFile, Recommendation, UserState } from "@/lib/fantasy/engine/types";
+import type { BoardOptions, PlannerBoard } from "@/lib/fantasy/engine/board";
+import type { FantasyFile, UserState } from "@/lib/fantasy/engine/types";
 
-export interface RecommendationState {
-  result: Recommendation | null;
+export interface EngineAnswer<T> {
+  result: T | null;
   pending: boolean;
   error: string | null;
   ms: number | null;
@@ -17,17 +18,24 @@ export interface RecommendationState {
 
 interface Answer {
   key: string;
-  result: Recommendation | null;
+  result: unknown;
   error: string | null;
   ms: number | null;
 }
 
-export function useRecommendation(file: FantasyFile | null, state: UserState | null): RecommendationState {
+/** The planner page's board (best lineups, best per transfer count, plan from the draft). */
+export function usePlannerBoard(file: FantasyFile | null, state: UserState | null, options: BoardOptions): EngineAnswer<PlannerBoard> {
+  const answer = useEngineRequest(file, state, "board", options);
+  return { ...answer, result: answer.result as PlannerBoard | null };
+}
+
+function useEngineRequest(file: FantasyFile | null, state: UserState | null, type: "board", options: BoardOptions): EngineAnswer<unknown> {
   const [answer, setAnswer] = useState<Answer | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const sentFile = useRef<string | null>(null);
   const latestId = useRef(0);
-  const key = useMemo(() => (file && state ? `${file.season}:${file.round}:${file.generatedAt}|${JSON.stringify(state)}` : ""), [file, state]);
+  const optionsText = JSON.stringify(options);
+  const key = useMemo(() => (file && state ? `${file.season}:${file.round}:${file.generatedAt}|${type}|${JSON.stringify(state)}|${optionsText}` : ""), [file, state, type, optionsText]);
 
   useEffect(() => {
     if (typeof Worker === "undefined") return;
@@ -50,15 +58,16 @@ export function useRecommendation(file: FantasyFile | null, state: UserState | n
     const id = ++latestId.current;
     const fileKey = `${file.season}:${file.round}:${file.generatedAt}`;
     const includeFile = sentFile.current !== fileKey;
-    const request: EngineRequest = { id, type: "recommend", state, options: { topN: 6, planRounds: 3 }, ...(includeFile ? { file } : {}) };
+    const parsedOptions = JSON.parse(optionsText) as BoardOptions;
+    const request: EngineRequest = { id, type, state, options: parsedOptions, ...(includeFile ? { file } : {}) };
     const deliver = (response: EngineResponse) => {
       if (latestId.current !== id) return;
-      if (response.ok) setAnswer({ key, result: response.result as Recommendation, error: null, ms: response.ms });
+      if (response.ok) setAnswer({ key, result: response.result, error: null, ms: response.ms });
       else setAnswer({ key, result: null, error: response.error, ms: null });
     };
 
-    // Debounce: a burst of form edits should produce one engine run, not one per keystroke.
-    const delay = answer === null ? 0 : 220;
+    // Debounce: a burst of edits should produce one engine run, not one per click.
+    const delay = answer === null ? 0 : 160;
     let cancelled = false;
     let onMessage: ((event: MessageEvent<EngineResponse>) => void) | null = null;
     const worker = workerRef.current;
@@ -76,7 +85,8 @@ export function useRecommendation(file: FantasyFile | null, state: UserState | n
       }
       import("@/lib/fantasy/engine/worker").then(({ handleEngineRequest }) => {
         if (cancelled) return;
-        deliver(handleEngineRequest({ ...request, file }));
+        const response = handleEngineRequest({ ...request, file });
+        deliver(response);
       });
     }, delay);
     return () => {
@@ -84,7 +94,7 @@ export function useRecommendation(file: FantasyFile | null, state: UserState | n
       window.clearTimeout(timer);
       if (worker && onMessage) worker.removeEventListener("message", onMessage);
     };
-  }, [file, state, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [file, state, key, type, optionsText]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     result: answer?.result ?? null,

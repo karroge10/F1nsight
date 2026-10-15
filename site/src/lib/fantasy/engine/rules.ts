@@ -54,7 +54,7 @@ export const RULES_2026: GameRules = {
   priceFloor: 3,
   priceCeiling: 34,
   freeTransfersPerRace: 2,
-  maxCarryOver: 1,
+  maxCarryOver: 0,
   extraTransferPenalty: 10,
   boostMultiplier: 2,
   extraBoostMultiplier: 3,
@@ -93,7 +93,8 @@ export function rulesFromContract(raw: unknown, overrides?: Partial<GameRules>):
     priceCeiling:
       readNumber(team?.price_ceiling_musd) ?? readNumber(bounds?.ceiling) ?? RULES_2026.priceCeiling,
     freeTransfersPerRace: readNumber(team?.free_transfers_per_race) ?? RULES_2026.freeTransfersPerRace,
-    maxCarryOver: readNumber(team?.free_transfer_carry_over) ?? RULES_2026.maxCarryOver,
+    // Free transfers never carry over (owner's reading of the 2026 game), whatever an older rules file says.
+    maxCarryOver: RULES_2026.maxCarryOver,
     extraTransferPenalty: penalty === undefined ? RULES_2026.extraTransferPenalty : Math.abs(penalty),
   };
   const assumptions = { ...base.assumptions, ...overrides?.assumptions };

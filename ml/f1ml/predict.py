@@ -173,6 +173,9 @@ def model_notes(meta: dict) -> str:
 def fantasy_horizon(trained, history, result, assets, extras) -> list[dict]:
     """Expected fantasy points and price changes for the next rounds after this race.
 
+    Grid penalties already announced for those rounds (`penalties.load`) move the penalised
+    drivers down the grid, as in the next race's forecast.
+
     Prices follow a chained simulation: this race's simulated points feed the price window of
     the next round, and so on, so the horizon price changes reflect the real 3-round rule.
     """
@@ -199,15 +202,14 @@ def fantasy_horizon(trained, history, result, assets, extras) -> list[dict]:
         rows = future.index[future["raceId"] == target.race_id]
         race_frame = future.loc[rows].reset_index(drop=True)
         race_prediction = prediction.loc[rows].reset_index(drop=True)
-        inputs = simulate.WeekendInputs(
-            race_strength=race_prediction["race_strength"].to_numpy(),
-            p_dnf=race_prediction["p_dnf"].to_numpy(),
-            quali_strength=race_prediction["quali_strength"].to_numpy(),
-            has_sprint=bool(race_frame["has_sprint"].iloc[0]),
-            race_schedule=trained.schedule("pre-weekend", "race"),
-            quali_schedule=trained.schedule("pre-weekend", "quali"),
-        )
-        weekend = simulate.simulate_weekend(inputs, sims=HORIZON_SIMS, seed=target.race_id)
+        announced = penalties.load(target.race_id)
+        inputs = forecast.weekend_inputs(trained, race_frame, "pre-weekend", race_prediction,
+                                         announced)
+        # the horizon has always drawn without the team shock; keep it that way
+        inputs.teams = None
+        sharpness = fantasy.strength_sharpness(season)
+        fantasy_inputs = fantasy.sharpened_inputs(inputs, sharpness)
+        weekend = simulate.simulate_weekend(fantasy_inputs, sims=HORIZON_SIMS, seed=target.race_id)
         abs_change = float(race_frame["c_abs_change"].iloc[0])
         scored = fantasy.score_weekend(weekend, race_frame[["driverId", "constructorId"]],
                                        season, extras, abs_change, seed=target.race_id)

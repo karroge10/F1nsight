@@ -10,7 +10,7 @@ import type { TeamSelection, UserState } from "./types";
 describe("planner: rule accounting along the plan", () => {
   const market = prepareMarket(randomFantasyFile({ seed: 8, teams: 11, scenarios: 500 }));
   const team = { drivers: ["d0_1", "d2_0", "d5_1", "d7_0", "d9_0"], constructors: ["team2", "team6"] };
-  const state: UserState = { team, bank: 0.8, freeTransfers: 3 };
+  const state: UserState = { team, bank: 0.8, freeTransfers: 2 };
   const plan = planTransfers(market, state, { rounds: 3 });
 
   it("plans three races and beats both holding and one race at a time", () => {
@@ -19,9 +19,9 @@ describe("planner: rule accounting along the plan", () => {
     expect(plan.score).toBeGreaterThanOrEqual(plan.holdScore - 1e-9);
   });
 
-  it("counts net transfers, free transfers with carry-over, penalties and the cap", () => {
+  it("counts net transfers, free transfers, penalties and the cap", () => {
     let previous: TeamSelection = team;
-    let free = 3;
+    let free = 2;
     for (const stage of plan.stages) {
       const before = new Set([...previous.drivers, ...previous.constructors]);
       const lineup = [...stage.drivers, ...stage.constructors];
@@ -36,6 +36,14 @@ describe("planner: rule accounting along the plan", () => {
       free = nextFreeTransfers(market.rules, free, changes, stage.chip);
       previous = { drivers: stage.drivers, constructors: stage.constructors };
     }
+  });
+
+  it("holds the current team in the first race when asked", () => {
+    const held = planTransfers(market, state, { rounds: 3, holdFirst: true });
+    const first = held.stages[0];
+    expect([...first.drivers, ...first.constructors].sort()).toEqual([...team.drivers, ...team.constructors].sort());
+    expect(first.transferCount).toBe(0);
+    expect(held.stages[1].freeTransfers).toBe(2);
   });
 
   it("explains every transfer of the first race with numbers and no em dash", () => {

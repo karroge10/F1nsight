@@ -1,0 +1,2864 @@
+{
+ "generatedAt": "2026-10-15T04:33:36.136Z",
+ "notes": [
+  "2024-3: driver sargeant not in fantasyAtLock, form used",
+  "2025-9: driver stroll not in fantasyAtLock, form used",
+  "single-run switch rule favours the value of money method; site stays pinned"
+ ],
+ "fitted": {
+  "policy": {
+   "2024": {
+    "objective": "expected",
+    "threshold": 0
+   },
+   "2025": {
+    "objective": "expected",
+    "threshold": 4
+   },
+   "2026": {
+    "objective": "value",
+    "threshold": 0
+   }
+  },
+  "grid": {
+   "2024:expected:0": 4792,
+   "2024:expected:2": 4672,
+   "2024:expected:4": 4806,
+   "2024:expected:6": 4710,
+   "2024:expected:8": 4415,
+   "2024:expected:12": 4256,
+   "2024:expected:16": 4195,
+   "2024:value:0": 4792,
+   "2024:value:2": 4672,
+   "2024:value:4": 4806,
+   "2024:value:6": 4710,
+   "2024:value:8": 4415,
+   "2024:value:12": 4256,
+   "2024:value:16": 4195,
+   "2025:expected:0": 4734,
+   "2025:expected:2": 4841,
+   "2025:expected:4": 4546,
+   "2025:expected:6": 4587,
+   "2025:expected:8": 4610,
+   "2025:expected:12": 4228,
+   "2025:expected:16": 4016,
+   "2025:value:0": 4940,
+   "2025:value:2": 4811,
+   "2025:value:4": 4534,
+   "2025:value:6": 4587,
+   "2025:value:8": 4610,
+   "2025:value:12": 4228,
+   "2025:value:16": 4016,
+   "2026:expected:0": 4168,
+   "2026:expected:2": 4143,
+   "2026:expected:4": 3995,
+   "2026:expected:6": 3957,
+   "2026:expected:8": 3949,
+   "2026:expected:12": 3949,
+   "2026:expected:16": 3448,
+   "2026:value:0": 4441,
+   "2026:value:2": 4221,
+   "2026:value:4": 4235,
+   "2026:value:6": 4325,
+   "2026:value:8": 4050,
+   "2026:value:12": 4070,
+   "2026:value:16": 3702
+  },
+  "money": {
+   "replay": {
+    "samples": {
+     "2024": [
+      {
+       "round": 1,
+       "races": 24,
+       "gainPerMillion": -42.5
+      },
+      {
+       "round": 4,
+       "races": 21,
+       "gainPerMillion": -38
+      },
+      {
+       "round": 7,
+       "races": 18,
+       "gainPerMillion": -42.5
+      },
+      {
+       "round": 10,
+       "races": 15,
+       "gainPerMillion": 57
+      },
+      {
+       "round": 13,
+       "races": 12,
+       "gainPerMillion": -6
+      },
+      {
+       "round": 16,
+       "races": 9,
+       "gainPerMillion": -21
+      },
+      {
+       "round": 19,
+       "races": 6,
+       "gainPerMillion": -7.5
+      },
+      {
+       "round": 22,
+       "races": 3,
+       "gainPerMillion": -8.5
+      }
+     ],
+     "2025": [
+      {
+       "round": 1,
+       "races": 24,
+       "gainPerMillion": 155.5
+      },
+      {
+       "round": 4,
+       "races": 21,
+       "gainPerMillion": 161.5
+      },
+      {
+       "round": 7,
+       "races": 18,
+       "gainPerMillion": 93.5
+      },
+      {
+       "round": 10,
+       "races": 15,
+       "gainPerMillion": 68
+      },
+      {
+       "round": 13,
+       "races": 12,
+       "gainPerMillion": -41
+      },
+      {
+       "round": 16,
+       "races": 9,
+       "gainPerMillion": 26.5
+      },
+      {
+       "round": 19,
+       "races": 6,
+       "gainPerMillion": 31
+      },
+      {
+       "round": 22,
+       "races": 3,
+       "gainPerMillion": -104
+      }
+     ]
+    },
+    "slope": {
+     "2024": 0.6,
+     "2025": 0,
+     "2026": 2.012
+    }
+   },
+   "perRace": {
+    "perSeason": {
+     "2024": 3.125,
+     "2025": 1.927
+    },
+    "slope": {
+     "2024": 0.6,
+     "2025": 3.125,
+     "2026": 2.526
+    }
+   }
+  },
+  "value": {
+   "2024": {
+    "slope": 0.6,
+    "scale": 1,
+    "lookahead": 0,
+    "finalFix": 10
+   },
+   "2025": {
+    "slope": 0,
+    "scale": 0,
+    "lookahead": 0,
+    "finalFix": 5
+   },
+   "2026": {
+    "slope": 0,
+    "scale": 0,
+    "lookahead": 0,
+    "finalFix": 15
+   }
+  },
+  "valueGrid": {
+   "2025:2024:0:0": 4792,
+   "2025:2024:0:0.5": 4792,
+   "2025:2024:0.5:0": 4761,
+   "2025:2024:0.5:0.5": 4702,
+   "2025:2024:1:0": 4576,
+   "2025:2024:1:0.5": 4611,
+   "2025:2024:1.5:0": 4611,
+   "2025:2024:1.5:0.5": 4611,
+   "2025:2024:2:0": 4611,
+   "2025:2024:2:0.5": 4578,
+   "2026:2024:0:0": 4792,
+   "2026:2025:0:0": 4734,
+   "2026:2024:0:0.5": 4792,
+   "2026:2025:0:0.5": 4734,
+   "2026:2024:0.5:0": 4761,
+   "2026:2025:0.5:0": 4702,
+   "2026:2024:0.5:0.5": 4591,
+   "2026:2025:0.5:0.5": 4660,
+   "2026:2024:1:0": 4576,
+   "2026:2025:1:0": 4792,
+   "2026:2024:1:0.5": 4663,
+   "2026:2025:1:0.5": 4666,
+   "2026:2024:1.5:0": 4611,
+   "2026:2025:1.5:0": 4602,
+   "2026:2024:1.5:0.5": 4611,
+   "2026:2025:1.5:0.5": 4642,
+   "2026:2024:2:0": 4611,
+   "2026:2025:2:0": 4653,
+   "2026:2024:2:0.5": 4578,
+   "2026:2025:2:0.5": 4419
+  },
+  "blend": {
+   "2024": {
+    "raw": {
+     "driver": 0.5,
+     "constructor": 0.5
+    },
+    "calibrated": {
+     "driver": 0.5,
+     "constructor": 0.5
+    }
+   },
+   "2025": {
+    "raw": {
+     "driver": 0.6784511174456577,
+     "constructor": 0.784134027286981
+    },
+    "calibrated": {
+     "driver": 0.6985525856326166,
+     "constructor": 0.8139662336015665
+    }
+   },
+   "2026": {
+    "raw": {
+     "driver": 0.7181844120891636,
+     "constructor": 0.7275687558604257
+    },
+    "calibrated": {
+     "driver": 0.7444109779627641,
+     "constructor": 0.7699113250686117
+    }
+   }
+  }
+ },
+ "totals": {
+  "model, 1 race": {
+   "2024": {
+    "total": 4773,
+    "transfers": 36,
+    "penalties": 0,
+    "finalTeamValue": 127,
+    "chips": []
+   },
+   "2025": {
+    "total": 4403,
+    "transfers": 43,
+    "penalties": 40,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2026": {
+    "total": 3406,
+    "transfers": 20,
+    "penalties": 0,
+    "finalTeamValue": 108.4,
+    "chips": []
+   }
+  },
+  "form, 1 race": {
+   "2024": {
+    "total": 4480,
+    "transfers": 47,
+    "penalties": 40,
+    "finalTeamValue": 122.8,
+    "chips": []
+   },
+   "2025": {
+    "total": 5034,
+    "transfers": 40,
+    "penalties": 30,
+    "finalTeamValue": 137.5,
+    "chips": []
+   },
+   "2026": {
+    "total": 4136,
+    "transfers": 28,
+    "penalties": 40,
+    "finalTeamValue": 130.9,
+    "chips": []
+   }
+  },
+  "blend, 1 race": {
+   "2024": {
+    "total": 4781,
+    "transfers": 41,
+    "penalties": 0,
+    "finalTeamValue": 121.2,
+    "chips": []
+   },
+   "2025": {
+    "total": 4741,
+    "transfers": 34,
+    "penalties": 20,
+    "finalTeamValue": 124.5,
+    "chips": []
+   },
+   "2026": {
+    "total": 4279,
+    "transfers": 24,
+    "penalties": 10,
+    "finalTeamValue": 139,
+    "chips": []
+   }
+  },
+  "calibrated, 1 race": {
+   "2024": {
+    "total": 4773,
+    "transfers": 36,
+    "penalties": 0,
+    "finalTeamValue": 127,
+    "chips": []
+   },
+   "2025": {
+    "total": 4186,
+    "transfers": 43,
+    "penalties": 40,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2026": {
+    "total": 3406,
+    "transfers": 20,
+    "penalties": 0,
+    "finalTeamValue": 108.4,
+    "chips": []
+   }
+  },
+  "calibrated blend, 1 race": {
+   "2024": {
+    "total": 4792,
+    "transfers": 34,
+    "penalties": 0,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2025": {
+    "total": 4734,
+    "transfers": 37,
+    "penalties": 20,
+    "finalTeamValue": 124.5,
+    "chips": []
+   },
+   "2026": {
+    "total": 4168,
+    "transfers": 21,
+    "penalties": 0,
+    "finalTeamValue": 124.3,
+    "chips": []
+   }
+  },
+  "form + chips": {
+   "2024": {
+    "total": 4616,
+    "transfers": 43,
+    "penalties": 10,
+    "finalTeamValue": 121.7,
+    "chips": [
+     "extraBoost@R2",
+     "limitless@R3",
+     "wildcard@R10",
+     "autopilot@R24"
+    ]
+   },
+   "2025": {
+    "total": 5388,
+    "transfers": 46,
+    "penalties": 30,
+    "finalTeamValue": 144.2,
+    "chips": [
+     "limitless@R2",
+     "extraBoost@R3",
+     "wildcard@R4",
+     "autopilot@R24"
+    ]
+   },
+   "2026": {
+    "total": 4336,
+    "transfers": 36,
+    "penalties": 10,
+    "finalTeamValue": 130.9,
+    "chips": [
+     "limitless@R2",
+     "wildcard@R3",
+     "extraBoost@R4"
+    ]
+   }
+  },
+  "model + chips": {
+   "2024": {
+    "total": 4711,
+    "transfers": 43,
+    "penalties": 20,
+    "finalTeamValue": 121.8,
+    "chips": [
+     "limitless@R2",
+     "extraBoost@R3",
+     "wildcard@R4",
+     "autopilot@R24"
+    ]
+   },
+   "2025": {
+    "total": 4352,
+    "transfers": 43,
+    "penalties": 20,
+    "finalTeamValue": 119.4,
+    "chips": [
+     "wildcard@R2",
+     "extraBoost@R3",
+     "limitless@R4",
+     "autopilot@R24"
+    ]
+   },
+   "2026": {
+    "total": 3609,
+    "transfers": 32,
+    "penalties": 0,
+    "finalTeamValue": 116.6,
+    "chips": [
+     "extraBoost@R2",
+     "limitless@R3",
+     "wildcard@R16"
+    ]
+   }
+  },
+  "model, 3-race plan": {
+   "2024": {
+    "total": 4730,
+    "transfers": 38,
+    "penalties": 20,
+    "finalTeamValue": 125.7,
+    "chips": []
+   },
+   "2025": {
+    "total": 4432,
+    "transfers": 46,
+    "penalties": 40,
+    "finalTeamValue": 118.5,
+    "chips": []
+   },
+   "2026": {
+    "total": 3801,
+    "transfers": 24,
+    "penalties": 10,
+    "finalTeamValue": 128.3,
+    "chips": []
+   }
+  },
+  "calibrated blend, value objective": {
+   "2024": {
+    "total": 4792,
+    "transfers": 34,
+    "penalties": 0,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2025": {
+    "total": 4940,
+    "transfers": 43,
+    "penalties": 20,
+    "finalTeamValue": 135.2,
+    "chips": []
+   },
+   "2026": {
+    "total": 4441,
+    "transfers": 28,
+    "penalties": 10,
+    "finalTeamValue": 144.5,
+    "chips": []
+   }
+  },
+  "calibrated blend + fitted objective and threshold": {
+   "2024": {
+    "total": 4792,
+    "transfers": 34,
+    "penalties": 0,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2025": {
+    "total": 4546,
+    "transfers": 19,
+    "penalties": 20,
+    "finalTeamValue": 121.8,
+    "chips": []
+   },
+   "2026": {
+    "total": 4441,
+    "transfers": 28,
+    "penalties": 10,
+    "finalTeamValue": 144.5,
+    "chips": []
+   }
+  },
+  "calibrated blend + chips": {
+   "2024": {
+    "total": 4827,
+    "transfers": 43,
+    "penalties": 0,
+    "finalTeamValue": 124.9,
+    "chips": [
+     "extraBoost@R2",
+     "wildcard@R3",
+     "limitless@R5",
+     "autopilot@R24"
+    ]
+   },
+   "2025": {
+    "total": 5140,
+    "transfers": 46,
+    "penalties": 10,
+    "finalTeamValue": 134.6,
+    "chips": [
+     "wildcard@R2",
+     "limitless@R4",
+     "extraBoost@R5",
+     "autopilot@R24"
+    ]
+   },
+   "2026": {
+    "total": 4281,
+    "transfers": 27,
+    "penalties": 20,
+    "finalTeamValue": 135.9,
+    "chips": [
+     "wildcard@R2",
+     "extraBoost@R3",
+     "limitless@R4"
+    ]
+   }
+  },
+  "calibrated blend + fitted objective and threshold + chips": {
+   "2024": {
+    "total": 4827,
+    "transfers": 43,
+    "penalties": 0,
+    "finalTeamValue": 124.9,
+    "chips": [
+     "extraBoost@R2",
+     "wildcard@R3",
+     "limitless@R5",
+     "autopilot@R24"
+    ]
+   },
+   "2025": {
+    "total": 5140,
+    "transfers": 46,
+    "penalties": 10,
+    "finalTeamValue": 134.6,
+    "chips": [
+     "wildcard@R2",
+     "limitless@R4",
+     "extraBoost@R5",
+     "autopilot@R24"
+    ]
+   },
+   "2026": {
+    "total": 4281,
+    "transfers": 27,
+    "penalties": 20,
+    "finalTeamValue": 135.9,
+    "chips": [
+     "wildcard@R2",
+     "extraBoost@R3",
+     "limitless@R4"
+    ]
+   }
+  },
+  "calibrated blend + fitted objective and threshold + all six chips": {
+   "2024": {
+    "total": 4842,
+    "transfers": 44,
+    "penalties": 0,
+    "finalTeamValue": 123.4,
+    "chips": [
+     "extraBoost@R2",
+     "wildcard@R3",
+     "limitless@R5",
+     "finalFix@R15",
+     "autopilot@R23",
+     "noNegative@R24"
+    ]
+   },
+   "2025": {
+    "total": 4902,
+    "transfers": 23,
+    "penalties": 20,
+    "finalTeamValue": 123.3,
+    "chips": [
+     "wildcard@R2",
+     "finalFix@R3",
+     "extraBoost@R4",
+     "limitless@R5",
+     "autopilot@R23",
+     "noNegative@R24"
+    ]
+   },
+   "2026": {
+    "total": 4309,
+    "transfers": 31,
+    "penalties": 0,
+    "finalTeamValue": 127.9,
+    "chips": [
+     "extraBoost@R2",
+     "wildcard@R3",
+     "limitless@R5",
+     "finalFix@R12"
+    ]
+   }
+  },
+  "form + all six chips": {
+   "2024": {
+    "total": 4666,
+    "transfers": 44,
+    "penalties": 10,
+    "finalTeamValue": 121.7,
+    "chips": [
+     "extraBoost@R2",
+     "limitless@R3",
+     "finalFix@R5",
+     "wildcard@R10",
+     "autopilot@R23",
+     "noNegative@R24"
+    ]
+   },
+   "2025": {
+    "total": 5365,
+    "transfers": 48,
+    "penalties": 20,
+    "finalTeamValue": 141.9,
+    "chips": [
+     "limitless@R2",
+     "extraBoost@R3",
+     "wildcard@R4",
+     "finalFix@R6",
+     "autopilot@R23",
+     "noNegative@R24"
+    ]
+   },
+   "2026": {
+    "total": 4361,
+    "transfers": 36,
+    "penalties": 10,
+    "finalTeamValue": 130.7,
+    "chips": [
+     "limitless@R2",
+     "wildcard@R3",
+     "extraBoost@R4",
+     "finalFix@R10"
+    ]
+   }
+  },
+  "value of money, lambda from season replay, no chips": {
+   "2024": {
+    "total": 4751,
+    "transfers": 35,
+    "penalties": 10,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2025": {
+    "total": 4734,
+    "transfers": 37,
+    "penalties": 20,
+    "finalTeamValue": 124.5,
+    "chips": []
+   },
+   "2026": {
+    "total": 4080,
+    "transfers": 32,
+    "penalties": 30,
+    "finalTeamValue": 135.5,
+    "chips": []
+   }
+  },
+  "value of money, lambda from per-race budget slope, no chips": {
+   "2024": {
+    "total": 4751,
+    "transfers": 35,
+    "penalties": 10,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2025": {
+    "total": 4602,
+    "transfers": 56,
+    "penalties": 110,
+    "finalTeamValue": 145.4,
+    "chips": []
+   },
+   "2026": {
+    "total": 4090,
+    "transfers": 33,
+    "penalties": 40,
+    "finalTeamValue": 137.1,
+    "chips": []
+   }
+  },
+  "value of money, per-race lambda + 2-race price lookahead, no chips": {
+   "2024": {
+    "total": 4761,
+    "transfers": 35,
+    "penalties": 10,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2025": {
+    "total": 4276,
+    "transfers": 55,
+    "penalties": 140,
+    "finalTeamValue": 146,
+    "chips": []
+   },
+   "2026": {
+    "total": 3620,
+    "transfers": 36,
+    "penalties": 60,
+    "finalTeamValue": 138.3,
+    "chips": []
+   }
+  },
+  "value of money (fitted), no chips": {
+   "2024": {
+    "total": 4751,
+    "transfers": 35,
+    "penalties": 10,
+    "finalTeamValue": 121.1,
+    "chips": []
+   },
+   "2025": {
+    "total": 4734,
+    "transfers": 37,
+    "penalties": 20,
+    "finalTeamValue": 124.5,
+    "chips": []
+   },
+   "2026": {
+    "total": 4168,
+    "transfers": 21,
+    "penalties": 0,
+    "finalTeamValue": 124.3,
+    "chips": []
+   }
+  },
+  "value of money (fitted) + 4 chips": {
+   "2024": {
+    "total": 4652,
+    "transfers": 49,
+    "penalties": 0,
+    "finalTeamValue": 119,
+    "chips": [
+     "extraBoost@R2",
+     "limitless@R3",
+     "wildcard@R4",
+     "autopilot@R24"
+    ]
+   },
+   "2025": {
+    "total": 5140,
+    "transfers": 46,
+    "penalties": 10,
+    "finalTeamValue": 134.6,
+    "chips": [
+     "wildcard@R2",
+     "limitless@R4",
+     "extraBoost@R5",
+     "autopilot@R24"
+    ]
+   },
+   "2026": {
+    "total": 4281,
+    "transfers": 27,
+    "penalties": 20,
+    "finalTeamValue": 135.9,
+    "chips": [
+     "wildcard@R2",
+     "extraBoost@R3",
+     "limitless@R4"
+    ]
+   }
+  },
+  "value of money (fitted), 3-race plan": {
+   "2024": {
+    "total": 4788,
+    "transfers": 36,
+    "penalties": 0,
+    "finalTeamValue": 122.5,
+    "chips": []
+   },
+   "2025": {
+    "total": 5006,
+    "transfers": 39,
+    "penalties": 10,
+    "finalTeamValue": 134.3,
+    "chips": []
+   },
+   "2026": {
+    "total": 4252,
+    "transfers": 27,
+    "penalties": 20,
+    "finalTeamValue": 129.8,
+    "chips": []
+   }
+  },
+  "post hoc: lambda = forecast budget slope x races left, no chips": {
+   "2024": {
+    "total": 4656,
+    "transfers": 38,
+    "penalties": 0,
+    "finalTeamValue": 122.6,
+    "chips": []
+   },
+   "2025": {
+    "total": 4882,
+    "transfers": 47,
+    "penalties": 50,
+    "finalTeamValue": 142.3,
+    "chips": []
+   },
+   "2026": {
+    "total": 4331,
+    "transfers": 28,
+    "penalties": 20,
+    "finalTeamValue": 141.7,
+    "chips": []
+   }
+  },
+  "post hoc: lambda = forecast budget slope x races left + 4 chips": {
+   "2024": {
+    "total": 4645,
+    "transfers": 48,
+    "penalties": 0,
+    "finalTeamValue": 122.6,
+    "chips": [
+     "extraBoost@R2",
+     "limitless@R3",
+     "wildcard@R4",
+     "autopilot@R24"
+    ]
+   },
+   "2025": {
+    "total": 4790,
+    "transfers": 53,
+    "penalties": 50,
+    "finalTeamValue": 134.2,
+    "chips": [
+     "limitless@R2",
+     "extraBoost@R4",
+     "wildcard@R5",
+     "autopilot@R24"
+    ]
+   },
+   "2026": {
+    "total": 4368,
+    "transfers": 34,
+    "penalties": 30,
+    "finalTeamValue": 137.2,
+    "chips": [
+     "extraBoost@R2",
+     "limitless@R4",
+     "wildcard@R15"
+    ]
+   }
+  },
+  "value of money (fitted) + all six chips": {
+   "2024": {
+    "total": 4685,
+    "transfers": 49,
+    "penalties": 0,
+    "finalTeamValue": 119,
+    "chips": [
+     "extraBoost@R2",
+     "limitless@R3",
+     "wildcard@R4",
+     "finalFix@R5",
+     "autopilot@R23",
+     "noNegative@R24"
+    ]
+   },
+   "2025": {
+    "total": 5149,
+    "transfers": 42,
+    "penalties": 10,
+    "finalTeamValue": 135.6,
+    "chips": [
+     "wildcard@R2",
+     "finalFix@R3",
+     "extraBoost@R4",
+     "limitless@R5",
+     "autopilot@R23",
+     "noNegative@R24"
+    ]
+   },
+   "2026": {
+    "total": 4297,
+    "transfers": 27,
+    "penalties": 20,
+    "finalTeamValue": 135.1,
+    "chips": [
+     "wildcard@R2",
+     "extraBoost@R3",
+     "limitless@R4",
+     "finalFix@R15"
+    ]
+   }
+  },
+  "keep the round-1 team": {
+   "2024": {
+    "total": 4285,
+    "transfers": 9,
+    "penalties": 0,
+    "finalTeamValue": 121,
+    "chips": []
+   },
+   "2025": {
+    "total": 4214,
+    "transfers": 0,
+    "penalties": 0,
+    "finalTeamValue": 112.9,
+    "chips": []
+   },
+   "2026": {
+    "total": 3197,
+    "transfers": 0,
+    "penalties": 0,
+    "finalTeamValue": 117.5,
+    "chips": []
+   }
+  }
+ },
+ "hindsight": {
+  "2024": 6868,
+  "2025": 7346,
+  "2026": 5664
+ },
+ "finalLog": {
+  "2024": [
+   {
+    "round": 1,
+    "drivers": [
+     "max_verstappen",
+     "stroll",
+     "tsunoda",
+     "bottas",
+     "sargeant"
+    ],
+    "constructors": [
+     "ferrari",
+     "mercedes"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 215,
+    "cumulative": 215,
+    "teamValue": 100.6,
+    "bank": 0
+   },
+   {
+    "round": 2,
+    "drivers": [
+     "max_verstappen",
+     "perez",
+     "stroll",
+     "sargeant",
+     "bottas"
+    ],
+    "constructors": [
+     "ferrari",
+     "sauber"
+    ],
+    "transfersIn": [
+     "perez",
+     "sauber"
+    ],
+    "transfersOut": [
+     "tsunoda",
+     "mercedes"
+    ],
+    "boost": "perez",
+    "extraBoost": "max_verstappen",
+    "chip": "extraBoost",
+    "penalty": 0,
+    "points": 213,
+    "cumulative": 428,
+    "teamValue": 101.5,
+    "bank": 0.4
+   },
+   {
+    "round": 3,
+    "drivers": [
+     "sainz",
+     "alonso",
+     "sargeant",
+     "zhou",
+     "bottas"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "sainz",
+     "alonso",
+     "zhou",
+     "red_bull"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "perez",
+     "stroll",
+     "sauber"
+    ],
+    "boost": "sainz",
+    "extraBoost": null,
+    "chip": "wildcard",
+    "penalty": 0,
+    "points": 231,
+    "cumulative": 659,
+    "teamValue": 103.9,
+    "bank": 0.1
+   },
+   {
+    "round": 4,
+    "drivers": [
+     "sainz",
+     "alonso",
+     "zhou",
+     "sargeant",
+     "bottas"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "sainz",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 237,
+    "cumulative": 896,
+    "teamValue": 105.6,
+    "bank": 0.1
+   },
+   {
+    "round": 5,
+    "drivers": [
+     "max_verstappen",
+     "perez",
+     "sainz",
+     "leclerc",
+     "norris"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "perez",
+     "leclerc",
+     "norris"
+    ],
+    "transfersOut": [
+     "alonso",
+     "zhou",
+     "sargeant",
+     "bottas"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": "limitless",
+    "penalty": 0,
+    "points": 456,
+    "cumulative": 1352,
+    "teamValue": 106.7,
+    "bank": 0.1
+   },
+   {
+    "round": 6,
+    "drivers": [
+     "sainz",
+     "stroll",
+     "kevin_magnussen",
+     "sargeant",
+     "zhou"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "stroll",
+     "kevin_magnussen"
+    ],
+    "transfersOut": [
+     "alonso",
+     "bottas"
+    ],
+    "boost": "sainz",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 211,
+    "cumulative": 1563,
+    "teamValue": 107.4,
+    "bank": 1.1
+   },
+   {
+    "round": 7,
+    "drivers": [
+     "leclerc",
+     "tsunoda",
+     "kevin_magnussen",
+     "zhou",
+     "sargeant"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "leclerc",
+     "tsunoda"
+    ],
+    "transfersOut": [
+     "sainz",
+     "stroll"
+    ],
+    "boost": "leclerc",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 180,
+    "cumulative": 1743,
+    "teamValue": 108.2,
+    "bank": 2.9
+   },
+   {
+    "round": 8,
+    "drivers": [
+     "leclerc",
+     "kevin_magnussen",
+     "zhou",
+     "tsunoda",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "hulkenberg"
+    ],
+    "transfersOut": [
+     "sargeant"
+    ],
+    "boost": "leclerc",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 110,
+    "cumulative": 1853,
+    "teamValue": 110.2,
+    "bank": 0.8
+   },
+   {
+    "round": 9,
+    "drivers": [
+     "leclerc",
+     "tsunoda",
+     "zhou",
+     "gasly",
+     "ricciardo"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "gasly",
+     "ricciardo"
+    ],
+    "transfersOut": [
+     "kevin_magnussen",
+     "hulkenberg"
+    ],
+    "boost": "leclerc",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 6,
+    "cumulative": 1859,
+    "teamValue": 111,
+    "bank": 0.5
+   },
+   {
+    "round": 10,
+    "drivers": [
+     "norris",
+     "gasly",
+     "tsunoda",
+     "zhou",
+     "sargeant"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "norris",
+     "sargeant"
+    ],
+    "transfersOut": [
+     "leclerc",
+     "ricciardo"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 244,
+    "cumulative": 2103,
+    "teamValue": 111.6,
+    "bank": 1.6
+   },
+   {
+    "round": 11,
+    "drivers": [
+     "max_verstappen",
+     "gasly",
+     "tsunoda",
+     "zhou",
+     "sargeant"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "mclaren"
+    ],
+    "transfersOut": [
+     "norris",
+     "red_bull"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 198,
+    "cumulative": 2301,
+    "teamValue": 112.7,
+    "bank": 0
+   },
+   {
+    "round": 12,
+    "drivers": [
+     "max_verstappen",
+     "hulkenberg",
+     "gasly",
+     "zhou",
+     "sargeant"
+    ],
+    "constructors": [
+     "mercedes",
+     "mclaren"
+    ],
+    "transfersIn": [
+     "hulkenberg",
+     "mercedes"
+    ],
+    "transfersOut": [
+     "tsunoda",
+     "ferrari"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 151,
+    "cumulative": 2452,
+    "teamValue": 113,
+    "bank": 1.3
+   },
+   {
+    "round": 13,
+    "drivers": [
+     "max_verstappen",
+     "hulkenberg",
+     "bottas",
+     "zhou",
+     "sargeant"
+    ],
+    "constructors": [
+     "red_bull",
+     "mercedes"
+    ],
+    "transfersIn": [
+     "bottas",
+     "red_bull"
+    ],
+    "transfersOut": [
+     "gasly",
+     "mclaren"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 141,
+    "cumulative": 2593,
+    "teamValue": 112.8,
+    "bank": 0.3
+   },
+   {
+    "round": 14,
+    "drivers": [
+     "max_verstappen",
+     "hulkenberg",
+     "bottas",
+     "zhou",
+     "sargeant"
+    ],
+    "constructors": [
+     "red_bull",
+     "mercedes"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 153,
+    "cumulative": 2746,
+    "teamValue": 112.7,
+    "bank": 0.3
+   },
+   {
+    "round": 15,
+    "drivers": [
+     "piastri",
+     "hulkenberg",
+     "bottas",
+     "sargeant",
+     "zhou"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "piastri",
+     "mclaren"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "mercedes"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 178,
+    "cumulative": 2924,
+    "teamValue": 113.4,
+    "bank": 5
+   },
+   {
+    "round": 16,
+    "drivers": [
+     "piastri",
+     "ocon",
+     "colapinto",
+     "hulkenberg",
+     "bottas"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "ocon",
+     "colapinto"
+    ],
+    "transfersOut": [
+     "zhou"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 199,
+    "cumulative": 3123,
+    "teamValue": 113.9,
+    "bank": 0.7
+   },
+   {
+    "round": 17,
+    "drivers": [
+     "leclerc",
+     "colapinto",
+     "ocon",
+     "hulkenberg",
+     "bottas"
+    ],
+    "constructors": [
+     "red_bull",
+     "mclaren"
+    ],
+    "transfersIn": [
+     "leclerc"
+    ],
+    "transfersOut": [
+     "piastri"
+    ],
+    "boost": "leclerc",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 190,
+    "cumulative": 3313,
+    "teamValue": 115.8,
+    "bank": 0
+   },
+   {
+    "round": 18,
+    "drivers": [
+     "norris",
+     "colapinto",
+     "hulkenberg",
+     "ocon",
+     "bottas"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "norris",
+     "ferrari"
+    ],
+    "transfersOut": [
+     "leclerc",
+     "red_bull"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 221,
+    "cumulative": 3534,
+    "teamValue": 117.8,
+    "bank": 3.2
+   },
+   {
+    "round": 19,
+    "drivers": [
+     "max_verstappen",
+     "colapinto",
+     "lawson",
+     "hulkenberg",
+     "bottas"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "lawson"
+    ],
+    "transfersOut": [
+     "norris",
+     "ocon"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 294,
+    "cumulative": 3828,
+    "teamValue": 119.7,
+    "bank": 0.7
+   },
+   {
+    "round": 20,
+    "drivers": [
+     "max_verstappen",
+     "lawson",
+     "colapinto",
+     "hulkenberg",
+     "zhou"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "zhou"
+    ],
+    "transfersOut": [
+     "bottas"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 225,
+    "cumulative": 4053,
+    "teamValue": 121.4,
+    "bank": 0
+   },
+   {
+    "round": 21,
+    "drivers": [
+     "norris",
+     "bearman",
+     "lawson",
+     "colapinto",
+     "zhou"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "norris",
+     "bearman"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "hulkenberg"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 144,
+    "cumulative": 4197,
+    "teamValue": 122.4,
+    "bank": 3
+   },
+   {
+    "round": 22,
+    "drivers": [
+     "max_verstappen",
+     "lawson",
+     "gasly",
+     "colapinto",
+     "zhou"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "gasly"
+    ],
+    "transfersOut": [
+     "norris"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 187,
+    "cumulative": 4384,
+    "teamValue": 122.8,
+    "bank": 0.6
+   },
+   {
+    "round": 23,
+    "drivers": [
+     "leclerc",
+     "kevin_magnussen",
+     "lawson",
+     "colapinto",
+     "gasly"
+    ],
+    "constructors": [
+     "ferrari",
+     "mclaren"
+    ],
+    "transfersIn": [
+     "leclerc",
+     "kevin_magnussen"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "zhou"
+    ],
+    "boost": "leclerc",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 251,
+    "cumulative": 4635,
+    "teamValue": 124.9,
+    "bank": 2.1
+   },
+   {
+    "round": 24,
+    "drivers": [
+     "max_verstappen",
+     "gasly",
+     "zhou",
+     "lawson",
+     "colapinto"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "zhou"
+    ],
+    "transfersOut": [
+     "leclerc",
+     "kevin_magnussen"
+    ],
+    "boost": null,
+    "extraBoost": null,
+    "chip": "autopilot",
+    "penalty": 0,
+    "points": 192,
+    "cumulative": 4827,
+    "teamValue": 124.9,
+    "bank": 0.6
+   }
+  ],
+  "2025": [
+   {
+    "round": 1,
+    "drivers": [
+     "max_verstappen",
+     "alonso",
+     "hadjar",
+     "bearman",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mclaren",
+     "williams"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 83,
+    "cumulative": 83,
+    "teamValue": 97.8,
+    "bank": 0.8
+   },
+   {
+    "round": 2,
+    "drivers": [
+     "norris",
+     "hulkenberg",
+     "stroll",
+     "ocon",
+     "bearman"
+    ],
+    "constructors": [
+     "mclaren",
+     "haas"
+    ],
+    "transfersIn": [
+     "norris",
+     "hulkenberg",
+     "stroll",
+     "ocon",
+     "haas"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "alonso",
+     "hadjar",
+     "bortoleto",
+     "williams"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": "wildcard",
+    "penalty": 0,
+    "points": 293,
+    "cumulative": 376,
+    "teamValue": 101.4,
+    "bank": 1.3
+   },
+   {
+    "round": 3,
+    "drivers": [
+     "norris",
+     "ocon",
+     "stroll",
+     "bearman",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "mclaren",
+     "rb"
+    ],
+    "transfersIn": [
+     "rb"
+    ],
+    "transfersOut": [
+     "haas"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 147,
+    "cumulative": 523,
+    "teamValue": 104.6,
+    "bank": 1.5
+   },
+   {
+    "round": 4,
+    "drivers": [
+     "max_verstappen",
+     "norris",
+     "piastri",
+     "russell",
+     "antonelli"
+    ],
+    "constructors": [
+     "mclaren",
+     "mercedes"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "piastri",
+     "russell",
+     "antonelli",
+     "mercedes"
+    ],
+    "transfersOut": [
+     "ocon",
+     "stroll",
+     "bearman",
+     "hulkenberg",
+     "rb"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": "limitless",
+    "penalty": 0,
+    "points": 318,
+    "cumulative": 841,
+    "teamValue": 106,
+    "bank": 1.5
+   },
+   {
+    "round": 5,
+    "drivers": [
+     "piastri",
+     "russell",
+     "bearman",
+     "hadjar",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "mclaren",
+     "rb"
+    ],
+    "transfersIn": [
+     "piastri",
+     "russell",
+     "hadjar"
+    ],
+    "transfersOut": [
+     "norris",
+     "ocon",
+     "stroll"
+    ],
+    "boost": "russell",
+    "extraBoost": "piastri",
+    "chip": "extraBoost",
+    "penalty": 10,
+    "points": 256,
+    "cumulative": 1097,
+    "teamValue": 107.9,
+    "bank": 0
+   },
+   {
+    "round": 6,
+    "drivers": [
+     "piastri",
+     "bearman",
+     "hadjar",
+     "lawson",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "mclaren",
+     "mercedes"
+    ],
+    "transfersIn": [
+     "lawson",
+     "mercedes"
+    ],
+    "transfersOut": [
+     "russell",
+     "rb"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 276,
+    "cumulative": 1373,
+    "teamValue": 107.6,
+    "bank": 1.1
+   },
+   {
+    "round": 7,
+    "drivers": [
+     "piastri",
+     "bearman",
+     "hadjar",
+     "gasly",
+     "colapinto"
+    ],
+    "constructors": [
+     "mclaren",
+     "mercedes"
+    ],
+    "transfersIn": [
+     "gasly",
+     "colapinto"
+    ],
+    "transfersOut": [
+     "lawson",
+     "hulkenberg"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 163,
+    "cumulative": 1536,
+    "teamValue": 107.1,
+    "bank": 0.4
+   },
+   {
+    "round": 8,
+    "drivers": [
+     "piastri",
+     "hadjar",
+     "gasly",
+     "alonso",
+     "colapinto"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "alonso",
+     "ferrari"
+    ],
+    "transfersOut": [
+     "bearman",
+     "mercedes"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 181,
+    "cumulative": 1717,
+    "teamValue": 107.1,
+    "bank": 0.1
+   },
+   {
+    "round": 9,
+    "drivers": [
+     "piastri",
+     "hadjar",
+     "hulkenberg",
+     "lawson",
+     "colapinto"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "hulkenberg",
+     "lawson"
+    ],
+    "transfersOut": [
+     "gasly",
+     "alonso"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 302,
+    "cumulative": 2019,
+    "teamValue": 109.8,
+    "bank": 0.8
+   },
+   {
+    "round": 10,
+    "drivers": [
+     "piastri",
+     "hadjar",
+     "hulkenberg",
+     "lawson",
+     "alonso"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "alonso"
+    ],
+    "transfersOut": [
+     "colapinto"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 159,
+    "cumulative": 2178,
+    "teamValue": 111.9,
+    "bank": 0.8
+   },
+   {
+    "round": 11,
+    "drivers": [
+     "piastri",
+     "hulkenberg",
+     "hadjar",
+     "alonso",
+     "colapinto"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "colapinto"
+    ],
+    "transfersOut": [
+     "lawson"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 288,
+    "cumulative": 2466,
+    "teamValue": 114.4,
+    "bank": 0.9
+   },
+   {
+    "round": 12,
+    "drivers": [
+     "piastri",
+     "hulkenberg",
+     "hadjar",
+     "alonso",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "bortoleto"
+    ],
+    "transfersOut": [
+     "colapinto"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 216,
+    "cumulative": 2682,
+    "teamValue": 115.7,
+    "bank": 0.7
+   },
+   {
+    "round": 13,
+    "drivers": [
+     "piastri",
+     "hulkenberg",
+     "alonso",
+     "gasly",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "gasly"
+    ],
+    "transfersOut": [
+     "hadjar"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 254,
+    "cumulative": 2936,
+    "teamValue": 117,
+    "bank": 0.4
+   },
+   {
+    "round": 14,
+    "drivers": [
+     "piastri",
+     "hulkenberg",
+     "bearman",
+     "bortoleto",
+     "lawson"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "bearman",
+     "lawson"
+    ],
+    "transfersOut": [
+     "alonso",
+     "gasly"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 227,
+    "cumulative": 3163,
+    "teamValue": 117.7,
+    "bank": 0.7
+   },
+   {
+    "round": 15,
+    "drivers": [
+     "piastri",
+     "hulkenberg",
+     "alonso",
+     "bortoleto",
+     "lawson"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "alonso"
+    ],
+    "transfersOut": [
+     "bearman"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 159,
+    "cumulative": 3322,
+    "teamValue": 120.4,
+    "bank": 0.7
+   },
+   {
+    "round": 16,
+    "drivers": [
+     "piastri",
+     "albon",
+     "hadjar",
+     "bortoleto",
+     "lawson"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "albon",
+     "hadjar"
+    ],
+    "transfersOut": [
+     "hulkenberg",
+     "alonso"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 260,
+    "cumulative": 3582,
+    "teamValue": 123.1,
+    "bank": 1.1
+   },
+   {
+    "round": 17,
+    "drivers": [
+     "piastri",
+     "albon",
+     "hadjar",
+     "bortoleto",
+     "sainz"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "sainz"
+    ],
+    "transfersOut": [
+     "lawson"
+    ],
+    "boost": "piastri",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 59,
+    "cumulative": 3641,
+    "teamValue": 125.4,
+    "bank": 1.3
+   },
+   {
+    "round": 18,
+    "drivers": [
+     "max_verstappen",
+     "albon",
+     "hadjar",
+     "sainz",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "red_bull"
+    ],
+    "transfersOut": [
+     "piastri",
+     "ferrari"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 185,
+    "cumulative": 3826,
+    "teamValue": 127.1,
+    "bank": 1
+   },
+   {
+    "round": 19,
+    "drivers": [
+     "norris",
+     "sainz",
+     "tsunoda",
+     "hadjar",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "norris",
+     "tsunoda"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "albon"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 186,
+    "cumulative": 4012,
+    "teamValue": 128.2,
+    "bank": 2.2
+   },
+   {
+    "round": 20,
+    "drivers": [
+     "max_verstappen",
+     "tsunoda",
+     "sainz",
+     "bearman",
+     "hadjar"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "bearman"
+    ],
+    "transfersOut": [
+     "norris",
+     "bortoleto"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 217,
+    "cumulative": 4229,
+    "teamValue": 128.9,
+    "bank": 2.6
+   },
+   {
+    "round": 21,
+    "drivers": [
+     "norris",
+     "bearman",
+     "tsunoda",
+     "sainz",
+     "hadjar"
+    ],
+    "constructors": [
+     "mclaren",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "norris",
+     "ferrari"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "red_bull"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 227,
+    "cumulative": 4456,
+    "teamValue": 130.8,
+    "bank": 0.1
+   },
+   {
+    "round": 22,
+    "drivers": [
+     "max_verstappen",
+     "bearman",
+     "tsunoda",
+     "sainz",
+     "hadjar"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "red_bull"
+    ],
+    "transfersOut": [
+     "norris",
+     "ferrari"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 214,
+    "cumulative": 4670,
+    "teamValue": 133.1,
+    "bank": 2.4
+   },
+   {
+    "round": 23,
+    "drivers": [
+     "norris",
+     "bearman",
+     "ocon",
+     "sainz",
+     "tsunoda"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "norris",
+     "ocon"
+    ],
+    "transfersOut": [
+     "max_verstappen",
+     "hadjar"
+    ],
+    "boost": "norris",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 241,
+    "cumulative": 4911,
+    "teamValue": 134.6,
+    "bank": 0.8
+   },
+   {
+    "round": 24,
+    "drivers": [
+     "max_verstappen",
+     "sainz",
+     "bearman",
+     "tsunoda",
+     "hadjar"
+    ],
+    "constructors": [
+     "mclaren",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "hadjar"
+    ],
+    "transfersOut": [
+     "norris",
+     "ocon"
+    ],
+    "boost": null,
+    "extraBoost": null,
+    "chip": "autopilot",
+    "penalty": 0,
+    "points": 229,
+    "cumulative": 5140,
+    "teamValue": 134.6,
+    "bank": 2
+   }
+  ],
+  "2026": [
+   {
+    "round": 1,
+    "drivers": [
+     "leclerc",
+     "arvid_lindblad",
+     "hulkenberg",
+     "bortoleto",
+     "colapinto"
+    ],
+    "constructors": [
+     "red_bull",
+     "ferrari"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "leclerc",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 183,
+    "cumulative": 183,
+    "teamValue": 101.7,
+    "bank": 0.1
+   },
+   {
+    "round": 2,
+    "drivers": [
+     "russell",
+     "bearman",
+     "arvid_lindblad",
+     "albon",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mercedes",
+     "rb"
+    ],
+    "transfersIn": [
+     "russell",
+     "bearman",
+     "albon",
+     "mercedes",
+     "rb"
+    ],
+    "transfersOut": [
+     "leclerc",
+     "hulkenberg",
+     "colapinto",
+     "red_bull",
+     "ferrari"
+    ],
+    "boost": "russell",
+    "extraBoost": null,
+    "chip": "wildcard",
+    "penalty": 0,
+    "points": 275,
+    "cumulative": 458,
+    "teamValue": 102.9,
+    "bank": 4.3
+   },
+   {
+    "round": 3,
+    "drivers": [
+     "russell",
+     "bearman",
+     "lawson",
+     "sainz",
+     "arvid_lindblad"
+    ],
+    "constructors": [
+     "mercedes",
+     "rb"
+    ],
+    "transfersIn": [
+     "lawson",
+     "sainz"
+    ],
+    "transfersOut": [
+     "albon",
+     "bortoleto"
+    ],
+    "boost": "bearman",
+    "extraBoost": "russell",
+    "chip": "extraBoost",
+    "penalty": 0,
+    "points": 178,
+    "cumulative": 636,
+    "teamValue": 105.7,
+    "bank": 2.4
+   },
+   {
+    "round": 4,
+    "drivers": [
+     "antonelli",
+     "russell",
+     "leclerc",
+     "hamilton",
+     "max_verstappen"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "antonelli",
+     "leclerc",
+     "hamilton",
+     "max_verstappen",
+     "ferrari"
+    ],
+    "transfersOut": [
+     "bearman",
+     "lawson",
+     "sainz",
+     "arvid_lindblad",
+     "rb"
+    ],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": "limitless",
+    "penalty": 0,
+    "points": 386,
+    "cumulative": 1022,
+    "teamValue": 107.7,
+    "bank": 2.4
+   },
+   {
+    "round": 5,
+    "drivers": [
+     "antonelli",
+     "colapinto",
+     "lawson",
+     "arvid_lindblad",
+     "bottas"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "antonelli",
+     "colapinto",
+     "bottas",
+     "ferrari"
+    ],
+    "transfersOut": [
+     "russell",
+     "bearman",
+     "sainz",
+     "rb"
+    ],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 20,
+    "points": 293,
+    "cumulative": 1315,
+    "teamValue": 109,
+    "bank": 1.1
+   },
+   {
+    "round": 6,
+    "drivers": [
+     "antonelli",
+     "colapinto",
+     "lawson",
+     "bortoleto",
+     "arvid_lindblad"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "bortoleto"
+    ],
+    "transfersOut": [
+     "bottas"
+    ],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 251,
+    "cumulative": 1566,
+    "teamValue": 110.3,
+    "bank": 0.2
+   },
+   {
+    "round": 7,
+    "drivers": [
+     "antonelli",
+     "lawson",
+     "colapinto",
+     "arvid_lindblad",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 124,
+    "cumulative": 1690,
+    "teamValue": 112.4,
+    "bank": 0.2
+   },
+   {
+    "round": 8,
+    "drivers": [
+     "antonelli",
+     "hadjar",
+     "lawson",
+     "arvid_lindblad",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "hadjar",
+     "hulkenberg"
+    ],
+    "transfersOut": [
+     "colapinto",
+     "bortoleto"
+    ],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 244,
+    "cumulative": 1934,
+    "teamValue": 114.5,
+    "bank": 0.9
+   },
+   {
+    "round": 9,
+    "drivers": [
+     "antonelli",
+     "hadjar",
+     "lawson",
+     "arvid_lindblad",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 286,
+    "cumulative": 2220,
+    "teamValue": 116.8,
+    "bank": 0.9
+   },
+   {
+    "round": 10,
+    "drivers": [
+     "antonelli",
+     "hadjar",
+     "lawson",
+     "arvid_lindblad",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 239,
+    "cumulative": 2459,
+    "teamValue": 119.1,
+    "bank": 0.9
+   },
+   {
+    "round": 11,
+    "drivers": [
+     "antonelli",
+     "hadjar",
+     "lawson",
+     "arvid_lindblad",
+     "hulkenberg"
+    ],
+    "constructors": [
+     "ferrari",
+     "mercedes"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 239,
+    "cumulative": 2698,
+    "teamValue": 121.6,
+    "bank": 0.9
+   },
+   {
+    "round": 12,
+    "drivers": [
+     "antonelli",
+     "leclerc",
+     "arvid_lindblad",
+     "hulkenberg",
+     "albon"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "leclerc",
+     "albon"
+    ],
+    "transfersOut": [
+     "hadjar",
+     "lawson"
+    ],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 285,
+    "cumulative": 2983,
+    "teamValue": 126.8,
+    "bank": 0.2
+   },
+   {
+    "round": 13,
+    "drivers": [
+     "antonelli",
+     "leclerc",
+     "arvid_lindblad",
+     "hulkenberg",
+     "albon"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 368,
+    "cumulative": 3351,
+    "teamValue": 129,
+    "bank": 0.2
+   },
+   {
+    "round": 14,
+    "drivers": [
+     "antonelli",
+     "leclerc",
+     "arvid_lindblad",
+     "hulkenberg",
+     "albon"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [],
+    "transfersOut": [],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 205,
+    "cumulative": 3556,
+    "teamValue": 131.2,
+    "bank": 0.2
+   },
+   {
+    "round": 15,
+    "drivers": [
+     "antonelli",
+     "hadjar",
+     "lawson",
+     "arvid_lindblad",
+     "albon"
+    ],
+    "constructors": [
+     "mercedes",
+     "ferrari"
+    ],
+    "transfersIn": [
+     "hadjar",
+     "lawson"
+    ],
+    "transfersOut": [
+     "leclerc",
+     "hulkenberg"
+    ],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 219,
+    "cumulative": 3775,
+    "teamValue": 131.9,
+    "bank": 4.8
+   },
+   {
+    "round": 16,
+    "drivers": [
+     "antonelli",
+     "hadjar",
+     "lawson",
+     "arvid_lindblad",
+     "bearman"
+    ],
+    "constructors": [
+     "mercedes",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "bearman",
+     "red_bull"
+    ],
+    "transfersOut": [
+     "albon",
+     "ferrari"
+    ],
+    "boost": "antonelli",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 271,
+    "cumulative": 4046,
+    "teamValue": 134.1,
+    "bank": 0.5
+   },
+   {
+    "round": 17,
+    "drivers": [
+     "max_verstappen",
+     "hadjar",
+     "arvid_lindblad",
+     "bearman",
+     "bortoleto"
+    ],
+    "constructors": [
+     "mercedes",
+     "red_bull"
+    ],
+    "transfersIn": [
+     "max_verstappen",
+     "bortoleto"
+    ],
+    "transfersOut": [
+     "antonelli",
+     "lawson"
+    ],
+    "boost": "max_verstappen",
+    "extraBoost": null,
+    "chip": null,
+    "penalty": 0,
+    "points": 235,
+    "cumulative": 4281,
+    "teamValue": 135.9,
+    "bank": 1.3
+   }
+  ]
+ }
+}

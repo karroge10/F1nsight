@@ -35,6 +35,9 @@ ERA_DISCOUNT = 1.0
 # half-life of 6 was tested on the 2024-26 scorecard (label dnf6) and was neutral, so it is off.
 SEASON_DNF_HALFLIFE = None
 DEG_CLIP = 0.3
+# Drivers with long runs in both sessions needed to bring a second practice session's long
+# runs onto the main session's scale.
+LR_BRIDGE_MIN = 4
 # Earlier visits per circuit in the typical lap speed c_speed.
 SPEED_VISITS = 5
 # Long run gap and rank from `longrun` (fuel, tyre age and compound corrected, FastF1, OpenF1 or
@@ -760,7 +763,7 @@ def _build_weekend(core, races, events) -> pd.DataFrame:
     practice = _practice_features(sessions, races, corrected)
     sprint_quali = sessions[sessions["session"] == "SQ"][["raceId", "driverId", "rank", "gap"]]
     sprint_quali = sprint_quali.rename(columns={"rank": "sq_pos", "gap": "sq_gap"})
-    long_runs = _long_run_features()
+    long_runs = _long_run_features(races)
     quali = _weekend_quali(core, events)
     sprint = _sprint_frame(core).rename(columns={"sprint_fin": "sp_fin", "sprint_dnf": "sp_dnf"})
     sprint["sp_gain"] = sprint["sprint_grid"] - sprint["sp_fin"]
@@ -803,30 +806,73 @@ def _practice_features(sessions: pd.DataFrame, races: pd.DataFrame,
                  "fp_last_gap", "fp_mean_rank"]]
 
 
-def _long_run_features() -> pd.DataFrame:
-    """Long run gap (%) and relative tyre degradation in each race's main long run session
-    (most drivers with long runs). lr_deg: the driver's degradation slope minus the field's
-    median slope in that session (s per lap of tyre age; negative = kinder to the tyres).
+def _long_run_features(races: pd.DataFrame) -> pd.DataFrame:
+    """Long run gap (%) and relative tyre degradation per driver, from practice held before the
+    main qualifying. lr_deg: the driver's degradation slope minus the field's median slope in
+    the same session (s per lap of tyre age; negative = kinder to the tyres).
 
-    Comparing across sessions is meaningless (fuel loads, track evolution, time of day), so
-    only one session per race is used, normally FP2.
+    Comparing raw lap times across sessions is meaningless (fuel loads, track evolution, time
+    of day), so each race has a main session (most drivers with long runs, normally FP2) and
+    every gap is measured against it. A driver without a long run there takes the gap from
+    another pre-qualifying session, shifted by the median gap difference of the drivers who
+    ran long in both (at least LR_BRIDGE_MIN of them); otherwise the features stay NaN.
     """
     long_runs = data.long_run_pace()
     columns = ["raceId", "driverId", "lr_gap", "lr_rank", "lr_deg"]
     if not len(long_runs):
         return pd.DataFrame(columns=columns)
-    counts = long_runs.groupby(["raceId", "session"]).size().rename("drivers").reset_index()
-    counts = counts.sort_values(["raceId", "drivers", "session"], ascending=[True, False, False])
-    main_sessions = counts.drop_duplicates("raceId")[["raceId", "session"]]
-    main = long_runs.merge(main_sessions, on=["raceId", "session"])
-    best = main.groupby("raceId")["longRunS"].transform("min")
-    main["lr_gap"] = ((main["longRunS"] / best - 1.0) * 100.0).clip(upper=GAP_CLIP)
-    main["lr_rank"] = main.groupby("raceId")["longRunS"].rank(method="min")
-    field_slope = main.groupby("raceId")["degSlope"].transform("median")
-    main["lr_deg"] = (main["degSlope"] - field_slope).clip(-DEG_CLIP, DEG_CLIP)
+    before_quali = _before_main_qualifying(long_runs, races)
+    long_runs = long_runs[before_quali].copy()
+    if not len(long_runs):
+        return pd.DataFrame(columns=columns)
+    best = long_runs.groupby(["raceId", "session"])["longRunS"].transform("min")
+    long_runs["gap"] = (long_runs["longRunS"] / best - 1.0) * 100.0
+    field_slope = long_runs.groupby(["raceId", "session"])["degSlope"].transform("median")
+    long_runs["deg"] = long_runs["degSlope"] - field_slope
+    frames = [_race_long_runs(race_runs) for _, race_runs in long_runs.groupby("raceId")]
+    main = pd.concat(frames, ignore_index=True)
+    main["lr_gap"] = main["lr_gap"].clip(upper=GAP_CLIP)
+    main["lr_rank"] = main.groupby("raceId")["lr_gap"].rank(method="min")
+    main["lr_deg"] = main["lr_deg"].clip(-DEG_CLIP, DEG_CLIP)
     if LONGRUN2:
         main = _with_longrun2(main[columns])
     return main[columns]
+
+
+def _before_main_qualifying(long_runs: pd.DataFrame, races: pd.DataFrame) -> pd.Series:
+    """False for practice held after the main qualifying (FP2 of the 2021-2022 sprint
+    weekends, which ran on Saturday after Friday qualifying), the same rule the one-lap
+    practice features use."""
+    seasons = long_runs["raceId"] // 100
+    has_sprint = long_runs["raceId"].map(races["hasSprint"]).fillna(False).astype(bool)
+    after_quali = has_sprint & (seasons <= 2022) & (long_runs["session"] == "FP2")
+    return ~after_quali
+
+
+def _race_long_runs(race_runs: pd.DataFrame) -> pd.DataFrame:
+    """One race: main session gaps, other sessions bridged onto the main session's scale."""
+    counts = race_runs.groupby("session").size().rename("drivers").reset_index()
+    counts = counts.sort_values(["drivers", "session"], ascending=[False, False])
+    order = counts["session"].tolist()
+    main_session = order[0]
+    main = race_runs[race_runs["session"] == main_session]
+    result = main[["raceId", "driverId", "gap", "deg"]].copy()
+    for session in order[1:]:
+        other = race_runs[race_runs["session"] == session]
+        bridged = _bridge_session(result, other)
+        result = pd.concat([result, bridged], ignore_index=True)
+    return result.rename(columns={"gap": "lr_gap", "deg": "lr_deg"})
+
+
+def _bridge_session(known: pd.DataFrame, other: pd.DataFrame) -> pd.DataFrame:
+    """Rows of `other` for drivers not in `known`, gap shifted onto `known`'s scale."""
+    common = other.merge(known[["driverId", "gap"]], on="driverId", suffixes=("", "_known"))
+    if len(common) < LR_BRIDGE_MIN:
+        return known.iloc[0:0]
+    shift = float((common["gap_known"] - common["gap"]).median())
+    missing = other[~other["driverId"].isin(known["driverId"])].copy()
+    missing["gap"] = missing["gap"] + shift
+    return missing[["raceId", "driverId", "gap", "deg"]]
 
 
 def _with_longrun2(v1: pd.DataFrame) -> pd.DataFrame:

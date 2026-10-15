@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { FantasyFile } from "@/lib/fantasy/engine/types";
 import type { FantasyRoundsFile } from "@/lib/fantasy/thresholds";
+import type { FantasyBacktest } from "@/lib/fantasy/backtest-data";
 import type { SessionRef, SessionTelemetry, TelemetryIndexEntry } from "@/lib/telemetry";
 import type {
   Circuit,
@@ -189,6 +190,11 @@ export function readFantasyFile(): FantasyFile {
 /** data/serve/fantasy_rounds.json (f1p.fantasy.serve_rounds): round-aligned prices and points, or null. */
 export function readFantasyRounds(): FantasyRoundsFile | null {
   return readOptionalExternal<FantasyRoundsFile>("serve/fantasy_rounds.json");
+}
+
+/** fantasy/backtest.json (research/fantasy-backtest/run.ts), or null when not generated. */
+export function readFantasyBacktest(): FantasyBacktest | null {
+  return readOptionalFixture<FantasyBacktest>("fantasy/backtest.json");
 }
 
 /** data/serve/telemetry/index.json (f1p.fastf1.telemetry_export): exported sessions, newest first. */

@@ -6,6 +6,7 @@
 //   worker.postMessage({ id: 1, type: "recommend", file, state });
 //   worker.onmessage = (event) => { const { id, ok, result, error } = event.data; };
 
+import { plannerBoard, type BoardOptions } from "./board";
 import { adviseChips } from "./chips";
 import { recommend, type RecommendOptions } from "./index";
 import { prepareMarket, type Market } from "./market";
@@ -17,7 +18,8 @@ export type EngineRequest =
   | { id: number; type: "recommend"; file?: FantasyFile; state: UserState; options?: RecommendOptions }
   | { id: number; type: "optimise"; file?: FantasyFile; state: UserState; options?: OptimiseOptions }
   | { id: number; type: "plan"; file?: FantasyFile; state: UserState; options?: PlanOptions }
-  | { id: number; type: "chips"; file?: FantasyFile; state: UserState };
+  | { id: number; type: "chips"; file?: FantasyFile; state: UserState }
+  | { id: number; type: "board"; file?: FantasyFile; state: UserState; options?: BoardOptions };
 
 export type EngineResponse = { id: number; ok: true; result: unknown; ms: number } | { id: number; ok: false; error: string };
 
@@ -40,6 +42,7 @@ function run(market: Market, request: EngineRequest): unknown {
   if (request.type === "recommend") return recommend(market, request.state, request.options);
   if (request.type === "optimise") return optimiseTeam(market, request.state, request.options);
   if (request.type === "plan") return planTransfers(market, request.state, request.options);
+  if (request.type === "board") return plannerBoard(market, request.state, request.options);
   return adviseChips(market, request.state);
 }
 

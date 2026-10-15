@@ -5,8 +5,8 @@
 //    for this race under the user's objective and transfer state, the best next-race teams
 //    reachable from the current team, and the current team itself.
 // 2. Dynamic programming over (team, free transfers) with exact rule accounting along every
-//    path: net transfers between consecutive lineups, the free allowance with one carried-over
-//    transfer, -10 per extra transfer, the cost cap growing or shrinking with the expected price
+//    path: net transfers between consecutive lineups, the free allowance (2 per race, carry-over
+//    from the rules, none in 2026), -10 per extra transfer, the cost cap growing or shrinking with the expected price
 //    changes of the assets held, Wildcard (no penalty) and Limitless (no cap, team restored).
 //    Each later race is weighted by futureWeight^k for forecast uncertainty.
 
@@ -27,6 +27,8 @@ export interface PlanOptions {
   objective?: Objective;
   /** Time limit for each optimiser call that builds the pool (ms). */
   maxMs?: number;
+  /** Field the current team unchanged in the first race (plan the later races from it). */
+  holdFirst?: boolean;
 }
 
 /** Best sequence of teams over the next races. Typical runtime 60 to 250 ms. */
@@ -49,7 +51,8 @@ export function preparePlan(market: Market, state: UserState, options: PlanOptio
   const pool = buildPool(market, state, stages, objective, options);
   const scores = stageScores(market, state, stages, pool, objective, options);
   const weights = stages.map((_, s) => (options.futureWeight ?? 0.85) ** s);
-  const context: PlanContext = { market, state, stages, pool, scores, weights, chips: options.chips ?? {} };
+  const holdFirst = options.holdFirst ?? false;
+  const context: PlanContext = { market, state, stages, pool, scores, weights, chips: options.chips ?? {}, holdFirst };
   return { context, prepareMs: performance.now() - started };
 }
 
@@ -103,6 +106,7 @@ export interface PlanContext {
   scores: { objective: Float64Array; expected: Float64Array; boost: (string | null)[]; cost: Float64Array; value: Float64Array }[];
   weights: number[];
   chips: Partial<Record<number, ChipId>>;
+  holdFirst: boolean;
 }
 
 interface Label {
@@ -268,6 +272,7 @@ function solve(context: PlanContext, mode: "plan" | "myopic"): Label | null {
       const budget = label.bank + (held >= 0 ? scores[s].cost[held] : 0);
       let best: Label | null = null;
       for (let t = 0; t < pool.length; t++) {
+        if (context.holdFirst && s === 0 && held >= 0 && t !== held) continue;
         const cost = scores[s].cost[t];
         if (chip !== "limitless" && cost > budget + 1e-6) continue;
         const transfers = held >= 0 ? transferCount(pool[held], pool[t]) : 0;

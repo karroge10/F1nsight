@@ -1,0 +1,90 @@
+{
+ "n": 200,
+ "sigma": 0.03,
+ "a": "data/_backup_fastf1_20261014-1704/predictions/history",
+ "b": "data/predictions/history",
+ "seconds": 202.987,
+ "report": {
+  "2024": {
+   "A": {
+    "mean": 4812.6,
+    "sd": 137.7,
+    "p10": 4628,
+    "p90": 4990,
+    "unperturbed": 4802
+   },
+   "B": {
+    "mean": 4812.2,
+    "sd": 128.6,
+    "p10": 4653,
+    "p90": 4992,
+    "unperturbed": 4737
+   },
+   "diff": {
+    "mean": -0.4,
+    "sd": 162.8,
+    "p10": -205,
+    "p90": 193,
+    "unperturbed": -65,
+    "se": 11.5,
+    "z": -0.03,
+    "significant": false,
+    "runsFor100": 21
+   }
+  },
+  "2025": {
+   "A": {
+    "mean": 5102.3,
+    "sd": 154,
+    "p10": 4891,
+    "p90": 5298,
+    "unperturbed": 5306
+   },
+   "B": {
+    "mean": 5088.2,
+    "sd": 138.2,
+    "p10": 4930,
+    "p90": 5245,
+    "unperturbed": 5140
+   },
+   "diff": {
+    "mean": -14.1,
+    "sd": 192.4,
+    "p10": -242,
+    "p90": 245,
+    "unperturbed": -166,
+    "se": 13.6,
+    "z": -1.04,
+    "significant": false,
+    "runsFor100": 30
+   }
+  },
+  "2026": {
+   "A": {
+    "mean": 4174.8,
+    "sd": 200.8,
+    "p10": 3942,
+    "p90": 4406,
+    "unperturbed": 4191
+   },
+   "B": {
+    "mean": 4143.6,
+    "sd": 265.6,
+    "p10": 3796,
+    "p90": 4489,
+    "unperturbed": 4260
+   },
+   "diff": {
+    "mean": -31.2,
+    "sd": 291.8,
+    "p10": -405,
+    "p90": 346,
+    "unperturbed": 69,
+    "se": 20.6,
+    "z": -1.51,
+    "significant": false,
+    "runsFor100": 67
+   }
+  }
+ }
+}

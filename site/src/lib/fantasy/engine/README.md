@@ -39,7 +39,7 @@ worker.onmessage = ({ data }) => { /* { id, ok: true, result, ms } or { id, ok: 
 ```
 
 Message types: `recommend` (options: `RecommendOptions`), `optimise` (`OptimiseOptions`), `plan`
-(`PlanOptions`), `chips`. The same logic is callable without a worker: `handleEngineRequest(request)`.
+(`PlanOptions`), `chips`, `board` (`BoardOptions`, everything the planner page shows). The same logic is callable without a worker: `handleEngineRequest(request)`.
 
 ## Inputs
 
@@ -67,7 +67,7 @@ Used fields: `season`, `round`, `raceName`, `hasSprint`, `generatedAt`, `synthet
 | `team` | `{ drivers: string[5], constructors: string[2] }`, or `null` for a new team (no penalty, 100M cap) |
 | `bank` | Unspent money. Cost cap = current team value at today's prices + bank |
 | `budget` | Total cost cap override (takes priority over bank) |
-| `freeTransfers` | Free transfers this race (2, or 3 with the carried-over one). Default 2 |
+| `freeTransfers` | Free transfers this race (2 in 2026, no carry-over). Default 2 |
 | `boost` | The user's current Boost pick (informational) |
 | `chipsAvailable` | Chips not used yet. Default: all six |
 | `chipsToPlay` | Chip the user wants this weekend; the first playable one is applied to the team search |
@@ -99,12 +99,18 @@ prepareMarket(file: FantasyFile, options?: { rules?: Partial<GameRules>; fallbac
 
 optimiseTeam(market, state, options?: OptimiseOptions): OptimiseResult
 // OptimiseOptions: { objective?, chip?, topN = 10, maxMs = 150, budget?, freeTransfers?, team?,
-//   expectedPoints?: Float64Array, priceChanges?: Float64Array, prices?: Float64Array, pointsPerMillion? }
+//   expectedPoints?: Float64Array, priceChanges?: Float64Array, prices?: Float64Array, pointsPerMillion?,
+//   exactTransfers? (only teams with exactly that many net transfers) }
 evaluateTeam(market, state, team: TeamSelection, options?): TeamResult | null   // one fixed team, best Boost
 scoreTeams(market, state, teams: TeamSelection[], options?): { score; boost }[] // many fixed teams, no search
 
 planTransfers(market, state, options?: PlanOptions): TransferPlan
-// PlanOptions: { rounds = 3, futureWeight = 0.85, chips?: { [round]: ChipId }, poolPerStage = 40, objective?, maxMs? }
+// PlanOptions: { rounds = 3, futureWeight = 0.85, chips?: { [round]: ChipId }, poolPerStage = 40, objective?, maxMs?,
+//   holdFirst? (field the current team unchanged in the first race) }
+
+plannerBoard(market, state, options?: BoardOptions): PlannerBoard
+// { best: top N lineups from state.team, byTransfers: best lineup per transfer count (0 = keep),
+//   plan: plan from options.draft held in the first race, exact }
 preparePlan(market, state, options?): PreparedPlan      // build the candidate pool once
 solvePlan(prepared, chips: { [round]: ChipId }): TransferPlan // re-solve for a chip schedule (fast)
 
@@ -204,7 +210,7 @@ for each planned race on its own (prices moved by the expected price changes), t
 for this race under the user's objective, the best next-race teams reachable from the current
 team, and the current team. Dynamic programming over (team, free transfers), keeping the
 non-dominated (score, bank) labels, applies the rules exactly along each path: net transfers
-between lineups, 2 free transfers plus one carried over (never more than 3), -10 per extra, the
+between lineups, 2 free transfers per race (no carry-over in 2026), -10 per extra, the
 cost cap moving with the expected price changes of the held assets, Wildcard and Limitless.
 Later races are weighted by `futureWeight^k` (0.85). The result reports the gain over holding
 the team (`holdScore`) and over optimising one race at a time (`myopicScore`). A brute-force test
@@ -231,7 +237,7 @@ points range, team value growth, the plan's gain and the chip to play.
 | `priceTierSplit`, `priceWindow` | 18.5, 3 | Reverse engineered price rule (98.9% match in 2026) |
 
 Other rule values come from `rules_2026.json`: 5 drivers + 2 constructors, 100M cap, floor 3.0,
-ceiling 34.0, 2 free transfers with 1 carried over, -10 per extra transfer, x2 Boost, 23 rounds.
+ceiling 34.0, 2 free transfers per race with no carry-over, -10 per extra transfer, x2 Boost, 23 rounds.
 
 ## Performance
 

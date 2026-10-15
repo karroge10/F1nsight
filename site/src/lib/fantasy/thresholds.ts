@@ -83,6 +83,64 @@ export function thresholdsForRound(file: FantasyRoundsFile, round: number): Map<
   return out;
 }
 
+export interface PriceMoveOdds {
+  bigFall: number;
+  smallFall: number;
+  smallRise: number;
+  bigRise: number;
+  /** Size of the small and the big step for the asset's tier ($M): 0.1 and 0.3 from $18.5M, else 0.2 and 0.6. */
+  small: number;
+  big: number;
+}
+
+/**
+ * The chance of each of the four price moves, from the fantasy file's priceChangeProbs (keys
+ * like "+0.3", "-0.1"). A move is big when it is closer to the tier's big step than to its
+ * small step, so moves clipped at the price floor or ceiling still land on the right side.
+ */
+export function priceMoveOdds(price: number, probs: Record<string, number> | undefined): PriceMoveOdds {
+  const tier = tierOf(price);
+  const steps = PRICE_STEPS[tier];
+  const small = steps.good;
+  const big = steps.great;
+  const odds: PriceMoveOdds = { bigFall: 0, smallFall: 0, smallRise: 0, bigRise: 0, small, big };
+  const middle = (small + big) / 2;
+  for (const [key, chance] of Object.entries(probs ?? {})) {
+    const move = Number(key);
+    if (!Number.isFinite(move) || move === 0) continue;
+    const isBig = Math.abs(move) >= middle;
+    if (move > 0 && isBig) odds.bigRise += chance;
+    else if (move > 0) odds.smallRise += chance;
+    else if (isBig) odds.bigFall += chance;
+    else odds.smallFall += chance;
+  }
+  return odds;
+}
+
+export interface RecentRoundPoints {
+  /** The rounds shown, oldest first. */
+  rounds: number[];
+  /** Points per asset id in those rounds (null when the asset did not score). */
+  points: Map<string, (number | null)[]>;
+}
+
+/** Points of every asset in the last `count` scored rounds before `round`. */
+export function recentRoundPoints(file: FantasyRoundsFile, round: number, count = 2): RecentRoundPoints {
+  const scored = file.rounds.filter((r) => r.round < round && r.assets.some((a) => a.points !== null));
+  const sorted = [...scored].sort((x, y) => x.round - y.round);
+  const recent = sorted.slice(-count);
+  const points = new Map<string, (number | null)[]>();
+  recent.forEach((entry, i) => {
+    for (const asset of entry.assets) {
+      if (asset.points === null) continue;
+      const row = points.get(asset.id) ?? recent.map(() => null);
+      row[i] = (row[i] ?? 0) + asset.points;
+      points.set(asset.id, row);
+    }
+  });
+  return { rounds: recent.map((r) => r.round), points };
+}
+
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
