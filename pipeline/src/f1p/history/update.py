@@ -1,6 +1,6 @@
 """Update the full F1 race history and rebuild the serve database.
 
-Usage (from v2/pipeline):  uv run python -m f1p.history.update
+Usage (from pipeline):  uv run python -m f1p.history.update
 
 Steps, each one resumable:
 1. download the public Jolpica CSV dump if the server has a newer one

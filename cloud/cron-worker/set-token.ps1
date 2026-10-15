@@ -2,7 +2,7 @@
 # as the GitHub secret F1_DISPATCH_TOKEN and as the f1nsight-cron Worker secret GITHUB_TOKEN.
 $ErrorActionPreference = 'Stop'
 $repo = 'karroge10/F1nsight'
-$workerDir = 'D:\Coding\GitHub Repositories\F1-Stats\v2\cloud\cron-worker'
+$workerDir = 'D:\Coding\GitHub Repositories\F1nsight\cloud\cron-worker'
 
 $secure = Read-Host 'Paste the GitHub token and press Enter (input is hidden)' -AsSecureString
 $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)

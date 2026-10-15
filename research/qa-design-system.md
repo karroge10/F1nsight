@@ -21,7 +21,7 @@ Scope: `src/app/globals.css`, `src/app/layout.tsx`, `src/app/loading.tsx`, `src/
 - **Browser (DOM and text assertions, no screenshots in the main session):** standings page at 1440 and 390:
   no horizontal page overflow, nav active state is "Standings", the skip link is present, the theme toggle
   shows exactly one icon, and there are zero console errors or page errors.
-- **Full walk (`v2/research/scratch/qa-design-chrome.mjs`, output `qa-chrome-out.json`):** 10 routes x 2 themes
+- **Full walk (`research/scratch/qa-design-chrome.mjs`, output `qa-chrome-out.json`):** 10 routes x 2 themes
   x 2 widths. Every route has no horizontal overflow, the nav is present with the right active link, the
   theme toggle shows one icon, and there are no console errors, except:
   - `/fantasy` (both themes, both widths): the page does not load. In light mode the dev server reports a
@@ -119,6 +119,6 @@ Scope: `src/app/globals.css`, `src/app/layout.tsx`, `src/app/loading.tsx`, `src/
 - `src/components/layout/theme-toggle.tsx`: Phosphor sun and moon.
 - `src/components/layout/nav-links.tsx`: focus-ring room.
 
-Scratch files (not part of the app): `v2/research/scratch/qa-design-chrome.mjs` (browser walk),
+Scratch files (not part of the app): `research/scratch/qa-design-chrome.mjs` (browser walk),
 `qa-ds-tsc.txt` (typecheck output), `qa-chrome-out.json` and `qa-chrome-err.txt` (empty, the walk did not
 finish).

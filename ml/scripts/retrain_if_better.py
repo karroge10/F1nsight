@@ -1,6 +1,6 @@
 """Retrain gate: build features, train, backtest, and promote the new model only if it is not worse.
 
-Run from v2/ml:
+Run from ml:
     uv run python scripts/retrain_if_better.py                    # run the gate now
     uv run python scripts/retrain_if_better.py --when-due         # scheduled task: run only when
                                                                   # results are newer than the model
@@ -31,7 +31,7 @@ Steps:
    and staging stay on disk for inspection.
 
 The decision and both sets of metrics go to ml/reports/retrain_gate.json; the full output to
-v2/logs/retrain-<time>.log. Seconds per phase (FastF1 tables, features, train, backtest) are in
+logs/retrain-<time>.log. Seconds per phase (FastF1 tables, features, train, backtest) are in
 the report too. With --no-promote the decision is "would promote" or "would reject": nothing is
 copied, f1ml.predict does not run and models/latest.json keeps pointing at the current model.
 """
@@ -59,8 +59,8 @@ sys.path.insert(0, _PIPELINE_PATH)
 
 from f1p.locks import file_lock, pipeline_processes  # noqa: E402
 
-V2_DIR = paths.V2_DIR
-LOGS_DIR = V2_DIR / "logs"
+ROOT_DIR = paths.ROOT_DIR
+LOGS_DIR = ROOT_DIR / "logs"
 REFRESH_LOCK = LOGS_DIR / "refresh.lock"
 REFRESH_LOCK_WAIT_S = 60 * 60
 GATE_REPORT = paths.REPORTS_DIR / "retrain_gate.json"
@@ -301,10 +301,10 @@ def _ensemble_arguments(args: argparse.Namespace) -> list[str]:
 
 
 def _run(log, project: str, module: str, *extra: str) -> None:
-    venv = V2_DIR / project / ".venv"
+    venv = ROOT_DIR / project / ".venv"
     python = venv / "Scripts" / "python.exe" if os.name == "nt" else venv / "bin" / "python"
     command = [str(python), "-m", module, *extra]
-    cwd = V2_DIR / project
+    cwd = ROOT_DIR / project
     _run_command(log, command, cwd)
 
 

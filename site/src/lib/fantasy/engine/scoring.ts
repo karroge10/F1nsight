@@ -1,5 +1,5 @@
 // F1 Fantasy scoring for one driver or constructor and one race weekend. Exact port of
-// v2/pipeline/src/f1p/fantasy/scoring.py (checked for parity on real 2025 and 2026 weekends in
+// pipeline/src/f1p/fantasy/scoring.py (checked for parity on real 2025 and 2026 weekends in
 // scoring.test.ts). Breakdown keys match the Python reference.
 
 export const QUALI_POINTS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];

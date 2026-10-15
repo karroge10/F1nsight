@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-Set-Location -LiteralPath 'D:\Coding\GitHub Repositories\F1-Stats\v2\ml'
+Set-Location -LiteralPath 'D:\Coding\GitHub Repositories\F1nsight\ml'
 $env:F1ML_DYNPL = '1'
 $env:PYTHONUNBUFFERED = '1'
 $log = 'reports/exp/dynpl/run.log'

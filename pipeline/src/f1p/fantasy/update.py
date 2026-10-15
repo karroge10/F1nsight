@@ -1,4 +1,4 @@
-"""Refresh F1 Fantasy data: `uv run python -m f1p.fantasy.update` (from v2/pipeline).
+"""Refresh F1 Fantasy data: `uv run python -m f1p.fantasy.update` (from pipeline).
 
 1. re-fetch the running season's official feeds (prices, points, breakdowns),
 2. re-fetch the running season's DHL pit stop data (free award pages),

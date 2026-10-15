@@ -7,7 +7,7 @@ Without a paid token a live session has no car positions in the feed, so the ser
 them from the free timing feed (see "Estimated positions"), labelled `estimated`.
 
 ```
-cd v2/live
+cd live
 uv sync
 uv run python -m f1live                      # live relay on 127.0.0.1:8765
 uv run python -m f1live --simulate 2026:16:R --sim-speed 4 --sim-start -120
@@ -350,7 +350,7 @@ Jolpica schedule, sprint weekend: Sprint Qualifying 12:30 UTC the same day). Sta
 early:
 
 ```
-cd v2/live
+cd live
 uv run python scripts/probe_static_live.py --season 2026 --round 17 --session FP1 --interval 30
 ```
 
@@ -359,7 +359,7 @@ It runs until 30 min after the scheduled end (10:00 UTC), logs to
 grew, median lag while growing). It follows the root `SessionInfo.json` if the session runs
 under a different folder than the one guessed from the schedule.
 
-## Caches (all under `v2/data`, not in git)
+## Caches (all under `data`, not in git)
 
 - `raw/livetiming/<season>/Index.json` (refreshed hourly), `jolpica_races.json` (6 h).
 - `raw/livetiming/<session path>/<Topic>.jsonStream`: raw archive streams, stored once the

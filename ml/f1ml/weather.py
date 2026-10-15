@@ -294,7 +294,7 @@ def _write_readme(table: pd.DataFrame) -> None:
     live = int(table["rain_live"].notna().sum())
     text = f"""# Open-Meteo weather (free, no key)
 
-Written by `f1ml.weather` (run `uv run python -m f1ml.weather` from `v2/ml`). Hourly weather at
+Written by `f1ml.weather` (run `uv run python -m f1ml.weather` from `ml`). Hourly weather at
 each circuit's coordinates (`circuits.lat/lng`), UTC.
 
 | folder | API | coverage | files |

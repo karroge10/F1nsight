@@ -1,6 +1,6 @@
 ﻿param([Parameter(Mandatory=$true)][ValidateSet('fastform','similarity')][string]$Idea)
 $ErrorActionPreference = 'Continue'
-Set-Location -LiteralPath 'D:\Coding\GitHub Repositories\F1-Stats\v2\ml'
+Set-Location -LiteralPath 'D:\Coding\GitHub Repositories\F1nsight\ml'
 $env:F1ML_DYNPL = '0'
 $env:F1ML_TEAM_BEST_CAR = '1'
 $env:F1ML_FASTFORM = '0'

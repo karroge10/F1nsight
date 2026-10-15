@@ -1,8 +1,8 @@
 # F1nsight competitive gap analysis
 
-Date: 2026-10-08. Scope: our site (F1nsight, `v2/site`) against f1fantasytools.com, the official F1 Fantasy and F1 TV products, and a few free F1 data and stats sites.
+Date: 2026-10-08. Scope: our site (F1nsight, `site`) against f1fantasytools.com, the official F1 Fantasy and F1 TV products, and a few free F1 data and stats sites.
 
-Method: our pages were fetched over HTTP from the dev server at localhost:3000 (not restarted), and `v2/site/src` was read for the feature list. Competitor data comes from WebFetch of their own pages where possible (f1fantasytools.com home, pricing, rhter profile) and from WebSearch snippets and FanAmp articles otherwise. Reddit was not reachable through search: no r/fantasyF1 thread was retrieved directly, so the pain points in section (d) come from mirrors, Patreon posts and App Store reviews, and are weaker evidence than the rest.
+Method: our pages were fetched over HTTP from the dev server at localhost:3000 (not restarted), and `site/src` was read for the feature list. Competitor data comes from WebFetch of their own pages where possible (f1fantasytools.com home, pricing, rhter profile) and from WebSearch snippets and FanAmp articles otherwise. Reddit was not reachable through search: no r/fantasyF1 thread was retrieved directly, so the pain points in section (d) come from mirrors, Patreon posts and App Store reviews, and are weaker evidence than the rest.
 
 ## Caveats on the evidence
 
@@ -172,5 +172,5 @@ Official and other products:
 
 Our site (fetched and read locally):
 - http://localhost:3000/ , /races, /races/2026, /drivers, /teams, /circuits, /standings, /history, /live, /fantasy (HTTP 200 each, text extracted)
-- `v2/site/src/components/forecast/*`, `v2/site/src/components/fantasy/*`, `v2/site/src/components/live/*`, `v2/site/src/components/stats/*`, `v2/site/src/lib/fantasy/engine/*`
-- `v2/INTEGRATION_TODO.md` (fantasy error figures, OpenF1 licence, credits), `v2/SPEC.md` (free-only rule, pillars)
+- `site/src/components/forecast/*`, `site/src/components/fantasy/*`, `site/src/components/live/*`, `site/src/components/stats/*`, `site/src/lib/fantasy/engine/*`
+- `INTEGRATION_TODO.md` (fantasy error figures, OpenF1 licence, credits), `SPEC.md` (free-only rule, pillars)

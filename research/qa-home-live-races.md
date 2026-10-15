@@ -2,7 +2,7 @@
 
 Scope: `app/page.tsx`, `app/live/**`, `app/races/**`, `components/forecast/*`, `components/live/*`,
 and `components/stats/{calendar-page,results-table,lap-chart,pit-stops-table}.tsx`.
-Scratch scripts and the JSON output are in `v2/research/scratch/` (`qa-walk.mjs`, `qa-live.mjs`,
+Scratch scripts and the JSON output are in `research/scratch/` (`qa-walk.mjs`, `qa-live.mjs`,
 `qa-space.mjs`, `qa-replay-debug.mjs`, `qa-walk.json`, `shots/`).
 
 ## What was checked

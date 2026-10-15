@@ -4,7 +4,7 @@ Everything runs locally and uses free data only (Jolpica, F1DB, FastF1, OpenF1, 
 live timing archive, the official fantasy feeds). Models train on the local GPU (RTX 5070 Ti).
 See `REPORT.md` for accuracy numbers and limitations.
 
-## Commands (run from `v2/ml`)
+## Commands (run from `ml`)
 
 | Command | What it does | Time |
 |---|---|---|
@@ -40,10 +40,10 @@ the forecast is the model's own. Each fetch is archived in `data/raw/polymarket/
 | `plackett.py` | Plackett-Luce likelihoods, blend weights, position dependent temperature |
 | `bundle.py` | Train all base models, stack them on held out races, save / load |
 | `simulate.py` | GPU Monte Carlo of a weekend (quali, sprint, race, retirements) and the championship |
-| `fantasy.py`, `fantasy_history.py`, `fantasy_rules.py` | Fantasy points per simulated world (rules from `v2/pipeline/src/f1p/fantasy`), extras models, price changes |
+| `fantasy.py`, `fantasy_history.py`, `fantasy_rules.py` | Fantasy points per simulated world (rules from `pipeline/src/f1p/fantasy`), extras models, price changes |
 | `forecast.py` | One race forecast: stage inputs, strengths, simulation, fantasy, title odds |
 | `explain.py` | SHAP based `factors` and `reasons` |
-| `export.py` | JSON payloads per `v2/SPEC.md` |
+| `export.py` | JSON payloads per `SPEC.md` |
 | `backtest.py`, `studies.py`, `train.py`, `predict.py` | Entry points |
 
 ## Outputs

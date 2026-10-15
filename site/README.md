@@ -17,7 +17,7 @@ node scripts/build-logo-registry.mjs           # season ranges for team logos in
 
 ## Images and licensing
 
-Images stay current on their own: `v2/refresh.ps1` runs both fetch scripts after the pipeline
+Images stay current on their own: `refresh.ps1` runs both fetch scripts after the pipeline
 (step `images`, never fatal: a CDN failure logs a warning and keeps the old files). The season and
 roster come from the served database (`F1_DATA_DIR/serve/f1.sqlite`, `season_entries` of the
 latest season with results), so a mid-season seat change gives the driver's latest team. A

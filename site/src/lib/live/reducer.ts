@@ -1,5 +1,5 @@
 // Pure reducer for the live / replay view. Every WebSocket (or mock) message goes through
-// here, so the UI state is testable without a browser. Message shapes: v2/live/README.md.
+// here, so the UI state is testable without a browser. Message shapes: live/README.md.
 
 import type {
   LiveCar,

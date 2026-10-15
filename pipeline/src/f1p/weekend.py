@@ -28,9 +28,9 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from f1p.paths import PROCESSED_DIR, V2_DIR
+from f1p.paths import PROCESSED_DIR, ROOT_DIR
 
-STATE_PATH = V2_DIR / "logs" / "refresh_state.json"
+STATE_PATH = ROOT_DIR / "logs" / "refresh_state.json"
 
 # column, short task label, nominal length
 SESSIONS = [

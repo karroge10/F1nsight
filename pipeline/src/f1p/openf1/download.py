@@ -1,6 +1,6 @@
 """Download historical OpenF1 data to data/raw/openf1/<season>/...
 
-Run from v2/pipeline:
+Run from pipeline:
     uv run python -m f1p.openf1.download [--seasons 2023 2024 2025 2026] [--refresh]
 """
 

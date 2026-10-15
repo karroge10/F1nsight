@@ -1,6 +1,6 @@
 """Checks for the compound and track evolution corrected practice pace.
 
-    uv run --with pytest python -m pytest tests -q      (from v2/ml)
+    uv run --with pytest python -m pytest tests -q      (from ml)
 """
 
 import numpy as np

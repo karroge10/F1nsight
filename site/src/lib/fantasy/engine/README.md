@@ -292,12 +292,12 @@ to pay off.
 
 ## Data scripts
 
-- `v2/ml/scripts/synthetic_fantasy.py`: SYNTHETIC stand-in for fantasy.json with the contract
+- `ml/scripts/synthetic_fantasy.py`: SYNTHETIC stand-in for fantasy.json with the contract
   shape plus `scenarios.negative` and `scenarios.race`, marked `"synthetic": true`. Writes
-  `data/predictions/fantasy.synthetic.json` (`--out` to change). `cd v2/ml && uv run python scripts/synthetic_fantasy.py`.
-- `v2/pipeline/scripts/export_fantasy_engine_fixtures.py`: regenerates `__fixtures__/scoring_parity.json`
+  `data/predictions/fantasy.synthetic.json` (`--out` to change). `cd ml && uv run python scripts/synthetic_fantasy.py`.
+- `pipeline/scripts/export_fantasy_engine_fixtures.py`: regenerates `__fixtures__/scoring_parity.json`
   and `__fixtures__/history.json` from the processed parquet tables.
-  `cd v2/pipeline && uv run python scripts/export_fantasy_engine_fixtures.py`.
+  `cd pipeline && uv run python scripts/export_fantasy_engine_fixtures.py`.
 
 ## Files
 

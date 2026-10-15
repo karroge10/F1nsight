@@ -38,8 +38,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-V2_DIR = Path(__file__).resolve().parents[1]
-BASELINE_PATH = V2_DIR / "logs" / "cloud-state.json"
+ROOT_DIR = Path(__file__).resolve().parents[1]
+BASELINE_PATH = ROOT_DIR / "logs" / "cloud-state.json"
 RELEASE_TAG = "state"
 RELEASE_TITLE = "Cloud refresh state"
 RELEASE_NOTES = ("Data for the scheduled refresh in GitHub Actions (cloud/state.py). "
@@ -54,7 +54,7 @@ COMPRESS_LEVEL = 6
 EXCLUDED_SUFFIXES = (".log", ".lock", ".tmp", ".pyc")
 EXCLUDED_DIRS = ("__pycache__",)
 
-# group name -> paths relative to v2. "model" is filled in from ml/models/latest.json.
+# group name -> paths relative to the repo root. "model" is filled in from ml/models/latest.json.
 # Who writes what: the refresh writes every data group and "predictions" (next.json,
 # fantasy.json); only the retrain gate writes "model" and "backtest" (the backtest and its
 # history files), so neither run's push can carry stale copies of the other's files.
@@ -115,7 +115,7 @@ def status() -> int:
 
 
 def pull(groups: list[str]) -> int:
-    """Download the selected groups of the newest manifest and unpack them over v2."""
+    """Download the selected groups of the newest manifest and unpack them over the repo root."""
     manifest = _remote_manifest()
     if manifest is None:
         print(f"state: release {RELEASE_TAG} has no manifest yet, nothing to pull", file=sys.stderr)
@@ -222,17 +222,17 @@ def group_hash(files: list[Path]) -> str:
 
 def _group_roots(name: str) -> list[Path]:
     if name != "model":
-        return [V2_DIR / relative for relative in GROUPS[name]]
-    roots = [V2_DIR / relative for relative in MODEL_FILES]
-    latest = _read_json(V2_DIR / "ml" / "models" / "latest.json")
+        return [ROOT_DIR / relative for relative in GROUPS[name]]
+    roots = [ROOT_DIR / relative for relative in MODEL_FILES]
+    latest = _read_json(ROOT_DIR / "ml" / "models" / "latest.json")
     if latest:
         folder = latest["path"].replace("\\", "/")
-        roots.append(V2_DIR / "ml" / folder)
+        roots.append(ROOT_DIR / "ml" / folder)
     return roots
 
 
 def _relative_text(path: Path) -> str:
-    relative = path.relative_to(V2_DIR)
+    relative = path.relative_to(ROOT_DIR)
     return relative.as_posix()
 
 
@@ -251,7 +251,7 @@ def _pack(name: str, files: list[Path], local_hash: str, folder: Path) -> dict:
     archive = folder / f"{name}-{local_hash[:12]}.tar.gz"
     with tarfile.open(archive, "w:gz", compresslevel=COMPRESS_LEVEL, format=tarfile.PAX_FORMAT) as tar:
         for path in files:
-            relative = path.relative_to(V2_DIR).as_posix()
+            relative = path.relative_to(ROOT_DIR).as_posix()
             tar.add(path, arcname=relative, recursive=False)
     size = archive.stat().st_size
     sha = _file_sha256(archive)
@@ -300,7 +300,7 @@ def _download_archive(entry: dict, folder: Path) -> Path:
 
 def _unpack(archive: Path) -> None:
     with tarfile.open(archive, "r:gz") as tar:
-        tar.extractall(V2_DIR, filter="data")
+        tar.extractall(ROOT_DIR, filter="data")
 
 
 def _upload(assets: list[str], folder: Path) -> None:
@@ -370,7 +370,7 @@ def _ensure_release(dry_run: bool) -> None:
 def _gh(*arguments: str, check: bool = True) -> subprocess.CompletedProcess:
     command = ["gh", *arguments]
     for attempt in range(1, GH_ATTEMPTS + 1):
-        completed = subprocess.run(command, cwd=V2_DIR, capture_output=True, text=True,
+        completed = subprocess.run(command, cwd=ROOT_DIR, capture_output=True, text=True,
                                    encoding="utf-8", errors="replace")
         if completed.returncode == 0 or not _server_error(completed.stderr):
             break

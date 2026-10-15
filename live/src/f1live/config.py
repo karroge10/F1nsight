@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 
 PACKAGE_DIR = Path(__file__).resolve().parent
-V2_DIR = PACKAGE_DIR.parents[2]
-DATA_DIR = Path(os.environ.get("F1LIVE_DATA_DIR", V2_DIR / "data"))
+ROOT_DIR = PACKAGE_DIR.parents[2]
+DATA_DIR = Path(os.environ.get("F1LIVE_DATA_DIR", ROOT_DIR / "data"))
 
 ARCHIVE_CACHE_DIR = DATA_DIR / "raw" / "livetiming"
 TRACK_CACHE_DIR = ARCHIVE_CACHE_DIR / "tracks"

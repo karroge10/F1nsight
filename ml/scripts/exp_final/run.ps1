@@ -3,7 +3,7 @@
 #   lr2:  base plus the corrected long run pace (F1ML_LONGRUN2)
 param([Parameter(Mandatory=$true)][ValidateSet('base','lr2')][string]$Variant)
 $ErrorActionPreference = 'Continue'
-Set-Location -LiteralPath 'D:\Coding\GitHub Repositories\F1-Stats\v2\ml'
+Set-Location -LiteralPath 'D:\Coding\GitHub Repositories\F1nsight\ml'
 $env:F1ML_DYNPL = '1'
 $env:F1ML_TEAM_BEST_CAR = '1'
 $env:F1ML_LONGRUN2 = if ($Variant -eq 'lr2') { '1' } else { '0' }

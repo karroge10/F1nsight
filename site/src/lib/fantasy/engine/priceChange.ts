@@ -1,5 +1,5 @@
 // F1 Fantasy price change rule (2025 and 2026 game), reverse engineered. Port of
-// v2/pipeline/src/f1p/fantasy/price_change.py: after each gameday an asset is rated on
+// pipeline/src/f1p/fantasy/price_change.py: after each gameday an asset is rated on
 // points per million over its last 3 active gamedays and moves by a fixed step for its tier.
 
 export type PriceRating = "great" | "good" | "poor" | "terrible" | "inactive";

@@ -33,7 +33,7 @@ Status legend used below:
 
 ### 2.1 Our pipeline reads the public feeds
 
-`v2/pipeline/src/f1p/fantasy/official.py` (read-only inspection):
+`pipeline/src/f1p/fantasy/official.py` (read-only inspection):
 
 - Base: `FEEDS = "https://fantasy.formula1.com/feeds"`.
 - Fetches `schedule/raceday_en.json`, `limits/constraints.json`, `drivers/<gameday>_en.json`,
@@ -42,7 +42,7 @@ Status legend used below:
   running season; past seasons are not served any more."
 - `http.py` sends a custom User-Agent, sleeps 0.35 s between requests and backs off on 429 and 5xx.
 
-`v2/data/raw/fantasy/README.md` records the same: no login, about 55 requests per refresh, terms at
+`data/raw/fantasy/README.md` records the same: no login, about 55 requests per refresh, terms at
 fantasy.formula1.com/en/terms, and data owned by Formula One World Championship Ltd.
 
 ### 2.2 Live read-only test (today)
@@ -64,7 +64,7 @@ We did **not** request any per-user endpoint, and did not log in anywhere.
 ### 2.3 Our own data already covers the public side
 
 The processed tables (`fantasy_prices`, `fantasy_points`, `id_map_fantasy`) and the site engine in
-`v2/site/src/lib/fantasy/engine/` already hold 2026 prices, selection percentages and per-session points
+`site/src/lib/fantasy/engine/` already hold 2026 prices, selection percentages and per-session points
 for every driver and constructor. That is the data needed for **projected points**. Only the user's
 team and league membership is missing.
 
@@ -204,7 +204,7 @@ change or the bookmarklet breaks.
   for private, non-commercial analysis. A paid or public product would need that resolved.
 - Rate limits: the feeds are CDN-cached. Keep our pipeline's 0.35 s spacing, and do not poll per user.
 - Disclaimer: the site should say that it is not affiliated with F1 or F1 Fantasy, and that projections
-  carry the error stated in `v2/INTEGRATION_TODO.md` (about 2.6 points per driver and 4.0 per constructor).
+  carry the error stated in `INTEGRATION_TODO.md` (about 2.6 points per driver and 4.0 per constructor).
 
 ## 7. Backend and storage options (non-Supabase)
 
@@ -218,7 +218,7 @@ committing. Where sources disagree, both figures are given.
 - Paid (Workers Paid, $5 per month): 25 billion rows read and 50 million written per month included,
   then $0.001 per million reads and $1.00 per million writes. 5 GB included, then $0.75 per GB-month.
 - No egress or bandwidth charge for D1 data.
-- Fit: the site is Next.js 16.4.0 (`v2/site/package.json`). There is no deployment config yet (no
+- Fit: the site is Next.js 16.4.0 (`site/package.json`). There is no deployment config yet (no
   wrangler, Vercel or OpenNext files). OpenNext for Cloudflare is reported to be at 1.0 (Feb 2026), with
   Node runtime and `nodejs_compat` plus a compatibility date of 2024-09-23 or later. Worker size limit:
   3 MiB free, 10 MiB paid.
@@ -291,7 +291,7 @@ Why:
 - Turso is the fallback if OpenNext on Cloudflare turns out to be painful for this site.
 
 Open questions for the owner:
-- Where the site is hosted now (no deployment config exists in `v2/site` today).
+- Where the site is hosted now (no deployment config exists in `site` today).
 - Whether accounts are needed at launch, or the local-first plus share-link mode is enough.
 
 ## 8. Implementation plan
@@ -310,7 +310,7 @@ This step decides whether the bookmarklet can read the team, or whether we fall 
 
 ### Phase 1: no-login team builder (ships first, no risk)
 
-Files (new, under `v2/site`):
+Files (new, under `site`):
 - `src/app/fantasy/team/page.tsx`: team builder with budget and transfer planner.
 - `src/lib/fantasy/team/schema.ts`: zod schema for a team (driver and constructor asset IDs, captain,
   chips, budget). Asset IDs come from the existing `fantasy_prices` export.
@@ -322,7 +322,7 @@ Files (new, under `v2/site`):
 - `src/lib/fantasy/team/paste-parser.ts`: parse pasted team text into asset IDs, matched by name against
   the current feed.
 
-Export step (pipeline, read-only for the site): a small addition to `v2/pipeline` writes the current
+Export step (pipeline, read-only for the site): a small addition to `pipeline` writes the current
 gameday's asset list (IDs, names, prices, selection %) to `site/public/data/fantasy/<season>/assets.json`
 so the site needs no database for prices. Check how the existing site data export works before adding it.
 
@@ -339,10 +339,10 @@ so the site needs no database for prices. Check how the existing site data expor
 
 ### Phase 3: optional accounts (Better Auth)
 
-- `v2/site/auth.ts`: Better Auth config with the D1 database binding, email magic link, and the passkey
+- `site/auth.ts`: Better Auth config with the D1 database binding, email magic link, and the passkey
   plugin (verify the package name first).
-- `v2/site/wrangler.jsonc`: D1 binding (`DB`), `nodejs_compat`, compatibility date 2024-09-23 or later.
-- `v2/site/migrations/0001_auth.sql` and `0002_teams.sql`: Better Auth tables and `saved_teams`
+- `site/wrangler.jsonc`: D1 binding (`DB`), `nodejs_compat`, compatibility date 2024-09-23 or later.
+- `site/migrations/0001_auth.sql` and `0002_teams.sql`: Better Auth tables and `saved_teams`
   (id, user_id, season, gameday, payload JSON, created_at, updated_at).
 - `src/app/api/auth/[...all]/route.ts`: Better Auth handler.
 - `src/app/api/teams/route.ts` (GET list, POST save) and `src/app/api/teams/[id]/route.ts` (GET, PUT, DELETE),
@@ -357,7 +357,7 @@ so the site needs no database for prices. Check how the existing site data expor
 
 ### Projections and transfer suggestions (all phases)
 
-- Reuse `v2/site/src/lib/fantasy/engine/` for points. Feed it the team, the 2026 price table and the
+- Reuse `site/src/lib/fantasy/engine/` for points. Feed it the team, the 2026 price table and the
   per-asset expected points from the ML outputs in the pipeline. Read the existing `use-recommendation.ts`
   before writing new logic.
 - Transfer suggestions: rank single swaps by projected gain per million of price change, within the budget
@@ -392,8 +392,8 @@ so the site needs no database for prices. Check how the existing site data expor
 - [Better Auth vs Auth.js (aggregator)](https://gautamkhorana.com/authentication/compare/authjs-vs-better-auth/)
 - [OpenNext on Cloudflare Workers with Next.js (tutorial)](https://noqta.tn/en/tutorials/opennext-cloudflare-workers-nextjs-deployment-2026)
 - [better-auth-cloudflare](https://github.com/zpg6/better-auth-cloudflare)
-- Repo files read: `v2/pipeline/src/f1p/fantasy/official.py`, `v2/pipeline/src/f1p/fantasy/http.py`,
-  `v2/data/raw/fantasy/README.md`, `v2/INTEGRATION_TODO.md`, `v2/site/package.json`.
+- Repo files read: `pipeline/src/f1p/fantasy/official.py`, `pipeline/src/f1p/fantasy/http.py`,
+  `data/raw/fantasy/README.md`, `INTEGRATION_TODO.md`, `site/package.json`.
 - Live request: `GET https://fantasy.formula1.com/feeds/limits/constraints.json` (2026-10-08, read-only).
 - DNS check: `fantasy-api.formula1.com` did not resolve from the research machine (2026-10-08).
 

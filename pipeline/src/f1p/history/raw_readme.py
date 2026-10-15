@@ -43,7 +43,7 @@ def write_raw_readme(dump_info: dict | None, gap_rounds: list[str], table_covera
         "# Jolpica-F1 raw data",
         "",
         f"Last updated {today.isoformat()} by `uv run python -m f1p.history.update` "
-        "(run from `v2/pipeline`).",
+        "(run from `pipeline`).",
         "",
         "## Sources",
         "",

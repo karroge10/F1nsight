@@ -1,5 +1,5 @@
 // Fixture-driven replay stream, used only when the live service is unreachable. Emits the same
-// messages the service sends (v2/live/README.md), built from real lap times, pit stops and a
+// messages the service sends (live/README.md), built from real lap times, pit stops and a
 // real track outline.
 
 import type {

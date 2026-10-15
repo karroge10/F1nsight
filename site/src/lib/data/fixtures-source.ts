@@ -4,7 +4,7 @@
 // Resolution order for data that other agents publish:
 //   1. ${F1_DATA_DIR}/predictions/next.json and history/*.json (the trained model output)
 //   2. the fixtures in this folder
-// F1_DATA_DIR defaults to ../data relative to the site folder (see v2/SPEC.md layout).
+// F1_DATA_DIR defaults to ../data relative to the site folder (see SPEC.md layout).
 
 import fs from "node:fs";
 import path from "node:path";

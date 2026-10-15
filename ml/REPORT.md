@@ -349,5 +349,5 @@ LLM server) shared the card.
   post-qualifying automatically.
 
 Experiment scripts behind the calibration tables are in `scripts/experiments/` (run from
-`v2/ml` with `PYTHONPATH=.`); raw numbers are in `reports/` (`backtest_summary.json`,
+`ml` with `PYTHONPATH=.`); raw numbers are in `reports/` (`backtest_summary.json`,
 `studies.json`, `tuning.json`).

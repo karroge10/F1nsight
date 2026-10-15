@@ -1,6 +1,6 @@
 ﻿# Isolated team-feature experiments
 
-Run from v2/ml. Production columns come from the saved features_bestcar.parquet snapshot.
+Run from ml. Production columns come from the saved features_bestcar.parquet snapshot.
 
 - F1ML_FASTFORM=1 adds team gap and finish form, a detected two-race gap shift and time since the latest shift. Prior history receives 0.25 weight after a detected shift, and pre-reset history receives 0.25 weight in reset seasons. A five-race half-life and 0.25 percentage-point threshold were selected on 2019-2023 next-gap prediction only.
 - F1ML_SIMILARITY=1 adds kernel-weighted team qualifying residuals and effective support. Similarity uses static course length, turn count and street status. A bandwidth of 0.5 and six pseudo-observations of shrinkage were selected on 2019-2023 only. Recent residuals have a fixed 12-race half-life.

@@ -1,5 +1,5 @@
 # Starts both backtests of run.ps1 as one-off scheduled tasks, so they outlive the shell that starts them.
-$script = 'D:\Coding\GitHub Repositories\F1-Stats\v2\ml\scripts\exp_final\run.ps1'
+$script = 'D:\Coding\GitHub Repositories\F1nsight\ml\scripts\exp_final\run.ps1'
 foreach ($variant in 'base', 'lr2') {
     $name = "F1-exp-final-$variant"
     if (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue) { throw "$name already exists" }

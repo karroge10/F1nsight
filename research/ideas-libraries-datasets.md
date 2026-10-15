@@ -1,7 +1,7 @@
-# F1nsight v2: ideas, libraries and datasets (research pass)
+# F1nsight: ideas, libraries and datasets (research pass)
 
 Date of research: 2026-10-08. Scope: data sources, libraries, feature ideas and a shortlist for
-the stats, fantasy and predictions site under `v2/`. Read-only pass: no code, no git, no
+the stats, fantasy and predictions site in this repo. Read-only pass: no code, no git, no
 processes touched. Nothing here is a decision; it is input for the owner.
 
 How to read the confidence marks:
@@ -77,7 +77,7 @@ Checked on disk, not from memory:
 
 ### 2.4 F1 live timing (2026 changes and risks)
 
-This matters most for `v2/live` (positions are "estimated" when the official feed is blocked).
+This matters most for `live` (positions are "estimated" when the official feed is blocked).
 
 - Since the 2025 Dutch GP, some F1 live timing streams need a valid F1 TV subscription (a JWT
   token). Driver tracker positions, DRS indicator, championship tables and pit stop times are

@@ -1,8 +1,6 @@
 # F1nsight: shared spec
 
-Full rewrite of the old app in `../web` (Next.js 14 template-style dashboard, considered bad;
-use it only as a reference for what not to do). Today is 2026-10-07; the 2026 season is in
-progress (new technical regulations, 11 teams incl. Cadillac, Audi replaced Sauber).
+Written 2026-10-07; the 2026 season is in progress (new technical regulations, 11 teams incl. Cadillac, Audi replaced Sauber).
 
 The site has four pillars, in priority order:
 
@@ -25,7 +23,7 @@ asking for a key, and label estimated data honestly in the UI.
 ## Layout
 
 ```
-v2/
+F1nsight/
   SPEC.md            this file
   pipeline/          Python (uv, py3.12): data download, ETL, ML training, export
     src/f1p/...      package code; scripts runnable with `uv run python -m f1p.<module>`
@@ -43,7 +41,7 @@ v2/
     fastf1_cache/    FastF1 HTTP cache (shared by pipeline and live)
 ```
 
-The pipeline env already exists at `v2/pipeline` (uv project; fastf1, pandas, polars,
+The pipeline env already exists at `pipeline` (uv project; fastf1, pandas, polars,
 pyarrow, duckdb, requests, httpx, tqdm, numpy). Add deps with `uv add` from that folder.
 
 ## Processed tables (parquet in data/processed/)
@@ -142,13 +140,13 @@ TypeScript optimiser in `site/src/lib/fantasy/` over this file.
      "retired","drs"}]}` on change
   - `{"type":"raceControl", ...}`, `{"type":"weather", ...}`, `{"type":"trackStatus", ...}`
   Replay supports `{"cmd":"seek","t":ms}`, `{"cmd":"speed","value":4}`, pause/resume.
-  BUILT: `v2/live/README.md` is the authoritative message reference. Additions over this
+  BUILT: `live/README.md` is the authoritative message reference. Additions over this
   sketch: message types `loading`, `pitStop`, `tyreChange`, `playback`, `error`;
   `init.positionsAvailable` (false only when no positions at all can be shown, so the map must
   hide dots and still show the tower); `init.positionsSource` and `frame.source` are
   `official`, `official-delayed` or `estimated` (a live session without an F1TV token gets
   positions estimated from the free timing feed; label them as estimated in the UI); `t` is ms since `init.origin`; `drs` is null in
-  2026 (no DRS under the 2026 rules). Start: `cd v2/live && uv run python -m f1live`, or
+  2026 (no DRS under the 2026 rules). Start: `cd live && uv run python -m f1live`, or
   `uv run python -m f1live --simulate 2026:16:R --sim-speed 4` to feed a recorded race into
   `/ws/live`.
 

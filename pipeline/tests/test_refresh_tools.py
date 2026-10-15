@@ -1,7 +1,7 @@
 """Tests for the refresh tooling: lock files, the weekend task plan, the incremental FastF1 wait
 rule and the refresh step selection.
 
-Run from v2/pipeline without touching the shared venv:
+Run from pipeline without touching the shared venv:
     uv run --no-sync --with pytest python -m pytest tests -q
 """
 

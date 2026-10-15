@@ -1,4 +1,4 @@
-// Typed WebSocket client for the live service (v2/SPEC.md) plus service discovery. The site is
+// Typed WebSocket client for the live service (SPEC.md) plus service discovery. The site is
 // static, so all of this runs in the browser. The service is looked for at NEXT_PUBLIC_LIVE_HTTP /
 // NEXT_PUBLIC_LIVE_WS when set at build time, otherwise at localhost:8765 but only when the page
 // itself is served from this machine. On the hosted site with no service configured nothing is

@@ -1,6 +1,6 @@
 """Bulk download of every completed FastF1 session (2018 onwards), most recent season first.
 
-Run from v2/pipeline:
+Run from pipeline:
     uv run python -m f1p.fastf1.download                      # 2026 down to 2018
     uv run python -m f1p.fastf1.download --seasons 2024-2026  # a subset
     uv run python -m f1p.fastf1.download --sessions R S       # only some session codes

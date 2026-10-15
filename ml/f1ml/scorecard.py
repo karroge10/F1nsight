@@ -4,7 +4,7 @@
     uv run python -m f1ml.scorecard baseline                  # reports/scorecard/baseline.{json,md}
     uv run python -m f1ml.scorecard candidate --against baseline
 
-Locked protocol (see v2/research/evaluation-protocol.md): walk-forward over 2024, 2025 and 2026
+Locked protocol (see research/evaluation-protocol.md): walk-forward over 2024, 2025 and 2026
 R1 to R16, retrain every 3 rounds, 20,000 simulations per stage, seed = raceId. Every score is
 computed per race and averaged over races; differences between two runs use a paired bootstrap
 over races (the same races in both runs).
@@ -250,7 +250,7 @@ def write_scorecard(label: str, card: dict, comparison: dict | None) -> None:
 
 def markdown(label: str, card: dict, comparison: dict | None) -> str:
     lines = [f"# Scorecard: {label}", "",
-             f"{card['races']} races, walk-forward (protocol: v2/research/evaluation-protocol.md).",
+             f"{card['races']} races, walk-forward (protocol: research/evaluation-protocol.md).",
              "Lower is better except Spearman.", "",
              "| stage | RPS | NLL | order NLL | DNF NLL | log loss win | log loss podium "
              "| log loss points | Spearman | MAE points |",

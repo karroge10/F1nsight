@@ -1,7 +1,7 @@
 """One command after every session or race: refresh every free source, then the forecast.
 
-    v2/refresh.ps1                                   # what the scheduled tasks run
-    uv run python -m f1p.refresh                     # same, from v2/pipeline
+    refresh.ps1                                   # what the scheduled tasks run
+    uv run python -m f1p.refresh                     # same, from pipeline
     uv run python -m f1p.refresh --force             # run every step even if nothing looks new
     uv run python -m f1p.refresh --only fastf1,predict
     uv run python -m f1p.refresh --only penalties,predict
@@ -20,13 +20,13 @@ Steps, in order. Each runs as its own process, so a failure in one source never 
 4. fastf1    `f1p.fastf1.incremental`: this weekend's finished sessions (lock-safe next to the
              bulk download), then `build_tables` when a session was added, then
              `f1p.fastf1.telemetry_export` for sessions with no telemetry file yet.
-5. penalties `f1p.penalties.update`: grid penalties announced for the next race (FIA stewards'
+5. penalties `f1p.penalties.update`: grid penalties announced for the next races (FIA stewards'
              decisions, race control, data/manual/grid_penalties.json) into
              data/processed/grid_penalties.parquet. Runs every time; the file is only rewritten
              when a penalty changed, which then triggers the forecast.
 6. predict   `f1ml.predict` (auto stage) when any input changed since the last forecast.
 
-Logs: v2/logs/refresh-<local time>.log (every line of every step) and v2/logs/refresh-last.json
+Logs: logs/refresh-<local time>.log (every line of every step) and logs/refresh-last.json
 (step summary). Exit code 0 when every step succeeded or was skipped, 1 when a step failed,
 3 when another refresh still held the lock after LOCK_WAIT.
 """
@@ -47,10 +47,10 @@ import httpx
 import pandas as pd
 
 from f1p.locks import LockBusy, file_lock
-from f1p.paths import PREDICTIONS_DIR, PROCESSED_DIR, RAW_DIR, SERVE_DIR, V2_DIR
+from f1p.paths import PREDICTIONS_DIR, PROCESSED_DIR, RAW_DIR, SERVE_DIR, ROOT_DIR
 
 STEPS = ["history", "openf1", "fantasy", "fastf1", "penalties", "predict"]
-LOGS_DIR = V2_DIR / "logs"
+LOGS_DIR = ROOT_DIR / "logs"
 STATE_PATH = LOGS_DIR / "refresh_state.json"
 SUMMARY_PATH = LOGS_DIR / "refresh-last.json"
 LOCK_PATH = LOGS_DIR / "refresh.lock"
@@ -221,13 +221,13 @@ class StepRunner:
         self._mark_success("predict", result)
 
     def _run_module(self, result: StepResult, project: str, module: str, *extra: str) -> str:
-        """Run `python -m module` in v2/<project>'s environment, tee its output to the log."""
+        """Run `python -m module` in <project>'s environment, tee its output to the log."""
         command = _python_command(project, module, extra)
-        cwd = V2_DIR / project
+        cwd = ROOT_DIR / project
         env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")
         shown_parts = len(extra) + 2
         printable = " ".join(command[-shown_parts:])
-        self.logger.line(f"$ (v2/{project}) python {printable}")
+        self.logger.line(f"$ ({project}) python {printable}")
         lines: list[str] = []
         process = subprocess.Popen(command, cwd=cwd, env=env, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, text=True, encoding="utf-8",
@@ -377,7 +377,7 @@ def _prediction_inputs() -> str:
     for path in tables:
         stat = path.stat()
         parts.append(f"{path.name}:{int(stat.st_mtime)}:{stat.st_size}")
-    for path in (SERVE_DIR / "f1.sqlite", V2_DIR / "ml" / "models" / "latest.json"):
+    for path in (SERVE_DIR / "f1.sqlite", ROOT_DIR / "ml" / "models" / "latest.json"):
         modified = _mtime(path)
         parts.append(f"{path.name}:{int(modified)}")
     livetiming = RAW_DIR / "livetiming" / season
@@ -388,7 +388,7 @@ def _prediction_inputs() -> str:
 
 def _python_command(project: str, module: str, extra: tuple[str, ...]) -> list[str]:
     """The project's venv interpreter; `uv run` when the venv does not exist yet."""
-    venv = V2_DIR / project / ".venv"
+    venv = ROOT_DIR / project / ".venv"
     venv_python = venv / "Scripts" / "python.exe" if os.name == "nt" else venv / "bin" / "python"
     if venv_python.exists():
         return [str(venv_python), "-m", module, *extra]

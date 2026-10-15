@@ -1,6 +1,6 @@
 """Import the F1 Fantasy rule code from the pipeline package (single source of truth).
 
-`v2/pipeline/src/f1p/fantasy/scoring.py` and `price_change.py` are pure Python with no
+`pipeline/src/f1p/fantasy/scoring.py` and `price_change.py` are pure Python with no
 dependencies, so they are imported directly from the pipeline source tree instead of being
 re-derived here.
 """
