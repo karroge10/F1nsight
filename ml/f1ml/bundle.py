@@ -9,6 +9,7 @@ weights (which also act as the temperature), then the base models are refit on t
 from __future__ import annotations
 
 import io
+import os
 import pickle
 import time
 from dataclasses import dataclass, field
@@ -24,6 +25,10 @@ from f1ml import features as feat
 from f1ml import gbm, nn, plackett
 
 QUALI_STAGES = ("pre-weekend", "post-practice")
+# Round 10: a full-order grid term on the post-qualifying race strength,
+# strength + g * (-grid / field), g fitted walk-forward on the long window. On since 2026-10-15
+# (RPS better at every stage with the qualifying chain); F1ML_GRIDTERM=0 turns it off.
+GRID_TERM = os.environ.get("F1ML_GRIDTERM", "1") == "1"
 
 
 @dataclass
@@ -46,6 +51,10 @@ class Bundle:
         out["gbm_race"] = raw["gbm_race"]
         out["nn_race"] = raw["nn_race"]
         out["race_strength"] = _blend(raw, ("gbm_race", "nn_race"), weights["race"])
+        grid_term = weights.get("grid_term")
+        if grid_term is not None:
+            relative_grid = _relative_grid(frame)
+            out["race_strength"] = out["race_strength"] - grid_term * relative_grid.fillna(0.0)
         if stage in QUALI_STAGES:
             out["quali_strength"] = _blend(raw, ("gbm_quali", "nn_quali"), weights["quali"])
         else:
@@ -204,7 +213,7 @@ def long_window_schedules(train: pd.DataFrame, params: dict, stack: dict) -> Non
             gated_target = feat.stage_frame(target, stage)
             stage_params = rank_params.get(stage, rank_params["default"])
             ranker = _train_ranker(gated_before, columns, "y_finish", stage_params, params)
-            scored = target[["raceId", "y_finish", "y_quali", "grid"]].copy()
+            scored = target[["raceId", "y_finish", "y_quali", "grid", "field"]].copy()
             scored["y_finish"] = _finishers_only(target)
             scored["race"] = gbm.predict(ranker, gated_target, columns)
             if stage in QUALI_STAGES:
@@ -224,6 +233,14 @@ def long_window_schedules(train: pd.DataFrame, params: dict, stack: dict) -> Non
         recent_ids = window[-FIRST_PICK_WINDOW:]
         recent = frame[frame["raceId"].isin(recent_ids)]
         recent_groups = plackett.race_groups(recent, ["strength"], "y_finish")
+        if GRID_TERM and stage == "post-qualifying":
+            relative_grid = _relative_grid(scored)
+            grid_term = plackett.fit_grid_term(frame.assign(rgrid=relative_grid))
+            entry["grid_term"] = grid_term
+            frame = frame.assign(strength=frame["strength"] - grid_term * relative_grid.fillna(0.0))
+            groups = plackett.race_groups(frame, ["strength"], "y_finish")
+            schedule = [float(v) for v in plackett.fit_schedule(groups)]
+            recent = frame[frame["raceId"].isin(recent_ids)]
         entry["race_first_pick_full_fit"] = schedule[0]
         if stage == "post-qualifying":
             recent_frame = recent.assign(grid=scored.loc[recent.index, "grid"])
@@ -346,6 +363,11 @@ def _dnf_key(stage: str) -> tuple[str, list[str]]:
     if stage == "post-qualifying":
         return "quali", gbm.DNF_QUALI_COLUMNS
     return "pre", gbm.DNF_COLUMNS
+
+
+def _relative_grid(frame: pd.DataFrame) -> pd.Series:
+    """Grid slot over field size (NaN when the grid is not known)."""
+    return frame["grid"].astype(float) / frame["field"].astype(float)
 
 
 def _blend(raw: pd.DataFrame, columns: tuple, weights) -> np.ndarray:

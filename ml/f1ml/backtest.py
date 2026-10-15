@@ -208,6 +208,8 @@ def scorecard_rows(trained, result, frame: pd.DataFrame, actual_points: np.ndarr
     schedule = trained.schedule(stage, "race")
     order_nll, dnf_nll = scorecard.order_log_likelihood(strength, schedule, first_bonus, actual,
                                                         classified, p_dnf)
+    if result.chain is not None:
+        order_nll, dnf_nll = scorecard.chain_log_likelihood(result.chain, actual, classified)
     race = {"raceId": race_id, "season": race_id // 100, "stage": stage, "orderNll": order_nll,
             "dnfNll": dnf_nll}
     return cars, race

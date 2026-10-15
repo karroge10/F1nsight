@@ -12,17 +12,33 @@ Announced grid penalties (`penalties`) reach every stage:
   (`penalty_shift`), rescaled to the stage's first-pick temperature and added to the stage
   strength. Each simulated qualifying order also becomes a penalised starting grid, which
   drives the fantasy grid-to-finish scoring. Sprint penalties work the same way on the sprint.
+  With the qualifying chain on, the race is drawn from each penalised grid instead.
+
+Qualifying chain (`CHAIN`, pre-weekend and post-practice): rather than drawing the race
+independently of the simulated qualifying, CHAIN_WORLDS qualifying orders are drawn from the
+stage's quali model, and each order's race strength, DNF chance and grid bonus come from the
+post-qualifying model given that grid (`race_chain`). Every simulated race belongs to one
+order. Round 8 of research/fantasy-model-log.md: it passed the race rule but lost 2026 in the
+robust fantasy test, so fantasy points are still scored on the direct draw.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import os
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
+import torch
 
 from f1ml import fantasy, market, penalties, simulate
 from f1ml import features as feat
+
+# Qualifying chain for the race forecast before qualifying: on since 2026-10-15 (round 8);
+# F1ML_CHAIN=0 draws the race independently of the simulated qualifying again.
+CHAIN = os.environ.get("F1ML_CHAIN", "1") == "1"
+CHAIN_WORLDS = 100
+POST_QUALI = "post-qualifying"
 
 # Pilot simulations per step and steps when the race strengths are fitted to the pooled market
 # win chances (`fit_to_market`). Common random numbers (one seed) keep the steps smooth.
@@ -35,6 +51,23 @@ STAGE_INPUTS = {
     "post-practice": ["FP1", "FP2", "FP3", "SQ", "S"],
     "post-qualifying": ["FP1", "FP2", "FP3", "SQ", "S", "Q"],
 }
+
+
+@dataclass
+class RaceChain:
+    """Qualifying orders and the post-qualifying race model given each one, (worlds, drivers).
+
+    quali: qualifying positions; grid: starting grid after announced penalties; strength,
+    p_dnf, bonus: the race inputs per order; shift: per-driver change from the market fit.
+    """
+
+    quali: np.ndarray
+    grid: np.ndarray
+    strength: np.ndarray
+    p_dnf: np.ndarray
+    bonus: np.ndarray
+    schedule: np.ndarray | None
+    shift: np.ndarray
 
 
 @dataclass
@@ -53,6 +86,8 @@ class RaceForecast:
     grid_penalties: dict = field(default_factory=dict)
     # win chances pooled with the market (`market.pool`), None when no market was used
     market_target: np.ndarray | None = None
+    # qualifying chain the race was drawn from, None when the race was drawn directly
+    chain: RaceChain | None = None
 
 
 def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.ExtrasModel | None,
@@ -69,10 +104,16 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
     frame = frame.reset_index(drop=True)
     prediction = bundle.predict(frame, stage)
     inputs = weekend_inputs(bundle, frame, stage, prediction, announced)
+    chain = None
+    if CHAIN and stage != POST_QUALI:
+        chain = race_chain(bundle, frame, stage, inputs, seed)
     market_target = None
     if market_win is not None:
-        market_target = fit_to_market(inputs, stage, market_win, seed)
-    weekend = simulate.simulate_weekend(inputs, sims=sims, seed=seed)
+        market_target = fit_to_market(inputs, stage, market_win, seed, chain)
+    direct = simulate.simulate_weekend(inputs, sims=sims, seed=seed)
+    weekend = direct
+    if chain is not None:
+        weekend = chained_weekend(chain, inputs, direct, seed)
     summary = simulate.summarize_positions(weekend)
     used = inputs_used(frame, stage)
     fantasy_sims = None
@@ -80,7 +121,7 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
     if extras is not None and season >= 2023:
         abs_change = float(frame["c_abs_change"].iloc[0])
         entrants = frame[["driverId", "constructorId"]]
-        fantasy_weekend = fantasy_simulation(inputs, weekend, season, sims, seed)
+        fantasy_weekend = fantasy_simulation(inputs, direct, season, sims, seed)
         fantasy_sims = fantasy.score_weekend(fantasy_weekend, entrants, season, extras,
                                              abs_change, seed=seed)
     forecast = RaceForecast(int(frame["raceId"].iloc[0]), stage, used, frame, prediction,
@@ -88,6 +129,7 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
     forecast.grid_penalties = {"race": inputs.race_penalties, "sprint": inputs.sprint_penalties,
                                "shift": inputs.penalty_shift}
     forecast.market_target = market_target
+    forecast.chain = chain
     if history is not None and standings is not None:
         forecast.championship = championship(bundle, history, frame, weekend, standings,
                                              sims=sims, seed=seed)
@@ -106,27 +148,75 @@ def fantasy_simulation(inputs: simulate.WeekendInputs, weekend: simulate.Weekend
 
 
 def fit_to_market(inputs: simulate.WeekendInputs, stage: str, market_win: np.ndarray,
-                  seed: int) -> np.ndarray:
+                  seed: int, chain: RaceChain | None = None) -> np.ndarray:
     """Pool the model's win chances with the market's and move the race strengths (in place)
     until the simulated win chances match the pool. Returns the pooled win chances.
 
     Each step adds log(target / simulated) over the first-pick temperature, the change that
-    would match exactly if the field's other strengths stayed put.
+    would match exactly if the field's other strengths stayed put. With a qualifying chain the
+    win chances come from the chain and each step also moves its `shift` (over the
+    post-qualifying first-pick temperature); the race strengths still carry it to the sprint.
     """
-    first_temperature = 1.0
-    if inputs.race_schedule is not None:
-        first_temperature = float(inputs.race_schedule[0])
+    first_temperature = _first_temperature(inputs.race_schedule)
     floor = 0.5 / MARKET_FIT_SIMS
-    ours = _simulated_win(inputs, seed)
+    ours = _simulated_win(inputs, seed, chain)
     weight = market.OURS_WEIGHT[stage]
     target = market.pool(ours, market_win, weight)
     current = ours
     for _ in range(MARKET_FIT_STEPS):
         ratio = np.log(np.maximum(target, floor)) - np.log(np.maximum(current, floor))
-        step = np.clip(ratio, -MARKET_STEP_CLIP, MARKET_STEP_CLIP) / first_temperature
-        inputs.race_strength = inputs.race_strength + step
-        current = _simulated_win(inputs, seed)
+        step = np.clip(ratio, -MARKET_STEP_CLIP, MARKET_STEP_CLIP)
+        inputs.race_strength = inputs.race_strength + step / first_temperature
+        if chain is not None:
+            chain.shift = chain.shift + step / _first_temperature(chain.schedule)
+        current = _simulated_win(inputs, seed, chain)
     return target
+
+
+def race_chain(bundle, frame: pd.DataFrame, stage: str, inputs: simulate.WeekendInputs,
+               seed: int) -> RaceChain:
+    """Draw CHAIN_WORLDS qualifying orders and score the race from each one's grid with the
+    post-qualifying model.
+
+    The post-qualifying model sees only what the stage may see plus the simulated qualifying.
+    The qualifying gap it needs is a stand-in (`_proxy_gaps`) sorted into the simulated order,
+    so gap and position agree; the team-mate and form deltas are recomputed from it.
+    """
+    device = simulate._device()
+    generator = torch.Generator(device=device)
+    generator.manual_seed(int(seed) + 1000)
+    drivers = len(frame)
+    quali_strength = simulate._tensor(inputs.quali_strength, device)
+    quali_strength = quali_strength.expand((CHAIN_WORLDS, drivers))
+    orders = simulate.sample_order(quali_strength, inputs.quali_schedule, None, generator)
+    orders = orders.cpu().numpy()
+    gated = feat.stage_frame(frame, stage)
+    gaps = np.sort(_proxy_gaps(gated))
+    race_id = int(frame["raceId"].iloc[0])
+    world_frames = []
+    for world, order in enumerate(orders):
+        world_frame = _chain_frame(gated, order, gaps, inputs.race_penalties)
+        world_frame["raceId"] = race_id * 1000 + world
+        world_frames.append(world_frame)
+    stacked = pd.concat(world_frames, ignore_index=True)
+    prediction = bundle.predict(stacked, POST_QUALI)
+    grids = stacked["grid"].to_numpy(dtype=np.int64).reshape(CHAIN_WORLDS, drivers)
+    bonus = np.stack([_grid_bonus(bundle, grid) for grid in grids])
+    strength = prediction["race_strength"].to_numpy().reshape(CHAIN_WORLDS, drivers)
+    p_dnf = prediction["p_dnf"].to_numpy().reshape(CHAIN_WORLDS, drivers)
+    starting_grid = penalties.apply(orders, inputs.race_penalties)
+    return RaceChain(quali=orders, grid=starting_grid, strength=strength, p_dnf=p_dnf,
+                     bonus=bonus, schedule=bundle.schedule(POST_QUALI, "race"),
+                     shift=np.zeros(drivers))
+
+
+def chained_weekend(chain: RaceChain, inputs: simulate.WeekendInputs,
+                    weekend: simulate.WeekendSims, seed: int) -> simulate.WeekendSims:
+    """The weekend with qualifying, grid and race taken from the chain; simulated world i
+    belongs to qualifying order i mod CHAIN_WORLDS. Sprint draws are kept."""
+    sims = len(weekend.race)
+    quali, grid, race, classified = _chain_draw(chain, inputs, sims, seed)
+    return replace(weekend, quali=quali, grid=grid, race=race, classified=classified)
 
 
 def lock_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -322,10 +412,65 @@ def _first_pick_ratio(bundle, stage: str) -> float:
     return float(post[0] / here[0])
 
 
-def _simulated_win(inputs: simulate.WeekendInputs, seed: int) -> np.ndarray:
+def _simulated_win(inputs: simulate.WeekendInputs, seed: int,
+                   chain: RaceChain | None = None) -> np.ndarray:
+    if chain is not None:
+        _, _, race, _ = _chain_draw(chain, inputs, MARKET_FIT_SIMS, seed)
+        return (race == 1).mean(axis=0)
     pilot = simulate.simulate_weekend(inputs, sims=MARKET_FIT_SIMS, seed=seed)
     race = np.asarray(pilot.race)
     return (race == 1).mean(axis=0)
+
+
+def _chain_draw(chain: RaceChain, inputs: simulate.WeekendInputs, sims: int, seed: int):
+    """(quali, grid, race, classified), each (sims, drivers), drawn from the chain."""
+    device = simulate._device()
+    generator = torch.Generator(device=device)
+    generator.manual_seed(int(seed) + 2000)
+    world_of_sim = np.arange(sims) % len(chain.quali)
+    strength = simulate._tensor(chain.strength[world_of_sim] + chain.shift, device)
+    p_dnf = simulate._tensor(chain.p_dnf[world_of_sim], device)
+    bonus = simulate._tensor(chain.bonus[world_of_sim], device)
+    team_index = simulate._team_index(inputs.teams, device)
+    shape = (sims, len(chain.shift))
+    retired = simulate.draw_retirements(p_dnf, shape, team_index, inputs.team_shock, generator)
+    race = simulate.sample_order(strength, chain.schedule, retired, generator, bonus)
+    quali = chain.quali[world_of_sim]
+    grid = chain.grid[world_of_sim]
+    return quali, grid, race.cpu().numpy(), (~retired).cpu().numpy()
+
+
+def _chain_frame(gated: pd.DataFrame, order: np.ndarray, gaps: np.ndarray,
+                 grid_penalties: penalties.GridPenalties | None) -> pd.DataFrame:
+    """The stage-gated frame with one simulated qualifying order filled in."""
+    modified = grid_frame(gated, order, grid_penalties)
+    modified["q_gap"] = gaps[order - 1]
+    modified["q_vs_form"] = modified["q_gap"] - modified["d_qgap_e3"]
+    team_total = modified.groupby("team")["q_gap"].transform("sum")
+    team_count = modified.groupby("team")["q_gap"].transform("count")
+    mate = (team_total - modified["q_gap"]) / (team_count - 1)
+    modified["q_tm_delta"] = (modified["q_gap"] - mate).where(team_count == 2)
+    return modified
+
+
+def _proxy_gaps(gated: pd.DataFrame) -> np.ndarray:
+    """Qualifying gap stand-in from what the stage may see: sprint qualifying, else best
+    practice gap, else the driver's recent qualifying gap, else the field median."""
+    gaps = gated["sq_gap"].fillna(gated["fp_best_gap"]).fillna(gated["d_qgap_e3"])
+    return gaps.fillna(gaps.median()).to_numpy(dtype=float)
+
+
+def _grid_bonus(bundle, grid: np.ndarray) -> np.ndarray:
+    bonus = bundle.grid_bonus(POST_QUALI, grid)
+    if bonus is None:
+        return np.zeros(len(grid))
+    return bonus
+
+
+def _first_temperature(schedule) -> float:
+    if schedule is None:
+        return 1.0
+    return float(schedule[0])
 
 
 def _ranks(values: pd.Series) -> np.ndarray:

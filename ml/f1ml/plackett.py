@@ -178,3 +178,17 @@ def fit_first_pick_grid(frame) -> tuple[float, list[float]]:
     result = minimize(objective, start, method="Nelder-Mead",
                       options={"xatol": 1e-4, "fatol": 1e-6, "maxiter": 3000})
     return float(np.exp(result.x[0])), [float(v) for v in result.x[1:]]
+
+
+def fit_grid_term(frame) -> float:
+    """Full-order likelihood fit of g in strength - g * rgrid (frame: raceId, y_finish, strength,
+    rgrid). Round 10 experiment (F1ML_GRIDTERM)."""
+    frame = frame[frame["rgrid"].notna()]
+    groups = race_groups(frame, ["strength", "rgrid"], "y_finish")
+
+    def objective(params):
+        return mean_nll(groups, np.array([1.0, -params[0]]))
+
+    result = minimize(objective, np.zeros(1), method="Nelder-Mead",
+                      options={"xatol": 1e-4, "fatol": 1e-6, "maxiter": 400})
+    return float(result.x[0])

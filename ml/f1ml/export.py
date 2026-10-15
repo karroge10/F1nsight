@@ -178,7 +178,13 @@ class AssetBook:
         if not len(match):
             return None
         first = match.iloc[0]
-        history_rows = self.points[self.points["fantasyId"] == first["fantasyId"]]
+        # 2024 and 2025 come from the community dataset without fantasy ids: match on the
+        # driver or constructor instead (before 2026-10-15 their recent points were empty)
+        if pd.notna(first["fantasyId"]):
+            history_rows = self.points[self.points["fantasyId"] == first["fantasyId"]]
+        else:
+            same_kind = self.points[self.points["kind"] == kind]
+            history_rows = same_kind[same_kind[key] == asset_id]
         previous = history_rows.sort_values("round")["points"].tolist()
         return {"fantasyId": str(first["fantasyId"]), "price": float(first["price"]),
                 "previous": previous, "name": first["fantasyName"]}
