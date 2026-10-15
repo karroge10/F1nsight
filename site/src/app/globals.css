@@ -332,6 +332,16 @@ select option {
   color: var(--bg);
 }
 
+/* Button states that must beat the unlayered `button { color: inherit }` reset above. */
+.danger-pill {
+  background: var(--delta-down);
+  color: var(--accent-ink);
+}
+.invert-hover:hover {
+  background: var(--ink);
+  color: var(--bg);
+}
+
 /* Segmented control segment: the button fills the full control height (the tap area), and the
    selected state is a pill drawn 3px inside it, so the look matches the padded controls. */
 .segment {

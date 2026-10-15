@@ -11,26 +11,25 @@ import { COST_CAP_MAX, COST_CAP_MIN } from "@/lib/fantasy/team-selection";
 import { CostCapInput } from "@/components/fantasy/cost-cap-input";
 import { Section } from "@/components/ui/section";
 import { Info } from "@/components/ui/info";
-import { IconBoost, IconHistory, IconTrophy } from "@/components/icons";
+import { IconHistory, IconTrophy } from "@/components/icons";
 import { formatMoney } from "@/lib/format";
-import { TeamLogo } from "@/components/ui/team-logo";
+import { BoostBadge, TeamLine } from "@/components/fantasy/planner-parts";
 
 export interface HindsightLabels {
   codes: Record<string, string>;
   names: Record<string, string>;
   colors: Record<string, string>;
-  /** Team of each driver or constructor id, for the logo on its chip. */
-  teams?: Record<string, { constructorId: string; name: string }>;
 }
 
 interface HindsightViewProps {
+  season: number;
   inputs: HindsightRoundInput[];
   labels: HindsightLabels;
 }
 
 const ROUNDS_INFO = "Fresh team each round: 5 drivers, 2 constructors, x2 Boost (bolt) on the top driver, no chips. Prices as of that round.";
 
-export function HindsightView({ inputs, labels }: HindsightViewProps) {
+export function HindsightView({ season: seasonYear, inputs, labels }: HindsightViewProps) {
   const [cap, setCap] = useState(DEFAULT_COST_CAP);
   const [ready, setReady] = useState(false);
   const deferredCap = useDeferredValue(cap);
@@ -56,7 +55,8 @@ export function HindsightView({ inputs, labels }: HindsightViewProps) {
 
   return (
     <>
-      <Section title="Season" icon={IconTrophy} info="Totals over every scored round." flush>
+      <Section title={`${seasonYear} best teams in hindsight`} icon={IconTrophy} info="Totals over every scored round." flush tight>
+        <p className="mb-4 text-ui text-ink-3">Each round&apos;s top team on real points, with no budget and within yours.</p>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-float border border-rule p-4 sm:p-5 lg:grid-cols-3">
           <div className="flex min-w-0 flex-col gap-1.5">
             <dt className="flex items-center gap-1 text-ui text-ink-3">
@@ -168,14 +168,15 @@ function TeamBlock({ label, team, labels }: { label: string; team: HindsightTeam
 
 function TeamChips({ team, labels }: { team: HindsightTeam; labels: HindsightLabels }) {
   return (
-    <span className="flex flex-wrap items-center gap-1">
-      {team.drivers.map((id) => (
-        <Chip key={id} id={id} labels={labels} boosted={id === team.boost} />
-      ))}
+    <span className="flex flex-wrap items-center gap-[3px]">
       {team.constructors.map((id) => (
         <Chip key={id} id={id} labels={labels} boosted={false} />
       ))}
-      <span className="timing text-caption text-ink-3">{formatMoney(team.cost)}</span>
+      <span className="w-5" aria-hidden="true" />
+      {team.drivers.map((id) => (
+        <Chip key={id} id={id} labels={labels} boosted={id === team.boost} />
+      ))}
+      <span className="timing ms-2 text-caption text-ink-3">{formatMoney(team.cost)}</span>
     </span>
   );
 }
@@ -184,12 +185,12 @@ function Chip({ id, labels, boosted }: { id: string; labels: HindsightLabels; bo
   const name = labels.names[id] ?? id;
   const code = labels.codes[id] ?? id;
   const color = labels.colors[id] ?? "var(--rule)";
-  const team = labels.teams?.[id] ?? null;
+  const title = boosted ? `${name}, x2 Boost` : name;
   return (
-    <span title={boosted ? `${name}, x2 Boost` : name} className="timing inline-flex items-center gap-1 rounded-chip border border-rule px-1.5 py-0.5 text-caption text-ink-2">
-      {team ? <TeamLogo constructorId={team.constructorId} name={team.name} color={color} size={16} /> : <span className="inline-block h-3 w-[3px] rounded-chip" style={{ background: color }} aria-hidden="true" />}
+    <span title={title} className="inline-flex h-6 items-center gap-1.5 rounded-control bg-bg-raised ps-1.5 pe-2 text-caption font-[650] text-ink">
+      <TeamLine color={color} className="h-3.5" />
       {code}
-      {boosted ? <IconBoost size="0.75rem" className="text-ink" aria-label="Boost" /> : null}
+      {boosted ? <BoostBadge multiplier={2} small /> : null}
     </span>
   );
 }

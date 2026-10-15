@@ -1,19 +1,19 @@
 "use client";
 
-// View switch at the top of the fantasy page: Planner or Backtest, kept in the URL as
-// ?view=backtest. The planner stays mounted while hidden so its state and data survive a switch.
+// View switch at the top of the fantasy page: Planner, Backtest or Hindsight, kept in the URL as
+// ?view=backtest or ?view=hindsight (no param for the planner). Other params such as ?cap= stay. The planner stays mounted while hidden so its state and data survive a switch.
 
 import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
 
-export type FantasyView = "planner" | "backtest";
+export type FantasyView = "planner" | "backtest" | "hindsight";
 
 const VIEWS: { key: FantasyView; label: string }[] = [
   { key: "planner", label: "Planner" },
   { key: "backtest", label: "Backtest" },
+  { key: "hindsight", label: "Hindsight" },
 ];
 
-export function FantasyViews({ planner, backtest }: { planner: ReactNode; backtest: ReactNode }) {
+export function FantasyViews({ planner, backtest, hindsight }: { planner: ReactNode; backtest: ReactNode; hindsight: ReactNode }) {
   const [view, setView] = useState<FantasyView>("planner");
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function FantasyViews({ planner, backtest }: { planner: ReactNode; backte
   function choose(next: FantasyView) {
     setView(next);
     const params = new URLSearchParams(window.location.search);
-    if (next === "backtest") params.set("view", "backtest");
+    if (next !== "planner") params.set("view", next);
     else params.delete("view");
     const query = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
@@ -40,17 +40,17 @@ export function FantasyViews({ planner, backtest }: { planner: ReactNode; backte
             </button>
           ))}
         </div>
-        <Link href="/fantasy/hindsight" className="text-caption text-ink-2 underline underline-offset-2 hover:text-ink">
-          Best teams in hindsight
-        </Link>
       </div>
       <div hidden={view !== "planner"}>{planner}</div>
       {view === "backtest" ? backtest : null}
+      {view === "hindsight" ? hindsight : null}
     </div>
   );
 }
 
 function viewFromUrl(): FantasyView {
   const params = new URLSearchParams(window.location.search);
-  return params.get("view") === "backtest" ? "backtest" : "planner";
+  const view = params.get("view");
+  if (view === "backtest" || view === "hindsight") return view;
+  return "planner";
 }
