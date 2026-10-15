@@ -107,15 +107,15 @@ describe("chips: exact effects", () => {
   });
 });
 
-describe("transfers and free transfer carry-over", () => {
-  it("one unused free transfer carries over, never more than one", () => {
-    expect(nextFreeTransfers(RULES_2026, 2, 0, null)).toBe(3);
-    expect(nextFreeTransfers(RULES_2026, 2, 1, null)).toBe(3);
+describe("transfers and free transfers", () => {
+  it("gives 2 free transfers every race, unused ones do not carry over", () => {
+    expect(nextFreeTransfers(RULES_2026, 2, 0, null)).toBe(2);
+    expect(nextFreeTransfers(RULES_2026, 2, 1, null)).toBe(2);
     expect(nextFreeTransfers(RULES_2026, 2, 2, null)).toBe(2);
-    expect(nextFreeTransfers(RULES_2026, 3, 0, null)).toBe(3);
-    expect(nextFreeTransfers(RULES_2026, 3, 5, null)).toBe(2);
+    expect(nextFreeTransfers(RULES_2026, 2, 5, null)).toBe(2);
+    expect(nextFreeTransfers({ ...RULES_2026, maxCarryOver: 1 }, 2, 0, null)).toBe(3);
     expect(transferPenalty(RULES_2026, 4, 2, null)).toBe(20);
-    expect(transferPenalty(RULES_2026, 2, 3, null)).toBe(0);
+    expect(transferPenalty(RULES_2026, 2, 2, null)).toBe(0);
   });
 });
 

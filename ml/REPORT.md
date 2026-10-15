@@ -8,7 +8,7 @@ the field, its win probabilities are reasonably calibrated overall, but F1 is no
 weekend the favourite wins about a quarter of the time, and once the grid is known "the pole
 sitter wins" is still a hard baseline to beat on winner picks.
 
-## Backtest: 2024, 2025 and 2026 R1 to R16 (64 races)
+## Backtest: 2024, 2025 and 2026 R1 to R17 (65 races)
 
 Walk-forward: before race N the bundle is retrained on every race before N (every 3 rounds;
 blend weights and temperatures refitted at the same time), fantasy extras refitted before every
@@ -20,9 +20,9 @@ expected position with the classification; `Brier win` = mean over cars of (pWin
 
 | Forecast | winner | podium | Spearman | MAE | Brier win | log loss win |
 |---|---|---|---|---|---|---|
-| model, pre-weekend | 0.266 | 0.563 | 0.624 | 3.71 | 0.0410 | 1.917 |
-| model, post-practice | 0.313 | 0.557 | 0.632 | 3.55 | 0.0399 | 1.779 |
-| model, post-qualifying | **0.547** | 0.656 | **0.700** | 3.27 | 0.0305 | **1.237** |
+| model, pre-weekend | 0.231 | 0.554 | 0.619 | 3.68 | 0.0413 | 1.922 |
+| model, post-practice | 0.323 | 0.600 | 0.634 | 3.52 | 0.0392 | 1.688 |
+| model, post-qualifying | **0.554** | 0.672 | **0.700** | 3.24 | 0.0296 | **1.192** |
 | baseline: grid order (empirical P(win / podium) by grid slot, 2014-2023) | **0.594** | **0.688** | 0.679 | **3.22** | **0.0290** | 1.547 |
 | baseline: championship order (same, by standings position) | 0.313 | 0.578 | 0.599 | 3.89 | 0.0408 | 2.076 |
 | baseline: last 3 races form ("betting style") | 0.281 | 0.505 | 0.565 | 4.11 | n/a | n/a |
@@ -236,18 +236,18 @@ is shown in brackets).
 
 | Stage | kind | MAE | MAE last-3 baseline | Spearman per race | p10-p90 coverage | bias |
 |---|---|---|---|---|---|---|
-| team lock (practice known) | driver | 9.97 (11.37) | 13.30 | 0.566 | 0.838 | +1.0 |
-| team lock | constructor | 16.50 (18.12) | 19.85 | 0.703 | 0.784 | +2.1 |
-| post-qualifying | driver | 9.24 (11.27) | 13.30 | 0.610 | 0.827 | +0.6 |
-| post-qualifying | constructor | 14.95 (17.75) | 19.85 | 0.732 | 0.785 | +1.3 |
+| team lock (practice known) | driver | 9.97 (11.54) | 13.19 | 0.570 | 0.839 | +1.1 |
+| team lock | constructor | 16.52 (18.22) | 19.63 | 0.706 | 0.780 | +2.3 |
+| post-qualifying | driver | 9.17 (10.91) | 13.19 | 0.613 | 0.821 | +0.7 |
+| post-qualifying | constructor | 14.80 (17.18) | 19.63 | 0.731 | 0.768 | +1.4 |
 
-Driver MAE at the lock by season: 8.68 (2024), 10.20 (2025), 11.41 (2026). The 80% interval
+Driver MAE at the lock by season: 8.56 (2024), 10.16 (2025), 11.56 (2026 R1-17). The 80% interval
 holds the real score 78 to 84% of the time.
 
 Price changes (2025 and 2026; the 2024 game used a transfer based rule that cannot be
 reproduced): at the lock the most likely predicted step matches the real change for 73.4% of
-constructors and 50.4% of drivers; the probability given to the real step averages 0.63 and
-0.42; the mean absolute error of the expected change is 0.23M and 0.32M. Driver steps are
+constructors and 52.6% of drivers; the probability given to the real step averages 0.63 and
+0.43; the mean absolute error of the expected change is 0.22M and 0.31M. Driver steps are
 harder because the lower price tier jumps in steps of 0.2 and 0.6 that turn on a few points.
 
 `history/<season>-<round>.json` carries `fantasyAtLock` (practice known, no qualifying: when
@@ -327,20 +327,29 @@ LLM server) shared the card.
   assumption, not fitted.
 - Fantasy overtakes changed regime in 2026 (about 4.9 per driver per race vs 3.3 in 2025); the
   overtake model uses a short recent window and was weakest early in 2026.
+  Over the whole of 2026 the window is unbiased (+0.07 overtake points per driver at the lock);
+  faster in-season adaptation (season factor, current-season weighting) was tested and lost
+  points out of sample (research/fantasy-backtest/experiments.md, round 4).
+- Fantasy sharpening (fantasy simulation strengths x 1.5 from 2025) was tried and reverted
+  (2026-10-15). It lowered driver lock MAE (2025 / 2026 10.15 / 11.56 to 10.10 / 11.41), but in
+  the season replay test with 8 reproducible builds (N = 100 each) it was significantly worse in
+  2025 (-18.8 points, SE 6.8, t -2.74) and not significantly better in 2026 (+41.4, SE 18.6,
+  t 2.23, critical 2.36). The fantasy forecast stays too flat (2026 slope about 1.2).
+- Overtake draws now use the seeded scoring generator, so a backtest with the same seed
+  reproduces every fantasy number exactly.
 - The backtest retrains every 3 rounds, not before every race; the published model is retrained
   on everything through 2026 R16.
 - The pole bonus and fitting the first pick on the winner likelihood were checked on 2019-2023,
   but the investigation started from what the 2024-2026 backtest showed.
-- Practice features use F1DB best laps for every season; long-run pace (FastF1) covers only
-  about a quarter of 2026 rows so far.
+- Long-run pace (FastF1) covers 75 to 87% of driver rows per season since 2018 (67% in 2026,
+  where sprint weekends have one practice). Drivers without a long run in the main session take
+  one from another pre-qualifying session; practice after qualifying (2021-2022 sprint FP2) is
+  excluded. Long runs added little on top of one-lap practice pace in the backtest.
 
 ## What improves when FastF1 finishes
 
-- Long-run (race) pace from practice for every season since 2018: the post-practice model can
-  then learn how much long runs matter (today it sees them for 24% of 2026 rows and none
-  before). This needs the pipeline's `uv run python -m f1p.fastf1.build_tables` (the merged
-  `ff1_laps` table was last rebuilt at 10:04 with 6 rounds of 2026, while the raw download has
-  all 16), then `uv run python -m f1ml.features`, `f1ml.train` and `f1ml.backtest`.
+- Done 2026-10-14: long-run pace from FastF1 for every season since 2018 is in the features and
+  the backtest above (it moved the fantasy lock MAE by less than 0.1).
 - Tyre compound, stint and sector data for degradation and track evolution features.
 - Weather per session (rain flag, track temperature) for every past race, so the model can learn
   wet-race behaviour.

@@ -89,7 +89,7 @@ export interface GameRules {
   priceFloor: number;
   priceCeiling: number;
   freeTransfersPerRace: number;
-  /** Unused free transfers that carry over (2026: one, and carry-overs do not accumulate). */
+  /** Unused free transfers that carry over (2026: none, every race has exactly 2). */
   maxCarryOver: number;
   /** Points deducted per transfer beyond the free allowance (positive number). */
   extraTransferPenalty: number;
@@ -145,7 +145,7 @@ export interface UserState {
   bank?: number;
   /** Total cost cap override (team value + bank). Takes priority over bank. */
   budget?: number;
-  /** Free transfers available for this race (2, or 3 with a carried-over transfer). */
+  /** Free transfers available for this race (2 in 2026). */
   freeTransfers?: number;
   /** The user's current Boost pick (kept when it is as good as the optimiser's). */
   boost?: string | null;

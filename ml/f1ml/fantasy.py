@@ -13,17 +13,22 @@ positions are drawn from simple models fitted on earlier rounds only:
 - Driver of the Day: multinomial logit on places gained and finishing position (F1DB votes);
 - constructor pit stop points: the team's own recent distribution mixed with the league's.
 
+`strength_sharpness` / `sharpened_inputs` can score the fantasy points on a sharper
+re-simulation of the weekend. It is off (FANTASY_SHARPNESS = 1): sharpness 1.5 from 2025 was
+tried on 2026-10-14 and reverted on 2026-10-15, because with reproducible builds it was
+significantly worse in 2025 (-18.8 points, t -2.74, 8 builds) and not significantly better in
+2026 (+41.4, t 2.23); see research/fantasy-model-log.md (round 7) and ml/scripts/exp_dispersion.
+
 Price changes use the official 2025/2026 PPM rule (`f1p.fantasy.price_change`) applied to
 the simulated points, giving a probability for every possible step.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
-import torch
 from scipy.optimize import minimize
 from sklearn.linear_model import PoissonRegressor
 
@@ -31,6 +36,8 @@ from f1ml import data, fantasy_history
 from f1ml.fantasy_rules import price_rules, scoring
 
 OVERTAKE_WINDOW = 12
+FANTASY_SHARPNESS = 1.0
+FIRST_SHARPENED_SEASON = 2025
 PIT_WINDOW = 12
 PIT_TEAM_WEIGHT = 0.7
 
@@ -80,6 +87,23 @@ def fit_extras(cutoff: int) -> ExtrasModel:
     pit_values, league = _pit_distributions(cutoff)
     return ExtrasModel(cutoff, race_model, sprint_model, race_mean, sprint_mean, fastest_lap,
                        dotd, pit_values, league)
+
+
+def strength_sharpness(season: int) -> float:
+    """Strength multiplier of the fantasy simulation (walk-forward fit, see the module notes)."""
+    return FANTASY_SHARPNESS if season >= FIRST_SHARPENED_SEASON else 1.0
+
+
+def sharpened_inputs(inputs, sharpness: float):
+    """A copy of simulate.WeekendInputs with race, sprint and qualifying strengths scaled."""
+    if sharpness == 1.0:
+        return inputs
+    scaled = replace(inputs, race_strength=inputs.race_strength * sharpness)
+    if inputs.quali_strength is not None:
+        scaled.quali_strength = inputs.quali_strength * sharpness
+    if inputs.sprint_strength is not None:
+        scaled.sprint_strength = inputs.sprint_strength * sharpness
+    return scaled
 
 
 def score_weekend(sims, entrants: pd.DataFrame, season: int, extras: ExtrasModel,
@@ -384,9 +408,9 @@ def _draw_overtakes(model, mean, grid, finish, classified, drivers, circuit_abs_
     design = _overtake_design(grid, finish, classified, drivers, circuit_abs_change)
     flat = design.reshape(-1, design.shape[-1])
     rate = model.predict(flat).reshape(grid.shape)
-    rate_tensor = torch.as_tensor(rate, dtype=torch.float32)
-    draws = torch.poisson(rate_tensor)
-    return draws.numpy()
+    # the scoring generator, not torch's global one, so a seed reproduces every draw
+    draws = rng.poisson(np.maximum(rate, 0.0))
+    return draws.astype(np.float32)
 
 
 def _fastest_lap_weights(cutoff: int) -> np.ndarray:

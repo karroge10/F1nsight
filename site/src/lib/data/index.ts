@@ -7,6 +7,7 @@ import * as source from "./source";
 import type { FixtureRace, FixtureSeason } from "./fixtures-source";
 import type { FantasyFile } from "@/lib/fantasy/engine/types";
 import type { FantasyRoundsFile } from "@/lib/fantasy/thresholds";
+import type { FantasyBacktest } from "@/lib/fantasy/backtest-data";
 import { marketFromRounds } from "@/lib/fantasy/market";
 import type { SessionRef, SessionTelemetry, TelemetryIndexEntry } from "@/lib/telemetry";
 import { activeSource } from "./source";
@@ -279,6 +280,11 @@ export async function getFantasyFile(): Promise<FantasyFile> {
 
 export async function getFantasyRounds(): Promise<FantasyRoundsFile | null> {
   return source.readFantasyRounds();
+}
+
+/** Season backtest of the optimiser (fixtures/fantasy/backtest.json), or null when not generated. */
+export async function getFantasyBacktest(): Promise<FantasyBacktest | null> {
+  return source.readFantasyBacktest();
 }
 
 export async function getTelemetryIndex(): Promise<TelemetryIndexEntry[]> {

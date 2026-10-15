@@ -3,7 +3,16 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import history from "./__fixtures__/history.json";
-import { predictionForecaster, runBacktest, type HistoryFile, type PredictionHistory, type SeasonBacktest } from "./backtest";
+import {
+  predictionForecaster,
+  priceMap,
+  runBacktest,
+  seasonRules,
+  type HistoryFile,
+  type HistoryRow,
+  type PredictionHistory,
+  type SeasonBacktest,
+} from "./backtest";
 
 // Real 2025 and 2026 prices, points and price changes (fantasy_prices / fantasy_points). The
 // forecast is the form baseline in backtest.ts; when data/predictions/history holds the model's
@@ -28,6 +37,38 @@ describe("backtest on recorded seasons", () => {
       logSeason("form baseline", season);
     }, 60000);
   }
+});
+
+describe("duplicate asset ids and transfer rules", () => {
+  const lawson = (fantasyId: string, active: boolean, price: number): HistoryRow => ({
+    round: 12,
+    kind: "driver",
+    id: "lawson",
+    fantasyId,
+    name: "Liam Lawson",
+    constructorId: active ? "red_bull" : "rb",
+    active,
+    price,
+    priceAfter: price + 0.2,
+    points: active ? 12 : 0,
+  });
+
+  it("prices the active asset when an id appears twice, whatever the row order", () => {
+    const active = lawson("116", true, 14.5);
+    const inactive = lawson("114", false, 10.3);
+    const before = priceMap([active, inactive], (r) => r.price);
+    const after = priceMap([inactive, active], (r) => r.priceAfter ?? r.price);
+    expect(before.get("lawson")).toBe(14.5);
+    expect(after.get("lawson")).toBeCloseTo(14.7);
+  });
+
+  it("gives 2 free transfers every race with no carry-over in every season", () => {
+    for (const season of [2024, 2025, 2026]) {
+      const rules = seasonRules(season);
+      expect(rules.freeTransfersPerRace).toBe(2);
+      expect(rules.maxCarryOver).toBe(0);
+    }
+  });
 });
 
 describe("backtest with the model's published forecasts (when available)", () => {

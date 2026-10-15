@@ -27,6 +27,7 @@ export const readPredictionHistory = () => fixtures.readPredictionHistory();
 export const readFantasyMarket = () => fixtures.readFantasyMarket();
 export const readFantasyFile = () => fixtures.readFantasyFile();
 export const readFantasyRounds = () => fixtures.readFantasyRounds();
+export const readFantasyBacktest = () => fixtures.readFantasyBacktest();
 export const readTelemetryIndex = () => fixtures.readTelemetryIndex();
 export const readSessionTelemetry = (ref: SessionRef) => fixtures.readSessionTelemetry(ref);
 export const readSessionReport = (season: number, round: number, code: SessionCode) => fixtures.readSessionReport(season, round, code);

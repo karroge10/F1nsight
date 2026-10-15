@@ -1,116 +1,85 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { LocalTime } from "@/components/ui/local-time";
-import { getEntryList, getFantasyMarket, getFantasyRounds, getNextRacePrediction, getRace } from "@/lib/data";
-import { buildFantasyRows, fantasyDeadline } from "@/lib/fantasy";
-import { thresholdsForRound } from "@/lib/fantasy/thresholds";
-import { PageIntro } from "@/components/ui/page-intro";
-import { Section } from "@/components/ui/section";
-import { FantasyTable } from "@/components/fantasy/fantasy-table";
-import { ProjectionNote } from "@/components/fantasy/projection-note";
-import { Planner, type PlannerMeta } from "@/components/fantasy/planner";
-import { IconCoins, IconTransfers } from "@/components/icons";
-import { formatMoney, formatMoneySigned } from "@/lib/format";
-import { TeamLogo } from "@/components/ui/team-logo";
+import { getCalendar, getEntryList, getFantasyBacktest, getFantasyFile, getFantasyRounds } from "@/lib/data";
+import type { RaceSummary } from "@/lib/data/types";
+import { fantasyDeadline } from "@/lib/fantasy";
+import { recentRoundPoints } from "@/lib/fantasy/thresholds";
+import { FantasyViews } from "@/components/fantasy/fantasy-views";
+import { FantasyPlanner } from "@/components/fantasy/fantasy-planner";
+import { BacktestView } from "@/components/fantasy/backtest-view";
+import type { PlannerMeta, PlannerRace } from "@/components/fantasy/planner-parts";
 
 export const metadata: Metadata = {
   title: "Fantasy planner",
-  description: "Optimal transfers, boost and chip advice for your F1 Fantasy team, plus projected points, price changes and value for every asset. Free, no login.",
+  description: "Best transfers, Boost and chips for your F1 Fantasy teams, with projected points, price moves and a plan for the next races. Free, no login.",
+};
+
+/** Short constructor codes for the dense planner (drivers use their three-letter codes). */
+const CONSTRUCTOR_CODES: Record<string, string> = {
+  mclaren: "MCL",
+  ferrari: "FER",
+  red_bull: "RBR",
+  mercedes: "MER",
+  williams: "WIL",
+  aston_martin: "AMR",
+  alpine: "ALP",
+  haas: "HAA",
+  rb: "RB",
+  sauber: "SAU",
+  audi: "AUD",
+  cadillac: "CAD",
 };
 
 export default async function FantasyPage() {
-  const market = await getFantasyMarket();
-  const prediction = await getNextRacePrediction();
-  const entries = await getEntryList(market.season);
-  const fantasyRounds = await getFantasyRounds();
-  const race = await getRace(prediction.race.season, prediction.race.round);
-  // F1 Fantasy numbers its 2026 gamedays by meeting (GamedayId equals MeetingNumber in the game's
-  // raceday feed), so the planned gameday is the forecast round; the market snapshot may be older.
-  const gameday = prediction.race.round;
-  const deadline = race ? fantasyDeadline(race.sessions) : null;
-  const rows = buildFantasyRows(market, prediction);
-  const thresholdMap = fantasyRounds ? thresholdsForRound(fantasyRounds, market.gameday) : new Map();
-  const thresholds = Object.fromEntries(thresholdMap);
-  const teams = entries.constructors.map((c) => ({ id: c.constructorId, name: c.name }));
-  const risers = rows.filter((r) => r.active).sort((a, b) => b.expectedPriceChange - a.expectedPriceChange).slice(0, 3);
-  const fallers = rows.filter((r) => r.active).sort((a, b) => a.expectedPriceChange - b.expectedPriceChange).slice(0, 3);
-  const marketInfo = `Pts to rise: score needed this gameday for a price rise (green: projection clears it). Prices stay between ${formatMoney(market.rules.floor)} and ${formatMoney(market.rules.ceiling)}.`;
-  const meta: PlannerMeta = {
-    codes: Object.fromEntries(entries.drivers.map((d) => [d.driverId, d.code])),
-    teams: Object.fromEntries(entries.constructors.map((c) => [c.constructorId, c.name])),
-  };
+  const file = await getFantasyFile();
+  const calendar = await getCalendar(file.season);
+  const entries = await getEntryList(file.season);
+  const rounds = await getFantasyRounds();
+  const backtestData = await getFantasyBacktest();
+  const meta = plannerMeta(file, calendar, entries, rounds);
+  const backtest = backtestData ? <BacktestView data={backtestData} /> : <BacktestMissing />;
 
-  return (
-    <>
-      <PageIntro
-        label={
-          <>
-            Fantasy <span className="mx-1.5 text-ink-3">/</span> Gameday {gameday}
-          </>
-        }
-        title={`${prediction.race.raceName} planner`}
-        dek={
-          <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            {deadline ? (
-              <span className="whitespace-nowrap">
-                Deadline <LocalTime iso={deadline} />
-              </span>
-            ) : null}
-            <Link href="/fantasy/hindsight" className="tap whitespace-nowrap text-ink underline underline-offset-2">
-              Best possible teams
-            </Link>
-          </span>
-        }
-      />
-
-      <Planner meta={meta} />
-
-      <Section title="Prices and points" icon={IconCoins} info={marketInfo} flush>
-        <FantasyTable rows={rows} teams={teams} thresholds={thresholds} />
-        <p className="mt-3">
-          <ProjectionNote />
-        </p>
-      </Section>
-
-      <Section title="Price moves" icon={IconTransfers} flush>
-        <div className="grid gap-8 md:grid-cols-2">
-          <MoveList title="Likely to rise" rows={risers} />
-          <MoveList title="Likely to fall" rows={fallers} />
-        </div>
-      </Section>
-    </>
-  );
+  return <FantasyViews planner={<FantasyPlanner meta={meta} />} backtest={backtest} />;
 }
 
-function MoveList({ title, rows }: { title: string; rows: ReturnType<typeof buildFantasyRows> }) {
-  return (
-    <div>
-      <h3 className="text-ui font-[550] text-ink">{title}</h3>
-      <ul className="mt-2 divide-y divide-rule">
-        {rows.map((r) => {
-          const probs = Object.entries(r.priceChangeProbs).sort((a, b) => Number(a[0]) - Number(b[0]));
-          const changeText = formatMoneySigned(r.expectedPriceChange, 2);
-          return (
-            <li key={r.id} className="grid grid-cols-[18px_3rem_4.5rem_minmax(0,1fr)] items-center gap-x-3 py-2 sm:grid-cols-[18px_10rem_4.5rem_minmax(0,1fr)]">
-              <TeamLogo constructorId={r.constructorId} name={r.team} color={r.teamColor} size={18} />
-              <span className="min-w-0 text-ui text-ink" title={r.name}>
-                <span className="timing font-[550] sm:hidden">{r.code}</span>
-                <span className="hidden truncate sm:block">{r.name}</span>
-              </span>
-              <span className={"timing text-end text-table " + (r.expectedPriceChange >= 0 ? "text-delta-up" : "text-delta-down")}>{changeText}</span>
-              <span className="flex flex-wrap gap-1.5">
-                {probs
-                  .filter(([, v]) => v >= 0.02)
-                  .map(([k, v]) => (
-                    <span key={k} className="timing rounded-chip border border-rule px-1.5 py-0.5 text-caption text-ink-2">
-                      {formatMoneySigned(Number(k))} <span className="text-ink-3">{Math.round(v * 100)}%</span>
-                    </span>
-                  ))}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
+/** Shown when the backtest file has not been generated yet. */
+function BacktestMissing() {
+  return <div className="flex h-40 items-center justify-center rounded-float border border-rule text-ui text-ink-3">No backtest data yet</div>;
+}
+
+type FantasyFileData = Awaited<ReturnType<typeof getFantasyFile>>;
+type EntryListData = Awaited<ReturnType<typeof getEntryList>>;
+type RoundsData = Awaited<ReturnType<typeof getFantasyRounds>>;
+
+function plannerMeta(file: FantasyFileData, calendar: RaceSummary[], entries: EntryListData, rounds: RoundsData): PlannerMeta {
+  const raceByRound = new Map(calendar.map((race) => [race.round, race]));
+  const thisRace = raceByRound.get(file.round);
+  const horizonRaces = (file.horizon ?? []).map((h) => plannerRace(h.round, h.raceName, raceByRound));
+  const firstRace = plannerRace(file.round, file.raceName, raceByRound);
+  const codes: Record<string, string> = {};
+  for (const d of entries.drivers) codes[d.driverId] = d.code;
+  for (const asset of file.assets) {
+    if (asset.kind === "constructor") codes[asset.id] = constructorCode(asset.id);
+  }
+  const recent = rounds ? recentRoundPoints(rounds, file.round) : { rounds: [], points: new Map<string, (number | null)[]>() };
+  return {
+    season: file.season,
+    round: file.round,
+    raceName: file.raceName,
+    country: thisRace ? (thisRace.countryCode ?? thisRace.country) : null,
+    deadline: thisRace ? fantasyDeadline(thisRace.sessions) : null,
+    races: [firstRace, ...horizonRaces],
+    codes,
+    recent: { rounds: recent.rounds, points: Object.fromEntries(recent.points) },
+  };
+}
+
+function plannerRace(round: number, raceName: string, raceByRound: Map<number, RaceSummary>): PlannerRace {
+  const race = raceByRound.get(round);
+  const name = (race?.raceName ?? raceName).replace(/ Grand Prix$/, "");
+  const country = race ? (race.countryCode ?? race.country) : null;
+  return { round, name, country };
+}
+
+function constructorCode(id: string): string {
+  return CONSTRUCTOR_CODES[id] ?? id.slice(0, 3).toUpperCase();
 }
