@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { prepareMarket, type Market } from "@/lib/fantasy/engine/market";
 import { evaluateTeam } from "@/lib/fantasy/engine/optimiser";
-import type { ChipId, FantasyFile, TeamResult, UserState } from "@/lib/fantasy/engine/types";
+import type { ChipId, FantasyFile, Objective, TeamResult, UserState } from "@/lib/fantasy/engine/types";
 import { usePlannerBoard } from "@/lib/fantasy/use-recommendation";
 import { isLineupComplete, lineupValue, placeTeam, sameLineup, transfersIn, type FullLineup, type Lineup } from "@/lib/fantasy/lineup";
 import {
@@ -34,13 +34,20 @@ import {
 import { LocalTime } from "@/components/ui/local-time";
 import { Flag } from "@/components/ui/flag";
 import { IconWarning } from "@/components/icons";
-import { fixed1, type AssetView, type PlannerMeta } from "@/components/fantasy/planner-parts";
+import { fixed1, projectedPoints, type AssetView, type PlannerMeta } from "@/components/fantasy/planner-parts";
 import { LineupStrip, type SlotKind, type SlotRef } from "@/components/fantasy/planner-lineup";
 import { ControlBar, type PlannerChip, type TransferOption } from "@/components/fantasy/planner-bar";
 import { BestTeams, NextRaces, PriceTables } from "@/components/fantasy/planner-views";
 import { PickList } from "@/components/fantasy/planner-pick-list";
 
 type Tab = "best" | "prices" | "plan";
+/** What the optimiser ranks teams by: projected points, or points plus expected team value. */
+type Goal = "points" | "value";
+
+const GOALS: { key: Goal; label: string; title: string }[] = [
+  { key: "points", label: "Points", title: "Rank teams by projected points this race" },
+  { key: "value", label: "Points + value", title: "Also count expected price rises, worth more early in the season. In our backtests it did not beat points alone." },
+];
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "best", label: "Best teams" },
@@ -59,6 +66,7 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [chip, setChip] = useState<PlannerChip>("none");
   const [tab, setTab] = useState<Tab>("best");
+  const [goal, setGoal] = useState<Goal>("points");
   const [listKind, setListKind] = useState<SlotKind>("driver");
   const [selected, setSelected] = useState<SlotRef | null>(null);
   const hydrated = useRef(false);
@@ -112,8 +120,9 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
     if (!market) return null;
     const team = isLineupComplete(savedLineup) ? { drivers: [...savedLineup.drivers], constructors: [...savedLineup.constructors] } : null;
     const chips = engineChip ? [engineChip] : [];
-    return { team, budget: Math.round(cap * 10) / 10, freeTransfers: FREE_TRANSFERS, chipsAvailable: chips, chipsToPlay: chips, teamRacesCompleted: 5, locked: teams.locked, banned: teams.banned, objective: { kind: "expected" } };
-  }, [market, savedLineup, cap, engineChip, teams.locked, teams.banned]);
+    const objective: Objective = goal === "value" ? { kind: "value" } : { kind: "expected" };
+    return { team, budget: Math.round(cap * 10) / 10, freeTransfers: FREE_TRANSFERS, chipsAvailable: chips, chipsToPlay: chips, teamRacesCompleted: 5, locked: teams.locked, banned: teams.banned, objective };
+  }, [market, savedLineup, cap, engineChip, teams.locked, teams.banned, goal]);
 
   const boardDraft = draftFull ? { drivers: [...draft.drivers], constructors: [...draft.constructors] } : null;
   const board = usePlannerBoard(file, userState, { topN: 16, maxTransfers: 3, draft: boardDraft, planRounds: 4 });
@@ -123,9 +132,10 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
 
   const used = savedFull ? transfersIn(savedLineup, draft).length : 0;
   const penalty = unlimited || !savedFull ? 0 : Math.max(0, used - FREE_TRANSFERS) * 10;
-  const projected = draftResult ? draftResult.score : null;
+  const projected = draftResult ? projectedPoints(draftResult) : null;
   const pickedCount = [...draft.drivers, ...draft.constructors].filter(Boolean).length;
-  const gain = projected !== null && keepResult && used > 0 ? projected - keepResult.score : null;
+  const keepPoints = keepResult ? projectedPoints(keepResult) : null;
+  const gain = projected !== null && keepPoints !== null && used > 0 ? projected - keepPoints : null;
   const multipliers = boostMultipliers(draftResult);
   const options = transferOptions(board.result?.byTransfers ?? [], draft);
   const teamName = `Team ${teams.active + 1}`;
@@ -303,7 +313,16 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
                     {t.label}
                   </button>
                 ))}
-                <span className="ms-auto py-2 text-caption text-ink-2">{notes[tab]}</span>
+                <span className="ms-auto flex items-center gap-3 py-1">
+                  <span className="text-caption text-ink-2">{notes[tab]}</span>
+                  <span className="inline-flex h-7 items-stretch rounded-control border border-rule" role="group" aria-label="Optimiser goal">
+                    {GOALS.map((g) => (
+                      <button key={g.key} type="button" aria-pressed={goal === g.key} title={g.title} onClick={() => setGoal(g.key)} className={"press segment -my-px rounded-control px-2.5 text-caption " + (goal === g.key ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
+                        {g.label}
+                      </button>
+                    ))}
+                  </span>
+                </span>
               </div>
               <div className={board.pending ? "opacity-70 transition-opacity" : "transition-opacity"} aria-busy={board.pending}>
                 {board.error ? (
@@ -311,7 +330,7 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
                     <IconWarning size="1rem" /> {board.error}
                   </p>
                 ) : tab === "best" ? (
-                  board.result ? <BestTeams teams={board.result.best} savedIds={savedIds} keepScore={keepResult?.score ?? null} isLoaded={(team) => sameLineup(draft, team)} assetOf={assetOf} onLoad={loadTeam} /> : <ListSkeleton />
+                  board.result ? <BestTeams teams={board.result.best} savedIds={savedIds} keepScore={keepPoints} isLoaded={(team) => sameLineup(draft, team)} assetOf={assetOf} onLoad={loadTeam} /> : <ListSkeleton />
                 ) : tab === "prices" ? (
                   <PriceTables drivers={assets.filter((a) => a.kind === "driver")} constructors={assets.filter((a) => a.kind === "constructor")} meta={meta} />
                 ) : (
@@ -439,7 +458,7 @@ function savedScore(market: Market | null, state: UserState | null, team: SavedT
   if (!market || !state || !isLineupComplete(lineup)) return null;
   const plain: UserState = { ...state, team: lineup, chipsToPlay: [], chipsAvailable: [] };
   const result = safeEvaluate(market, plain, lineup);
-  return result ? result.score : null;
+  return result ? projectedPoints(result) : null;
 }
 
 function boostMultipliers(result: TeamResult | null): Record<string, number> {
@@ -456,7 +475,7 @@ function transferOptions(byTransfers: (TeamResult | null)[], draft: Lineup): Tra
   const options: TransferOption[] = [];
   byTransfers.forEach((result, transfers) => {
     if (!result) return;
-    options.push({ transfers, score: result.score, penalty: result.penalty, pressed: sameLineup(draft, result), best: result.score === top && byTransfers.length > 1 });
+    options.push({ transfers, score: projectedPoints(result), penalty: result.penalty, pressed: sameLineup(draft, result), best: result.score === top && byTransfers.length > 1 });
   });
   return options;
 }

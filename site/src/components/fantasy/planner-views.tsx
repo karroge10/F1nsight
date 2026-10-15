@@ -10,7 +10,7 @@ import { placeInSlots, type Lineup } from "@/lib/fantasy/lineup";
 import { priceMoveOdds } from "@/lib/fantasy/thresholds";
 import { Flag } from "@/components/ui/flag";
 import { SortTh, sortRows, useSort, type SortDir, type SortValue } from "@/components/ui/sortable";
-import { CodeCell, CodeChip, Footnote, fixed1, money, signed, tone, type AssetLookup, type AssetView, type PlannerMeta } from "@/components/fantasy/planner-parts";
+import { CodeCell, CodeChip, Footnote, fixed1, money, projectedPoints, signed, tone, type AssetLookup, type AssetView, type PlannerMeta } from "@/components/fantasy/planner-parts";
 
 // ---------------------------------------------------------------- Best teams
 
@@ -85,8 +85,8 @@ export function BestTeams({ teams, savedIds, keepScore, isLoaded, assetOf, onLoa
                   </td>
                   <td className="timing px-1.5 text-end text-ink-2">{money(team.cost)}</td>
                   <td className={"timing px-1.5 text-end " + tone(team.expectedValueChange)}>{signed(team.expectedValueChange, 2)}</td>
-                  <td className="timing px-1.5 text-end text-ui font-[700] text-ink">{fixed1(team.score)}</td>
-                  {keepScore !== null ? <td className={"timing px-1.5 text-end " + tone(team.score - keepScore)}>{signed(team.score - keepScore)}</td> : null}
+                  <td className="timing px-1.5 text-end text-ui font-[700] text-ink">{fixed1(projectedPoints(team))}</td>
+                  {keepScore !== null ? <td className={"timing px-1.5 text-end " + tone(projectedPoints(team) - keepScore)}>{signed(projectedPoints(team) - keepScore)}</td> : null}
                 </tr>
               );
             })}
@@ -103,7 +103,7 @@ function teamValue(team: TeamResult, rank: number, key: TeamSort): SortValue {
   if (key === "transfers") return team.transferCount;
   if (key === "cost") return team.cost;
   if (key === "value") return team.expectedValueChange;
-  return team.score;
+  return projectedPoints(team);
 }
 
 // ---------------------------------------------------------------- Prices
