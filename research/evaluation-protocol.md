@@ -41,3 +41,5 @@ least one of them improves, with no season worse by more than 0.002 RPS. A chang
 within noise can be kept only with a stated reason (for example: it adds data coverage the
 model needs later, or it removes a known structural error). 64 races give wide intervals, so
 "neutral" is the common outcome and is reported as such.
+
+End of season: holdout scoring and the three-season refit are in `research/end-of-season.md`.

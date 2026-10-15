@@ -310,3 +310,44 @@ the chain alone (`chain_bt`): RPS pre-weekend -0.0002 [-0.0003, -0.0001], post-p
 [-0.0003, -0.0001], post-qualifying -0.0004 [-0.0008, 0.0000]; NLL neutral to better at every
 stage; win log loss pre-weekend -0.005. No season worse. Kept: `F1ML_GRIDTERM` default 1,
 republished (backup `data/_backup_gridterm_20261015-1624/`).
+
+## Round 12: podium market (2026-10-15)
+
+### Declaration (before any run)
+
+- Hypothesis: pooling Kalshi prices into our forecast beats both ours alone and Kalshi alone on
+  podium log loss (and, for the winner market, win log loss), before and after qualifying.
+- Data: current model `ml/reports/scorecard/both_cars.parquet` (chain + grid term); Kalshi
+  podium (`KXF1RACEPODIUM`) and winner (`KXF1RACE`) midpoints at the same stage cutoffs as
+  `ml/scripts/benchmark/score.py` (cached responses only). Kalshi covers 2025 and 2026.
+- Method (one, fixed): log pooling from the saved probabilities, no re-simulation.
+  Podium: q_i proportional to p_i^w * m_i^(1-w), rescaled to sum 3 (clipped to [0.001, 0.999],
+  rescale repeated). Win: same with sum 1. w = model weight.
+- Weight walk-forward: for season S, w is the grid value (0 to 1, step 0.05) minimising mean
+  log loss on races of earlier seasons at the same stage and target. First season with data
+  (2025) uses the fixed prior `market.OURS_WEIGHT` (0.2 pre-weekend, 0.35 otherwise).
+- Stages: pre-weekend, post-practice, post-qualifying. Scores: podium log loss (per-driver
+  binary, as the benchmark), win log loss. RPS not scored (no re-simulation).
+- Keep rule, per stage and target: pooled vs ours and pooled vs Kalshi, paired bootstrap over
+  races (4000 draws, 95% interval): no comparison significantly worse, at least one significantly
+  better. Kept only if this holds at the post-qualifying stage and at least one earlier stage.
+
+### Result (`ml/scripts/exp_podium/pool.py`, outputs `ml/reports/exp_podium/`)
+
+Pooled minus other, mean per race, 95% bootstrap interval (2025 + 2026, weights 2025 prior / 2026 fitted):
+- Podium post-qualifying (22 races, w 0.35 / 0.25): pooled 0.1941 vs ours 0.2059, diff
+  [-0.0251, -0.0000]; vs Kalshi 0.1950, [-0.0073, +0.0061].
+- Podium post-practice (15, w 0.35 / 0.35): 0.2291 vs ours 0.2409 [-0.0249, +0.0005]; vs Kalshi
+  0.2345 [-0.0152, +0.0035].
+- Podium pre-weekend (20, w 0.2 / 0.0): 0.2379 vs ours 0.2488 [-0.0261, +0.0022]; vs Kalshi 0.2375
+  [-0.0016, +0.0026].
+- Win post-qualifying (30, w 0.35 / 0.40): 0.979 vs ours 0.983 [-0.065, +0.063]; vs Kalshi 1.043
+  [-0.110, -0.024].
+- Win post-practice (25): 1.525 vs ours 1.506 [-0.114, +0.152]; vs Kalshi 1.631 [-0.242, +0.008].
+- Win pre-weekend (27): 1.582 vs ours 1.557 [-0.107, +0.163]; vs Kalshi 1.664 [-0.179, +0.004].
+
+No comparison is significantly worse. Significantly better only after qualifying (podium vs ours,
+at the edge; win vs Kalshi). Earlier stages: point estimates better for podium, not significant.
+Verdict: rejected under the declared rule (no earlier stage passes). Samples are small (15 to 30
+races, one fitted season); the podium direction is consistent, so worth re-running at season end.
+Production unchanged.
