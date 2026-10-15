@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { prepareMarket, type Market } from "@/lib/fantasy/engine/market";
 import { evaluateTeam } from "@/lib/fantasy/engine/optimiser";
-import type { ChipId, FantasyFile, Objective, TeamResult, UserState } from "@/lib/fantasy/engine/types";
+import type { ChipId, FantasyFile, TeamResult, UserState } from "@/lib/fantasy/engine/types";
 import { usePlannerBoard } from "@/lib/fantasy/use-recommendation";
 import { isLineupComplete, lineupValue, placeTeam, sameLineup, transfersIn, type FullLineup, type Lineup } from "@/lib/fantasy/lineup";
 import {
@@ -36,19 +36,11 @@ import { Flag } from "@/components/ui/flag";
 import { IconWarning } from "@/components/icons";
 import { fixed1, projectedPoints, type AssetView, type PlannerMeta } from "@/components/fantasy/planner-parts";
 import { LineupStrip, type SlotKind, type SlotRef } from "@/components/fantasy/planner-lineup";
-import { ControlBar, type PlannerChip, type TransferOption } from "@/components/fantasy/planner-bar";
+import { ControlBar, PlannerSettings, type PlannerChip, type TransferOption } from "@/components/fantasy/planner-bar";
 import { BestTeams, NextRaces, PriceTables } from "@/components/fantasy/planner-views";
 import { PickList } from "@/components/fantasy/planner-pick-list";
 
 type Tab = "best" | "prices" | "plan";
-/** What the optimiser ranks teams by: projected points, or points plus expected team value. */
-type Goal = "points" | "value";
-
-const GOALS: { key: Goal; label: string; title: string }[] = [
-  { key: "points", label: "Points", title: "Rank teams by projected points this race" },
-  { key: "value", label: "Points + value", title: "Also count expected price rises, worth more early in the season. In our backtests it did not beat points alone." },
-];
-
 const TABS: { key: Tab; label: string }[] = [
   { key: "best", label: "Best teams" },
   { key: "prices", label: "Prices" },
@@ -66,7 +58,6 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [chip, setChip] = useState<PlannerChip>("none");
   const [tab, setTab] = useState<Tab>("best");
-  const [goal, setGoal] = useState<Goal>("points");
   const [listKind, setListKind] = useState<SlotKind>("driver");
   const [selected, setSelected] = useState<SlotRef | null>(null);
   const hydrated = useRef(false);
@@ -120,9 +111,8 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
     if (!market) return null;
     const team = isLineupComplete(savedLineup) ? { drivers: [...savedLineup.drivers], constructors: [...savedLineup.constructors] } : null;
     const chips = engineChip ? [engineChip] : [];
-    const objective: Objective = tab === "best" && goal === "value" ? { kind: "value" } : { kind: "expected" };
-    return { team, budget: Math.round(cap * 10) / 10, freeTransfers: FREE_TRANSFERS, chipsAvailable: chips, chipsToPlay: chips, teamRacesCompleted: 5, locked: teams.locked, banned: teams.banned, objective };
-  }, [market, savedLineup, cap, engineChip, teams.locked, teams.banned, goal, tab]);
+    return { team, budget: Math.round(cap * 10) / 10, freeTransfers: FREE_TRANSFERS, chipsAvailable: chips, chipsToPlay: chips, teamRacesCompleted: 5, locked: teams.locked, banned: teams.banned, objective: { kind: "expected" } };
+  }, [market, savedLineup, cap, engineChip, teams.locked, teams.banned]);
 
   const boardDraft = draftFull ? { drivers: [...draft.drivers], constructors: [...draft.constructors] } : null;
   const board = usePlannerBoard(file, userState, { topN: 16, maxTransfers: 3, draft: boardDraft, planRounds: 4 });
@@ -231,7 +221,7 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
   const listKindShown = selected ? selected.kind : listKind;
   const thisRace = meta.races[0]?.name ?? meta.raceName;
   const notes: Record<Tab, string> = {
-    best: savedFull ? `From last week's ${teamName}, ${FREE_TRANSFERS} free transfers` : "New team: no transfer limit",
+    best: savedFull ? `From last week's ${teamName}` : "New team: no transfer limit",
     prices: `Price changes after the ${thisRace} race`,
     plan: `${teamName}, next ${meta.races.length} races`,
   };
@@ -280,26 +270,22 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
         <PlannerSkeleton />
       ) : (
         <>
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="mt-3 flex flex-col gap-3">
+            <PlannerSettings chip={chip} cap={cap} bank={bank} onChip={setChip} onCap={changeCap} />
             <LineupStrip draft={draft} saved={savedFull ? savedLineup : lineupOf(emptySaved())} multipliers={multipliers} selected={selected} assetOf={assetOf} onSelect={selectSlot} onRemove={removePick} />
             <ControlBar
               projected={projected}
+              valueChange={draftResult?.expectedValueChange ?? null}
               picked={pickedCount}
               gain={gain}
               options={options}
               used={used}
               free={FREE_TRANSFERS}
               penalty={penalty}
-              unlimited={unlimited || !savedFull}
-              chip={chip}
-              cap={cap}
-              bank={bank}
               teamName={teamName}
               canSave={changedDraft}
               canReset={changedDraft}
               onOption={chooseOption}
-              onChip={setChip}
-              onCap={changeCap}
               onSave={save}
               onReset={clearDraft}
             />
@@ -315,20 +301,6 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
                 ))}
               </div>
               <div className="flex flex-col items-start gap-2 border-b border-rule py-3">
-                {tab === "best" ? (
-                  <>
-                    <span className="inline-flex min-h-11 shrink-0 items-stretch rounded-control border border-rule" role="group" aria-label="Optimiser goal">
-                      {GOALS.map((g) => (
-                        <button key={g.key} type="button" aria-pressed={goal === g.key} title={g.title} onClick={() => setGoal(g.key)} className={"press segment -my-px whitespace-nowrap rounded-control px-2.5 text-caption " + (goal === g.key ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
-                          {g.label}
-                        </button>
-                      ))}
-                    </span>
-                    <p className="text-caption text-ink-2">
-                      {goal === "points" ? "Rank by projected points this race." : "Rank by projected points plus expected price rises. This has not beaten points alone in our backtests."}
-                    </p>
-                  </>
-                ) : null}
                 <p className="text-caption text-ink-3">{notes[tab]}</p>
               </div>
               <div className={board.pending ? "opacity-70 transition-opacity" : "transition-opacity"} aria-busy={board.pending}>
