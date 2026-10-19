@@ -269,10 +269,12 @@ def _rebuild_fastf1_tables(log) -> None:
 
 
 def _latest_results_race_id() -> int:
-    import pandas as pd
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
 
-    results = pd.read_parquet(paths.processed("results"), columns=["raceId"])
-    return int(results["raceId"].max())
+    with pq.ParquetFile(paths.processed("results")) as parquet:
+        results = parquet.read(columns=["raceId"], use_threads=False)
+    return int(pc.max(results["raceId"]).as_py())
 
 
 def _trained_through_race_id() -> int:
