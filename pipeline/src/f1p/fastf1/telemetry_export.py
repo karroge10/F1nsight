@@ -14,11 +14,13 @@ data/serve/telemetry/index.json (every exported session). Existing files are kep
 import argparse
 import json
 import logging
+import sys
+from datetime import datetime, timedelta, timezone
 
 import fastf1
 import numpy as np
 
-from f1p.fastf1.common import read_expected, get_session, season_range, season_schedule
+from f1p.fastf1.common import COMPLETED_AFTER, read_expected, get_session, is_done, season_range, season_schedule
 from f1p.paths import FASTF1_CACHE_DIR, SERVE_DIR
 
 POINTS = 320
@@ -27,21 +29,34 @@ TELEMETRY_DIR = SERVE_DIR / "telemetry"
 logger = logging.getLogger("f1p.telemetry_export")
 
 
-def export(seasons: list[int], codes: list[str], force: bool = False) -> dict:
-    if seasons:
+def export(seasons: list[int], codes: list[str], force: bool = False, backfill_days: int = 0) -> dict:
+    now = datetime.now(timezone.utc)
+    if backfill_days:
+        setup_online()
+    elif seasons:
         setup_offline(seasons)
     written = 0
     skipped = 0
+    failed = []
     for season in seasons:
         for ref in read_expected(season):
             if ref.code not in codes:
                 continue
+            if backfill_days:
+                start = datetime.fromisoformat(ref.start_utc)
+                start = start.replace(tzinfo=timezone.utc) if start.tzinfo is None else start.astimezone(timezone.utc)
+                if not now - timedelta(days=backfill_days) <= start <= now:
+                    continue
+                if start > now - COMPLETED_AFTER and not is_done(ref):
+                    continue
             path = session_path(ref.season, ref.round, ref.code)
             if path.exists() and not force:
                 continue
             payload = session_payload(ref)
             if payload is None:
                 skipped += 1
+                if backfill_days:
+                    failed.append(ref.key)
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
             text = json.dumps(payload, separators=(",", ":"))
@@ -49,7 +64,7 @@ def export(seasons: list[int], codes: list[str], force: bool = False) -> dict:
             written += 1
             logger.info("wrote %s (%d drivers)", path.name, len(payload["drivers"]))
     index = write_index()
-    return {"written": written, "skipped": skipped, "indexed": len(index)}
+    return {"written": written, "skipped": skipped, "indexed": len(index), "failed": failed}
 
 
 def session_payload(ref) -> dict | None:
@@ -58,7 +73,7 @@ def session_payload(ref) -> dict | None:
         session = get_session(ref)
         session.load(laps=True, telemetry=True, weather=False, messages=True)
     except Exception as exc:  # offline cache miss or broken session
-        logger.warning("%s: not loadable offline (%s)", ref.key, type(exc).__name__)
+        logger.warning("%s: not loadable (%s)", ref.key, type(exc).__name__)
         return None
     drivers = []
     for number in session.drivers:
@@ -186,21 +201,37 @@ def setup_offline(seasons: list[int]) -> None:
     fastf1.set_log_level("ERROR")
 
 
+def setup_online() -> None:
+    FASTF1_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    fastf1.Cache.enable_cache(str(FASTF1_CACHE_DIR))
+    fastf1.Cache.offline_mode(False)
+    fastf1.set_log_level("WARNING")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Export fastest-lap telemetry for the site")
     parser.add_argument("--seasons", nargs="*", default=None, help="seasons or ranges, default the latest")
     parser.add_argument("--sessions", nargs="*", default=DEFAULT_SESSIONS, help="session codes")
     parser.add_argument("--force", action="store_true", help="rewrite existing files")
+    parser.add_argument("--backfill-days", type=int, default=0,
+                        help="download missing telemetry from recent completed sessions, even without a local cache")
     args = parser.parse_args()
+    if args.backfill_days < 0:
+        parser.error("--backfill-days must be nonnegative")
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     if args.seasons:
         seasons = season_range(args.seasons)
+    elif args.backfill_days:
+        now = datetime.now(timezone.utc)
+        seasons = list(range((now - timedelta(days=args.backfill_days)).year, now.year + 1))
     else:
         latest = latest_cached_season()
         # the cloud refresh has no cache unless this run downloaded a session: nothing to export
         seasons = [] if latest is None else [latest]
-    summary = export(seasons, args.sessions, args.force)
+    summary = export(seasons, args.sessions, args.force, args.backfill_days)
     print(json.dumps(summary))
+    if summary["failed"]:
+        sys.exit(1)
 
 
 def latest_cached_season() -> int | None:

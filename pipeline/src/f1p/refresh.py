@@ -183,7 +183,7 @@ class StepRunner:
             pending = ", ".join(pending_keys) or "none"
             result.reason = f"new sessions: {new}; still pending: {pending}; tables rebuilt: {details.get('built')}"
         # fastest-lap telemetry for /telemetry; only sessions not exported yet, from the cache just filled
-        self._run_module(result, "pipeline", "f1p.fastf1.telemetry_export")
+        self._run_module(result, "pipeline", "f1p.fastf1.telemetry_export", "--backfill-days", "14")
         self._mark_success("fastf1", result)
 
     def step_penalties(self, result: StepResult) -> None:

@@ -129,6 +129,10 @@ github.com/settings/personal-access-tokens), make a new one and run `cloud\cron-
   `backtest` and the retrain never writes the data groups, so neither push overwrites the other.
   `data/fastf1_cache` is not kept: the refresh downloads the sessions it needs.
 
+  The FastF1 refresh also backfills missing telemetry exports from the last 14 days, even when
+  the session's other data is already complete. Existing exports are kept. To retry manually:
+  `cd pipeline; uv run python -m f1p.fastf1.telemetry_export --backfill-days 14`.
+
 | What | Command |
 | --- | --- |
 | Refresh now | `gh workflow run refresh.yml` (`-f force=true`, `-f only=fastf1,predict`, `-f publish=false`) |
