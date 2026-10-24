@@ -12,6 +12,7 @@ from f1p.fastf1.common import (
     SessionRef,
     logger,
     session_dir,
+    session_info_or_empty,
     td_to_ms,
     track_path,
     write_json,
@@ -87,8 +88,11 @@ def write_track(session, ref: SessionRef) -> bool:
 
 def _circuit_info(session, ref: SessionRef):
     """MultiViewer corners/rotation, retried, falling back to earlier seasons of the circuit."""
-    circuit = session.session_info["Meeting"]["Circuit"]
-    circuit_key = circuit["Key"]
+    circuit = session_info_or_empty(session).get("Meeting", {}).get("Circuit", {})
+    circuit_key = circuit.get("Key")
+    if circuit_key is None:
+        logger.warning("%s: circuit info unavailable without session metadata", ref.key)
+        return None, None
     if circuit_key == 149 and circuit.get("ShortName") == "Mugello":
         circuit_key = 146
     for year in range(ref.season, ref.season - CIRCUIT_INFO_LOOKBACK - 1, -1):
@@ -120,10 +124,14 @@ def _circuit_info_for_year(year: int, circuit_key: int, attempts: int):
 
 
 def _meta(session, ref: SessionRef, t0_date, counts: dict, window) -> dict:
-    info = getattr(session, "session_info", {}) or {}
+    info = session_info_or_empty(session)
     meeting = info.get("Meeting", {})
     circuit = meeting.get("Circuit", {})
-    drivers = list(getattr(session, "drivers", []) or [])
+    try:
+        drivers = list(getattr(session, "drivers", []) or [])
+    except fastf1.exceptions.DataNotLoadedError:
+        laps = _frame_or_empty(session, "laps")
+        drivers = laps["DriverNumber"].dropna().astype(str).unique().tolist() if "DriverNumber" in laps else []
     start_time = _session_start_ms(session)
     now = datetime.now(timezone.utc)
     return {

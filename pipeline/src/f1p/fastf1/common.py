@@ -103,6 +103,13 @@ def get_session(ref: SessionRef):
     return event.get_session(ref.name)
 
 
+def session_info_or_empty(session) -> dict:
+    try:
+        return session.session_info or {}
+    except (AttributeError, fastf1.exceptions.DataNotLoadedError):
+        return {}
+
+
 def write_expected(season: int, refs: list[SessionRef]) -> None:
     """Remember which sessions a season should have, for progress reports without network."""
     path = fastf1_root() / str(season) / "expected.json"

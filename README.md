@@ -88,6 +88,10 @@ Output: `logs/refresh-<time>.log` (every line), `logs/refresh-last.json` (step s
 or had nothing new, 1 when a step failed (the summary names it), 3 when another refresh still held
 `logs/refresh.lock` after 40 minutes.
 
+A successfully recalculated forecast can still be published when an independent data step
+fails; the workflow keeps its failed status and logs that source error. FastF1 sessions with
+neither laps nor results remain pending for a later retry instead of being marked complete.
+
 ### The retrain gate
 
 `ml/scripts/retrain_if_better.py`: rebuilds the FastF1 tables if stale, then features, trains a

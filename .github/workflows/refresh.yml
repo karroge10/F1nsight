@@ -169,7 +169,7 @@ jobs:
         # The outcome check matters: when the gate skips Refresh, its empty code compares equal
         # to '0' (expressions coerce both strings to numbers).
         # a news check only rebuilds the site when the forecast changed; a push always rebuilds
-        if: (github.event_name == 'push' && steps.gate.outputs.run == 'true') || (steps.refresh.outcome == 'success' && steps.refresh.outputs.code == '0' && (steps.gate.outputs.only == '' || steps.refresh.outputs.predicted == 'ok') && (github.event_name == 'schedule' || inputs.publish))
+        if: (github.event_name == 'push' && steps.gate.outputs.run == 'true') || (steps.refresh.outcome == 'success' && (steps.refresh.outputs.code == '0' || steps.refresh.outputs.predicted == 'ok') && (steps.gate.outputs.only == '' || steps.refresh.outputs.predicted == 'ok') && (github.event_name == 'schedule' || inputs.publish))
         working-directory: site
         env:
           NODE_OPTIONS: --disable-warning=ExperimentalWarning

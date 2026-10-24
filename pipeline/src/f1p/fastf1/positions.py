@@ -7,6 +7,8 @@ Coordinates are FastF1 X/Y in decimetres (1/10 m), session time in ms since `Ses
 import numpy as np
 import pandas as pd
 
+from f1p.fastf1.common import session_info_or_empty
+
 STEP_MS = 250
 # Linear interpolation is only trusted across short holes in the feed.
 MAX_GAP_MS = 2_000
@@ -103,7 +105,7 @@ def build_track(session, circuit_info, source_session: str) -> dict | None:
     sectors = _sector_points(points, lap)
     xs = points["X"].to_numpy()
     ys = points["Y"].to_numpy()
-    meeting = session.session_info.get("Meeting", {})
+    meeting = session_info_or_empty(session).get("Meeting", {})
     circuit = meeting.get("Circuit", {})
     lap_time = lap["LapTime"]
     lap_seconds = lap_time.total_seconds() if pd.notna(lap_time) else None

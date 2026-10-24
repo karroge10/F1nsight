@@ -171,6 +171,8 @@ def _event_refs(season: int, event, now: datetime) -> list[SessionRef]:
 def _should_wait(ref: SessionRef, problems: list[str], now: datetime, accept_partial: bool) -> bool:
     if not problems or accept_partial:
         return False
+    if CORE_PARTS.issubset(problems):
+        return True
     start = datetime.fromisoformat(ref.start_utc).replace(tzinfo=timezone.utc)
     ended_at = start + SESSION_LENGTH[ref.code]
     if now - ended_at > PARTIAL_AFTER:
