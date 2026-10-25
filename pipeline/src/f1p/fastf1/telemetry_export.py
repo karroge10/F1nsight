@@ -37,6 +37,7 @@ def export(seasons: list[int], codes: list[str], force: bool = False, backfill_d
         setup_offline(seasons)
     written = 0
     skipped = 0
+    pending = []
     failed = []
     for season in seasons:
         for ref in read_expected(season):
@@ -52,11 +53,17 @@ def export(seasons: list[int], codes: list[str], force: bool = False, backfill_d
             path = session_path(ref.season, ref.round, ref.code)
             if path.exists() and not force:
                 continue
-            payload = session_payload(ref)
+            try:
+                payload = session_payload(ref)
+            except Exception as exc:
+                logger.error("%s: telemetry export failed (%s): %s", ref.key, type(exc).__name__, exc)
+                failed.append(ref.key)
+                continue
             if payload is None:
                 skipped += 1
                 if backfill_days:
-                    failed.append(ref.key)
+                    pending.append(ref.key)
+                    logger.warning("%s: telemetry unavailable, pending a later refresh", ref.key)
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
             text = json.dumps(payload, separators=(",", ":"))
@@ -64,7 +71,7 @@ def export(seasons: list[int], codes: list[str], force: bool = False, backfill_d
             written += 1
             logger.info("wrote %s (%d drivers)", path.name, len(payload["drivers"]))
     index = write_index()
-    return {"written": written, "skipped": skipped, "indexed": len(index), "failed": failed}
+    return {"written": written, "skipped": skipped, "indexed": len(index), "pending": pending, "failed": failed}
 
 
 def session_payload(ref) -> dict | None:
@@ -72,11 +79,12 @@ def session_payload(ref) -> dict | None:
     try:
         session = get_session(ref)
         session.load(laps=True, telemetry=True, weather=False, messages=True)
-    except Exception as exc:  # offline cache miss or broken session
+        numbers = session.drivers
+    except (fastf1.exceptions.DataNotLoadedError, fastf1.exceptions.NoLapDataError) as exc:  # offline cache miss or broken session
         logger.warning("%s: not loadable (%s)", ref.key, type(exc).__name__)
         return None
     drivers = []
-    for number in session.drivers:
+    for number in numbers:
         record = driver_record(session, number)
         if record is not None:
             drivers.append(record)
@@ -100,7 +108,7 @@ def driver_record(session, number: str) -> dict | None:
         if lap is None or lap.empty or lap["LapTime"] is None:
             return None
         telemetry = lap.get_telemetry()
-    except Exception:
+    except (fastf1.exceptions.DataNotLoadedError, fastf1.exceptions.NoLapDataError):
         return None
     if telemetry is None or len(telemetry) < 20:
         return None
@@ -229,7 +237,7 @@ def main() -> None:
         # the cloud refresh has no cache unless this run downloaded a session: nothing to export
         seasons = [] if latest is None else [latest]
     summary = export(seasons, args.sessions, args.force, args.backfill_days)
-    print(json.dumps(summary))
+    print("RESULT " + json.dumps(summary))
     if summary["failed"]:
         sys.exit(1)
 

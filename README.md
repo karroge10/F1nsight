@@ -136,6 +136,9 @@ github.com/settings/personal-access-tokens), make a new one and run `cloud\cron-
   The FastF1 refresh also backfills missing telemetry exports from the last 14 days, even when
   the session's other data is already complete. Existing exports are kept. To retry manually:
   `cd pipeline; uv run python -m f1p.fastf1.telemetry_export --backfill-days 14`.
+  An upstream archive with no usable telemetry remains pending and is reported in the refresh
+  summary; it is retried on later FastF1 refreshes within that window. Unexpected processing
+  errors still fail the run.
 
 | What | Command |
 | --- | --- |
