@@ -90,12 +90,15 @@ jobs:
             echo "force=${FORCE:-false}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          python3 cloud/state.py pull --groups refresh-state,processed
+          python3 cloud/state.py pull --groups refresh-state,processed,model,publication
+          recovery=$(python3 cloud/publication.py needed)
           result=$(cd pipeline && uv run python -m f1p.weekend --due)
           echo "$result"
           due=$(echo "$result" | jq -r '.due | length')
           force=$(echo "$result" | jq -r '.force')
           news=$(echo "$result" | jq -r '.newsOnly')
+          if [ "$recovery" = "true" ]; then due=1; news=false; fi
+          echo "recovery=$recovery" >> "$GITHUB_OUTPUT"
           if [ "$news" = "true" ]; then echo "only=penalties,weather,predict" >> "$GITHUB_OUTPUT"; fi
           if [ "$due" -gt 0 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
           echo "force=$force" >> "$GITHUB_OUTPUT"
@@ -108,7 +111,7 @@ jobs:
         run: |
           # A gated run already pulled (and updated) these two groups.
           if [ "$PULLED" = "true" ]; then
-            python3 cloud/state.py pull --skip refresh-state,processed
+            python3 cloud/state.py pull --skip refresh-state,processed,model,publication
           else
             python3 cloud/state.py pull
           fi
@@ -139,7 +142,9 @@ jobs:
           FORCE: ${{ steps.gate.outputs.force }}
           ONLY: ${{ inputs.only || steps.gate.outputs.only }}
           SKIP: ${{ inputs.skip }}
+          RECOVERY: ${{ steps.gate.outputs.recovery }}
         run: |
+          if [ "$RECOVERY" = "true" ]; then python3 cloud/publication.py retry; fi
           # Same split as refresh.ps1: "images" is a site step, the rest go to f1p.refresh.
           only=$(echo "$ONLY" | tr ',' '\n' | grep -v '^images$' | grep -v '^$' | paste -sd, - || true)
           skip=$(echo "$SKIP" | tr ',' '\n' | grep -v '^images$' | grep -v '^$' | paste -sd, - || true)
@@ -164,6 +169,13 @@ jobs:
           node --no-warnings scripts/fetch-images.mjs || echo "::warning::fetch-images failed, keeping the existing images"
           node --no-warnings scripts/fetch-current-logos.mjs || echo "::warning::fetch-current-logos failed, keeping the existing logos"
 
+      - name: Record pending publication
+        id: publication
+        if: (github.event_name == 'push' && steps.gate.outputs.run == 'true') || (steps.refresh.outcome == 'success' && (steps.refresh.outputs.code == '0' || steps.refresh.outputs.predicted == 'ok') && (steps.gate.outputs.only == '' || steps.refresh.outputs.predicted == 'ok') && (github.event_name == 'schedule' || inputs.publish))
+        run: |
+          python3 cloud/publication.py start
+          python3 cloud/state.py push --groups publication
+
       - name: Build site
         id: build
         # The outcome check matters: when the gate skips Refresh, its empty code compares equal
@@ -178,6 +190,7 @@ jobs:
           node scripts/check-export.mjs
 
       - name: Upload to Cloudflare Pages
+        id: deploy
         if: steps.build.outcome == 'success'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -186,8 +199,17 @@ jobs:
         run: site/node_modules/.bin/wrangler pages deploy site/out --project-name f1nsight --branch main --commit-dirty=true
 
       - name: Push state
-        if: always() && steps.refresh.outcome == 'success'
-        run: python3 cloud/state.py push
+        if: always() && (steps.refresh.outcome == 'success' || steps.publication.outcome == 'success')
+        env:
+          DEPLOYED: ${{ steps.deploy.outcome }}
+          PUSH_EVENT: ${{ github.event_name == 'push' }}
+        run: |
+          if [ "$DEPLOYED" = "success" ]; then python3 cloud/publication.py finish; fi
+          if [ "$PUSH_EVENT" = "true" ]; then
+            python3 cloud/state.py push --groups publication
+          else
+            python3 cloud/state.py push --skip model,backtest
+          fi
 
       - name: Start the retrain gate
         if: steps.refresh.outcome == 'success'

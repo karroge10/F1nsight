@@ -140,6 +140,15 @@ github.com/settings/personal-access-tokens), make a new one and run `cloud\cron-
   summary; it is retried on later FastF1 refreshes within that window. Unexpected processing
   errors still fail the run.
 
+  Publication recovery is stored separately in `publication` (`logs/publication.json`). A build
+  records a pending publication before it starts, and only a successful deployment clears it.
+  Scheduled checks retry pending publications even after the final weekend retry. They also
+  compare the published model version with the promoted model, so a failed retraining refresh
+  dispatch is recovered by the next scheduled check. Asset inventory errors stop state writes
+  and cleanup; they are never interpreted as an empty release.
+  State writers share an exclusive release asset lock, so refresh and retraining cannot replace
+  each other's manifest changes. Locks left by completed Actions runs can be reclaimed safely.
+
 | What | Command |
 | --- | --- |
 | Refresh now | `gh workflow run refresh.yml` (`-f force=true`, `-f only=fastf1,predict`, `-f publish=false`) |

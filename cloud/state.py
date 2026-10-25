@@ -35,6 +35,8 @@ import sys
 import tarfile
 import tempfile
 import time
+import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -53,12 +55,17 @@ PART_BYTES = 1900 * 1024 * 1024
 COMPRESS_LEVEL = 6
 EXCLUDED_SUFFIXES = (".log", ".lock", ".tmp", ".pyc")
 EXCLUDED_DIRS = ("__pycache__",)
+PUSH_LOCK_ASSET = "state-push.lock.json"
+PUSH_LOCK_WAIT_S = 300
+PUSH_LOCK_POLL_S = 5
+PUSH_LOCK_LOCAL_TTL_S = 6 * 60 * 60
 
 # group name -> paths relative to the repo root. "model" is filled in from ml/models/latest.json.
 # Who writes what: the refresh writes every data group and "predictions" (next.json,
 # fantasy.json); only the retrain gate writes "model" and "backtest" (the backtest and its
 # history files), so neither run's push can carry stale copies of the other's files.
 GROUPS = {
+    "publication": ["logs/publication.json"],
     "refresh-state": ["logs/refresh_state.json"],
     "processed": ["data/processed"],
     "serve": ["data/serve"],
@@ -145,42 +152,44 @@ def push(groups: list[str], explicit: bool, dry_run: bool) -> int:
     it did not change here since the pull.
     """
     _ensure_release(dry_run)
-    remote = _remote_manifest() or {"groups": {}}
-    baseline = _read_json(BASELINE_PATH) or {}
-    merged = dict(remote["groups"])
-    uploads = []
-    with tempfile.TemporaryDirectory(prefix="f1-state-") as temp:
-        folder = Path(temp)
-        for name in groups:
-            files = group_files(name)
-            local_hash = group_hash(files)
-            remote_hash = remote["groups"].get(name, {}).get("hash")
-            changed_here = explicit or baseline.get(name) != local_hash
-            if not files or local_hash == remote_hash or not changed_here:
-                continue
-            print(f"  {name}: packing {len(files)} files")
-            if dry_run:
-                continue
-            entry = _pack(name, files, local_hash, folder)
-            _upload(entry["assets"], folder)
-            merged[name] = entry
-            uploads.append(name)
-            baseline[name] = local_hash
-    if dry_run:
-        print("state: dry run, nothing uploaded")
+    with _push_lock(dry_run):
+        remote = _remote_manifest() or {"groups": {}}
+        baseline = _read_json(BASELINE_PATH) or {}
+        merged = dict(remote["groups"])
+        uploads = []
+        with tempfile.TemporaryDirectory(prefix="f1-state-") as temp:
+            folder = Path(temp)
+            for name in groups:
+                files = group_files(name)
+                local_hash = group_hash(files)
+                remote_hash = remote["groups"].get(name, {}).get("hash")
+                changed_here = explicit or baseline.get(name) != local_hash
+                if not files or local_hash == remote_hash or not changed_here:
+                    continue
+                print(f"  {name}: packing {len(files)} files")
+                if dry_run:
+                    continue
+                entry = _pack(name, files, local_hash, folder)
+                _upload(entry["assets"], folder)
+                merged[name] = entry
+                uploads.append(name)
+                baseline[name] = local_hash
+        if dry_run:
+            print("state: dry run, nothing uploaded")
+            return 0
+        if not uploads:
+            print("state: nothing changed, no upload")
+            return 0
+        now = datetime.now(timezone.utc)
+        stamp = now.strftime("%Y%m%dT%H%M%SZ")
+        manifest = {"name": f"{MANIFEST_PREFIX}{stamp}_{now.microsecond:06d}.json", "createdAt": stamp,
+                    "source": _source(), "groups": merged}
+        _upload_manifest(manifest)
+        _write_json(BASELINE_PATH, baseline)
+        _delete_stale_assets()
+        uploaded = ", ".join(uploads)
+        print(f"state: pushed {manifest['name']} ({uploaded})")
         return 0
-    if not uploads:
-        print("state: nothing changed, no upload")
-        return 0
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    manifest = {"name": f"{MANIFEST_PREFIX}{stamp}.json", "createdAt": stamp,
-                "source": _source(), "groups": merged}
-    _upload_manifest(manifest)
-    _write_json(BASELINE_PATH, baseline)
-    _delete_stale_assets()
-    uploaded = ", ".join(uploads)
-    print(f"state: pushed {manifest['name']} ({uploaded})")
-    return 0
 
 
 def group_files(name: str) -> list[Path]:
@@ -330,8 +339,12 @@ def _remote_manifest() -> dict | None:
 
 
 def _delete_stale_assets() -> None:
-    names = _manifest_names()
-    keep_manifests = names[-KEEP_MANIFESTS:]
+    names = _asset_names()
+    inventory = set(names)
+    manifests = sorted(name for name in names if name.startswith(MANIFEST_PREFIX))
+    if not manifests:
+        return
+    keep_manifests = manifests[-KEEP_MANIFESTS:]
     keep = set(keep_manifests)
     with tempfile.TemporaryDirectory(prefix="f1-state-") as temp:
         for name in keep_manifests:
@@ -340,8 +353,10 @@ def _delete_stale_assets() -> None:
             manifest = _read_json(path)
             for entry in manifest["groups"].values():
                 keep.update(entry["assets"])
-    for asset in _asset_names():
-        if asset not in keep:
+    if not keep.issubset(inventory):
+        return
+    for asset in names:
+        if asset not in keep and asset != PUSH_LOCK_ASSET:
             _gh("release", "delete-asset", RELEASE_TAG, asset, "--yes")
 
 
@@ -352,19 +367,115 @@ def _manifest_names() -> list[str]:
 
 
 def _asset_names() -> list[str]:
+    return [asset["name"] for asset in _asset_records()]
+
+
+def _asset_records() -> list[dict]:
     completed = _gh("release", "view", RELEASE_TAG, "--json", "assets", check=False)
     if completed.returncode != 0:
-        return []
+        raise SystemExit(f"state: unable to list release assets: {completed.stderr.strip()}")
     payload = json.loads(completed.stdout)
-    return [asset["name"] for asset in payload["assets"]]
+    return payload["assets"]
+
+
+@contextmanager
+def _push_lock(dry_run: bool):
+    if dry_run:
+        yield
+        return
+    token = str(uuid.uuid4())
+    owner = {"token": token, "runId": os.environ.get("GITHUB_RUN_ID"),
+             "createdAt": datetime.now(timezone.utc).isoformat()}
+    deadline = time.monotonic() + PUSH_LOCK_WAIT_S
+    asset = None
+    while time.monotonic() <= deadline:
+        records = _asset_records()
+        current = next((item for item in records if item["name"] == PUSH_LOCK_ASSET), None)
+        if current:
+            if _lock_is_stale(current):
+                _delete_asset_by_url(current, missing_ok=True)
+                continue
+            result = _try_upload_lock(owner)
+            if result:
+                asset = result
+                break
+            time.sleep(PUSH_LOCK_POLL_S)
+            continue
+        result = _try_upload_lock(owner)
+        if result:
+            asset = result
+            break
+        time.sleep(PUSH_LOCK_POLL_S)
+    if not asset:
+        raise SystemExit("state: timed out waiting for the release push lock")
+    try:
+        yield
+    finally:
+        _delete_asset_by_url(asset)
+
+
+def _try_upload_lock(owner: dict) -> dict | None:
+    with tempfile.TemporaryDirectory(prefix="f1-state-lock-") as temp:
+        path = Path(temp) / PUSH_LOCK_ASSET
+        path.write_text(json.dumps(owner), encoding="utf-8")
+        _gh("release", "upload", RELEASE_TAG, str(path), check=False)
+    records = _asset_records()
+    asset = next((item for item in records if item["name"] == PUSH_LOCK_ASSET), None)
+    if not asset:
+        return None
+    with tempfile.TemporaryDirectory(prefix="f1-state-lock-") as temp:
+        _gh("release", "download", RELEASE_TAG, "--pattern", PUSH_LOCK_ASSET, "--dir", temp)
+        payload = _read_json(Path(temp) / PUSH_LOCK_ASSET)
+    if payload.get("token") == owner["token"]:
+        return asset
+    return None
+
+
+def _lock_is_stale(asset: dict) -> bool:
+    try:
+        with tempfile.TemporaryDirectory(prefix="f1-state-lock-") as temp:
+            _gh("release", "download", RELEASE_TAG, "--pattern", PUSH_LOCK_ASSET, "--dir", temp)
+            owner = _read_json(Path(temp) / PUSH_LOCK_ASSET)
+        run_id = owner.get("runId")
+        if run_id:
+            repository = os.environ.get("GITHUB_REPOSITORY")
+            if not repository:
+                return False
+            result = _gh("api", f"repos/{repository}/actions/runs/{run_id}", check=False)
+            if result.returncode != 0:
+                return False
+            return json.loads(result.stdout).get("status") == "completed"
+        created = datetime.fromisoformat(asset["createdAt"].replace("Z", "+00:00"))
+        age = (datetime.now(timezone.utc) - created).total_seconds()
+        return age >= PUSH_LOCK_LOCAL_TTL_S
+    except (SystemExit, OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return False
+
+
+def _delete_asset_by_url(asset: dict, missing_ok: bool = False) -> None:
+    api_url = asset.get("apiUrl")
+    if not isinstance(api_url, str) or not api_url.rsplit("/", 1)[-1].isdigit():
+        raise SystemExit("state: lock asset inventory is missing its numeric API URL")
+    result = _gh("api", "--method", "DELETE", api_url, check=False)
+    if result.returncode != 0 and not (missing_ok and "HTTP 404" in result.stderr):
+        raise SystemExit(f"state: unable to release push lock: {result.stderr.strip()}")
 
 
 def _ensure_release(dry_run: bool) -> None:
     exists = _gh("release", "view", RELEASE_TAG, "--json", "tagName", check=False)
-    if exists.returncode == 0 or dry_run:
+    if exists.returncode == 0:
+        return
+    if not _release_not_found(exists.stderr):
+        raise SystemExit(f"state: unable to check release {RELEASE_TAG}: {exists.stderr.strip()}")
+    if dry_run:
         return
     _gh("release", "create", RELEASE_TAG, "--title", RELEASE_TITLE, "--notes", RELEASE_NOTES,
         "--prerelease", "--latest=false")
+
+
+def _release_not_found(stderr: str) -> bool:
+    lowered = stderr.lower()
+    return "release not found" in lowered or "http 404: not found" in lowered
 
 
 def _gh(*arguments: str, check: bool = True) -> subprocess.CompletedProcess:
