@@ -190,6 +190,9 @@ jobs:
         env:
           NODE_OPTIONS: --disable-warning=ExperimentalWarning
         run: |
+          if [ -f ../data/processed/ff1_session_results.parquet ] && [ -f ../data/processed/ff1_laps.parquet ] && [ -f ../data/processed/ff1_weather.parquet ]; then
+            uv run --project ../pipeline python -m f1p.fastf1.session_export --seasons "$(date -u +%Y)"
+          fi
           python3 ../cloud/forecast_records.py prepare
           npm run build
           node scripts/check-export.mjs
@@ -217,7 +220,7 @@ jobs:
         run: |
           if [ "$VERIFIED" = "success" ]; then python3 cloud/publication.py finish; fi
           if [ "$PUSH_EVENT" = "true" ]; then
-            python3 cloud/state.py push --groups publication,forecast-records
+            python3 cloud/state.py push --groups publication,forecast-records,serve
           else
             python3 cloud/state.py push --skip model,backtest
           fi

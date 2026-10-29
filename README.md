@@ -99,6 +99,10 @@ checked against the current forecast. After upload, the production JSON and the 
 race, stage, model and forecast timestamp must match before publication is marked complete.
 A failed verification leaves publication pending for the next cloud check.
 
+Builds refresh the current season's session exports from the processed FastF1 tables before
+rendering replay routes. Exports missing lap start times are upgraded even when no new session
+was downloaded. The updated serving files are retained in cloud state after a code-only deploy.
+
 Verified snapshots are stored under `data/published/<season>-<round>/<sha256>.json`, separately
 from historical backtests. Each contains the full forecast, its hash, the first verification
 time and the workflow URL. New forecasts also retain the model's unpooled win probabilities,

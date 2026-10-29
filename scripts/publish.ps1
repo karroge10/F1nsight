@@ -25,6 +25,7 @@ function Main {
     Push-Location $site
     try {
         if (-not $SkipBuild) {
+            if (-not (Invoke-Native "uv" @("run", "--project", "../pipeline", "python", "-m", "f1p.fastf1.session_export", "--seasons", [string](Get-Date).Year))) { return 1 }
             if (-not (Invoke-Native "python" @("../cloud/forecast_records.py", "report"))) { return 1 }
             if (-not (Invoke-Native "python" @("../cloud/forecast_records.py", "prepare"))) { return 1 }
             Write-Host "publish: building the static site..."
