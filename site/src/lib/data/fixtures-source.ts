@@ -11,6 +11,7 @@ import path from "node:path";
 import type { FantasyFile } from "@/lib/fantasy/engine/types";
 import type { FantasyRoundsFile } from "@/lib/fantasy/thresholds";
 import type { FantasyBacktest } from "@/lib/fantasy/backtest-data";
+import type { OfficialResultsCache } from "./official-results";
 import type { SessionRef, SessionTelemetry, TelemetryIndexEntry } from "@/lib/telemetry";
 import type {
   Circuit,
@@ -45,6 +46,7 @@ export interface FixtureRace {
   scheduledLaps: number | null;
   cancelled: boolean;
   url: string | null;
+  officialSources?: { race?: string; qualifying?: string };
   results: ResultRow[];
   sprint: ResultRow[];
   qualifying: QualifyingRow[];
@@ -79,6 +81,11 @@ export function readIndex(): FixtureIndex {
 
 export function readSeason(season: number): FixtureSeason | null {
   return readOptionalFixture<FixtureSeason>(`seasons/${season}.json`);
+}
+
+export function readOfficialResults(season: number): OfficialResultsCache | null {
+  const data = readOptionalExternal<OfficialResultsCache>("serve/official_results.json");
+  return data ? { ...data, races: data.races.filter(race => race.season === season) } : null;
 }
 
 export function readSeasonSummaries(): SeasonSummary[] {
@@ -194,7 +201,14 @@ export function readFantasyRounds(): FantasyRoundsFile | null {
 
 /** fantasy/backtest.json (research/fantasy-backtest/run.ts), or null when not generated. */
 export function readFantasyBacktest(): FantasyBacktest | null {
-  return readOptionalFixture<FantasyBacktest>("fantasy/backtest.json");
+  const data = readOptionalFixture<FantasyBacktest>("fantasy/backtest.json");
+  const leader = readOptionalExternal<{ season: number; round: number; points: number; team: string; source: string; sourceUpdatedAt: string | null }>("serve/fantasy_leader.json");
+  if (!data || !leader) return data;
+  return { ...data, seasons: data.seasons.map((season) => {
+    if (season.season !== leader.season) return season;
+    const matched = season.rounds.find((r) => r.round === leader.round);
+    return { ...season, leader: { points: leader.points, round: leader.round, label: leader.team, share: matched && leader.points > 0 ? Math.round(matched.cumulative / leader.points * 1000) / 10 : null, source: leader.source, sourceUpdatedAt: leader.sourceUpdatedAt } };
+  }) };
 }
 
 /** data/serve/telemetry/index.json (f1p.fastf1.telemetry_export): exported sessions, newest first. */
@@ -271,4 +285,18 @@ function readJsonStamped<T>(file: string): T {
 function readJsonFresh<T>(file: string): T {
   const text = fs.readFileSync(file, "utf8");
   return JSON.parse(text) as T;
+}
+
+export function readSessionReportIndex(): { season: number; round: number; code: SessionCode }[] {
+  const root = path.join(DATA_DIR, "serve/sessions");
+  if (!externalEnabled() || !fs.existsSync(root)) return [];
+  const refs: { season: number; round: number; code: SessionCode }[] = [];
+  for (const season of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!season.isDirectory() || !/^\d{4}$/.test(season.name)) continue;
+    for (const file of fs.readdirSync(path.join(root, season.name))) {
+      const match = /^(\d{2})_(FP1|FP2|FP3|SQ|S|Q|R)\.json$/.exec(file);
+      if (match) refs.push({ season: Number(season.name), round: Number(match[1]), code: match[2] as SessionCode });
+    }
+  }
+  return refs;
 }

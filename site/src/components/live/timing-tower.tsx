@@ -9,6 +9,7 @@ import { TeamLogo } from "@/components/ui/team-logo";
 
 interface TimingTowerProps {
   rows: TimingRow[];
+  expanded?: boolean;
   drivers: Map<number, LiveDriver>;
   season: number | null;
   showDrs: boolean;
@@ -38,7 +39,7 @@ const TYRE_NAME: Record<string, string> = { S: "Soft", M: "Medium", H: "Hard", I
  * its age in laps. Qualifying and practice show best, gap and last instead. Rows never change
  * size on hover, so nothing on the page moves; a click pins the driver.
  */
-export function TimingTower({ rows, drivers, season, showDrs, isRace, pinned, onSelect }: TimingTowerProps) {
+export const TimingTower = memo(function TimingTower({ expanded = false, rows, drivers, season, showDrs, isRace, pinned, onSelect }: TimingTowerProps) {
   const [gapFigure, setGapFigure] = useState<Figure>("int");
   const [lapFigure, setLapFigure] = useState<Figure>("last");
   const listRef = useRef<HTMLDivElement>(null);
@@ -54,7 +55,7 @@ export function TimingTower({ rows, drivers, season, showDrs, isRace, pinned, on
   }, [pinned]);
 
   return (
-    <div className="lt" data-mode={isRace ? "race" : "laps"}>
+    <div className="lt" data-expanded={expanded || undefined} data-mode={isRace ? "race" : "laps"}>
       <div className="lt-head">
         <span>P</span>
         <span />
@@ -71,6 +72,8 @@ export function TimingTower({ rows, drivers, season, showDrs, isRace, pinned, on
             <span className="lt-sm">Last</span>
           </>
         )}
+        <span className="lt-wide">{gapFigure === "int" ? "Gap" : "Int"}</span>
+        <span className="lt-wide">{isRace ? (lapFigure === "last" ? "Best" : "Last") : "Laps"}</span>
         <span>Sectors</span>
         <span>Tyre</span>
       </div>
@@ -94,7 +97,7 @@ export function TimingTower({ rows, drivers, season, showDrs, isRace, pinned, on
       </div>
     </div>
   );
-}
+});
 
 interface TowerRowProps {
   row: TimingRow;
@@ -113,7 +116,7 @@ const TowerRow = memo(function TowerRow({ row, driver, season, gapFigure, lapFig
   const faded = row.retired || row.stopped || row.knockedOut;
   const badge = row.retired ? "OUT" : row.stopped ? "STOP" : row.knockedOut ? "OUT" : row.inPit ? "PIT" : row.pitOut ? "OUT LAP" : null;
   const team = driver?.teamColor ?? "#8A8F98";
-  const constructorId = constructorIdForTeam(driver?.team);
+  const constructorId = constructorIdForTeam(driver?.team, season);
   const s1 = sectorFlag(row.s1);
   const s2 = sectorFlag(row.s2);
   const s3 = sectorFlag(row.s3);
@@ -148,7 +151,8 @@ const TowerRow = memo(function TowerRow({ row, driver, season, gapFigure, lapFig
         {driver?.team ? <TeamLogo constructorId={constructorId ?? ""} name={driver.team} color={team} size={20} season={season} /> : null}
       </span>
       <span className="lt-code timing">
-        {driver?.code ?? row.number}
+        <span className="lt-driver-short">{driver?.code ?? row.number}</span>
+        <span className="lt-driver-name truncate">{driver?.name ?? driver?.code ?? row.number}</span>
         {row.bestLap.ob ? <IconFastestLap size="0.75rem" className="text-sector-purple" label="Fastest lap" /> : null}
         {showDrs && row.drs ? <span className="lt-drs" title="DRS open" /> : null}
       </span>
@@ -164,10 +168,10 @@ const TowerRow = memo(function TowerRow({ row, driver, season, gapFigure, lapFig
           <span className={"lt-num lt-sm timing " + lastTone}>{row.lastLap.value ?? ""}</span>
         </>
       )}
+      <span className="lt-num lt-wide timing text-ink-2">{gapFigure === "int" ? row.gap : row.interval}</span>
+      <span className="lt-num lt-wide timing">{isRace ? (lapFigure === "last" ? row.bestLap.value : row.lastLap.value) : row.laps}</span>
       <span className="lt-sectors" aria-label={`sectors ${s1 ?? "none"} ${s2 ?? "none"} ${s3 ?? "none"}`}>
-        <span className="sector" data-flag={s1 ?? undefined} />
-        <span className="sector" data-flag={s2 ?? undefined} />
-        <span className="sector" data-flag={s3 ?? undefined} />
+        {[{ flag: s1, value: row.s1.value }, { flag: s2, value: row.s2.value }, { flag: s3, value: row.s3.value }].map((sector, index) => <span className="lt-sector-detail" key={index}><span className="sector" data-flag={sector.flag ?? undefined} /><span className="lt-sector-value timing">{sector.value ?? ""}</span></span>)}
       </span>
       <span className="lt-tyre" title={tyreTitle}>
         {compound ? <IconTyre compound={compound === "?" ? "" : compound} label={tyreTitle} /> : <span className="inline-block size-[1.125rem]" />}
@@ -211,6 +215,8 @@ function PlaceholderRow({ pos, isRace }: { pos: number; isRace: boolean }) {
       <span className="lt-placeholder w-10 justify-self-end" />
       {isRace ? null : <span className="lt-placeholder w-10 justify-self-end" />}
       <span className="lt-placeholder lt-sm w-12 justify-self-end" />
+      <span className="lt-wide" />
+      <span className="lt-wide" />
       <span />
       <span className="lt-placeholder lt-placeholder-dot" />
     </div>

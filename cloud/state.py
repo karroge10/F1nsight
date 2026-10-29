@@ -66,6 +66,7 @@ PUSH_LOCK_LOCAL_TTL_S = 6 * 60 * 60
 # history files), so neither run's push can carry stale copies of the other's files.
 GROUPS = {
     "publication": ["logs/publication.json"],
+    "forecast-records": ["data/published", "data/reports"],
     "refresh-state": ["logs/refresh_state.json"],
     "processed": ["data/processed"],
     "serve": ["data/serve"],
@@ -160,6 +161,8 @@ def push(groups: list[str], explicit: bool, dry_run: bool) -> int:
         with tempfile.TemporaryDirectory(prefix="f1-state-") as temp:
             folder = Path(temp)
             for name in groups:
+                if name == "forecast-records" and name in remote["groups"] and not dry_run:
+                    _merge_published(remote["groups"][name], folder)
                 files = group_files(name)
                 local_hash = group_hash(files)
                 remote_hash = remote["groups"].get(name, {}).get("hash")
@@ -310,6 +313,30 @@ def _download_archive(entry: dict, folder: Path) -> Path:
 def _unpack(archive: Path) -> None:
     with tarfile.open(archive, "r:gz") as tar:
         tar.extractall(ROOT_DIR, filter="data")
+
+
+def _merge_published(entry, folder):
+    archive = _download_archive(entry, folder)
+    with tarfile.open(archive, "r:gz") as tar:
+        for member in tar.getmembers():
+            relative = Path(member.name)
+            if not member.isfile() or relative.parts[:2] != ("data", "published"):
+                continue
+            target = (ROOT_DIR / relative).resolve()
+            if not target.is_relative_to((ROOT_DIR / "data/published").resolve()):
+                raise ValueError("invalid published forecast archive path")
+            content = tar.extractfile(member).read()
+            if target.exists():
+                local = json.loads(target.read_bytes())
+                remote = json.loads(content)
+                if local["forecastHash"] != remote["forecastHash"] or local["forecast"] != remote["forecast"]:
+                    raise ValueError("conflicting published forecast archive")
+                local_time = datetime.fromisoformat(local["verifiedAt"].replace("Z", "+00:00"))
+                remote_time = datetime.fromisoformat(remote["verifiedAt"].replace("Z", "+00:00"))
+                if local_time <= remote_time:
+                    continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
 
 
 def _upload(assets: list[str], folder: Path) -> None:

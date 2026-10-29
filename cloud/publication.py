@@ -1,5 +1,6 @@
 import argparse
 import json
+import hashlib
 from pathlib import Path
 
 
@@ -23,10 +24,20 @@ def needed():
 
 def update(pending):
     state = read(STATE)
+    receipt_path = ROOT / "logs" / "publication-verified.json"
+    if pending:
+        receipt_path.unlink(missing_ok=True)
     state["pending"] = pending
     if not pending:
         forecast = read(ROOT / "data" / "predictions" / "next.json")
+        receipt = read(receipt_path)
+        content = json.dumps(forecast, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        expected = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        if receipt.get("forecastHash") != expected:
+            raise ValueError("publication has no matching successful site verification")
         state["model"] = forecast.get("model", {}).get("version")
+        state["verifiedAt"] = receipt["verifiedAt"]
+        state["forecastHash"] = expected
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(json.dumps(state, indent=1), encoding="utf-8")
 

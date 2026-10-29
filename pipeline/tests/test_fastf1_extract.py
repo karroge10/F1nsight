@@ -2,10 +2,12 @@ import json
 from datetime import datetime, timedelta, timezone
 
 import pandas as pd
+import pytest
 from fastf1.exceptions import DataNotLoadedError
 
 from f1p.fastf1 import extract, incremental
 from f1p.fastf1.common import SessionRef
+from contextlib import nullcontext
 
 
 class SessionWithoutMetadata:
@@ -43,6 +45,38 @@ def test_empty_archives_stay_pending_after_the_partial_data_timeout():
     ref = SessionRef(2026, 18, "FP2", "Practice 2", "United States Grand Prix", start.isoformat())
 
     assert incremental._should_wait(ref, ["laps", "results", "weather"], start + timedelta(days=1), False)
+
+
+@pytest.mark.parametrize("problems", [["laps"], ["results"], ["laps", "results"]])
+def test_missing_core_data_is_retried_even_after_timeout(problems):
+    start = datetime(2026, 10, 23, 21, tzinfo=timezone.utc)
+    ref = SessionRef(2026, 18, "FP2", "Practice 2", "United States Grand Prix", start.isoformat())
+    assert incremental._should_wait(ref, problems, start + timedelta(days=1), False)
+
+
+def test_unavailable_session_load_stays_pending(monkeypatch):
+    class UnavailableSession:
+        def load(self, **kwargs):
+            raise DataNotLoadedError("archive not ready")
+
+    ref = SessionRef(2026, 18, "FP2", "Practice 2", "United States Grand Prix", "2026-10-23T21:00:00")
+    records = []
+    monkeypatch.setattr(incremental, "session_claim", lambda ref: nullcontext(True))
+    monkeypatch.setattr(incremental, "is_done", lambda ref: False)
+    monkeypatch.setattr(incremental, "get_session", lambda ref: UnavailableSession())
+    monkeypatch.setattr(incremental, "append_manifest", lambda *args, **kwargs: records.append((args, kwargs)))
+    assert incremental.download_one(ref, datetime(2026, 10, 24, tzinfo=timezone.utc), False) == "pending"
+    assert records[0][0][1] == "pending"
+
+
+def test_old_partial_session_metadata_does_not_prevent_retry(monkeypatch, tmp_path):
+    ref = SessionRef(2026, 18, "FP2", "Practice 2", "United States Grand Prix", "2026-10-23T21:00:00")
+    monkeypatch.setattr(incremental, "is_done", lambda ref: True)
+    monkeypatch.setattr(incremental, "session_dir", lambda ref: tmp_path)
+    (tmp_path / "meta.json").write_text(json.dumps({"counts": {"laps": 3, "results": 0}}))
+    assert not incremental._already_complete(ref)
+    (tmp_path / "meta.json").write_text(json.dumps({"counts": {"laps": 3, "results": 2}}))
+    assert incremental._already_complete(ref)
 
 
 def test_session_export_uses_lap_driver_numbers_without_results(monkeypatch, tmp_path):

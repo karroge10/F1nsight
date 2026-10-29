@@ -9,6 +9,8 @@ describe("constructorIdForTeam", () => {
     expect(constructorIdForTeam("Visa Cash App RB")).toBe("rb");
     expect(constructorIdForTeam("red_bull")).toBe("red_bull");
     expect(constructorIdForTeam("Kick Sauber")).toBe("sauber");
+    expect(constructorIdForTeam("Kick Sauber", 2025)).toBe("sauber");
+    expect(constructorIdForTeam("Kick Sauber", 2026)).toBe("audi");
     expect(constructorIdForTeam("Haas F1 Team")).toBe("haas");
     expect(constructorIdForTeam("Aston Martin")).toBe("aston_martin");
     expect(constructorIdForTeam("Audi")).toBe("audi");

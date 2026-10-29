@@ -11,6 +11,7 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const DUMP = resolveDumpDir();
 const RAW = path.join(ROOT, "scripts/raw");
 const OUT = path.join(ROOT, "src/lib/data/fixtures");
+const FASTF1_TRACKS = path.resolve(ROOT, "../data/raw/fastf1");
 const CURRENT_SEASON = 2026;
 const LAP_SEASONS = [2024, 2025, 2026];
 
@@ -73,6 +74,16 @@ function resolveDumpDir() {
 }
 
 function main() {
+  if (process.argv.includes("--tracks-only")) {
+    const index = readJson(path.join(OUT, "index.json"));
+    const seasons = index.seasons.map((season) => readJson(path.join(OUT, `seasons/${season}.json`)));
+    const tracks = buildTrackCatalog(seasons);
+    for (const [circuitId, track] of tracks) writeJson(`tracks/${circuitId}.json`, track);
+    index.tracks = [...tracks.keys()].sort();
+    writeJson("index.json", index);
+    console.log(`replay tracks written: ${tracks.size}`);
+    return;
+  }
   const dump = loadDump();
   const api = loadApi();
   fs.mkdirSync(OUT, { recursive: true });
@@ -97,20 +108,43 @@ function main() {
     writeJson(`laps/${lapFile.season}-${lapFile.round}.json`, lapFile);
   }
 
-  for (const track of TRACK_FILES) {
-    const normalized = buildTrack(track);
-    writeJson(`tracks/${track.circuitId}.json`, normalized);
-  }
+  const tracks = buildTrackCatalog(seasons.full);
+  for (const [circuitId, track] of tracks) writeJson(`tracks/${circuitId}.json`, track);
 
   const index = {
     generatedAt: new Date().toISOString(),
     currentSeason: CURRENT_SEASON,
     seasons: seasons.full.map((s) => s.season),
     lapFiles: lapFiles.map((l) => ({ season: l.season, round: l.round })),
-    tracks: TRACK_FILES.map((t) => t.circuitId),
+    tracks: [...tracks.keys()].sort(),
   };
   writeJson("index.json", index);
   console.log("fixtures written to", OUT);
+}
+
+function buildTrackCatalog(seasons) {
+  const tracks = new Map(TRACK_FILES.map((track) => [track.circuitId, buildTrack(track)]));
+  for (const season of seasons) {
+    const seasonDir = path.join(FASTF1_TRACKS, String(season.season));
+    if (!fs.existsSync(seasonDir)) continue;
+    for (const race of season.races) {
+      const trackPath = path.join(seasonDir, `${String(race.round).padStart(2, "0")}_track.json`);
+      if (!fs.existsSync(trackPath)) continue;
+      const raw = readJson(trackPath);
+      if (!Array.isArray(raw.outline) || raw.outline.length < 10) continue;
+      tracks.set(race.circuitId, {
+        circuitId: race.circuitId,
+        name: race.circuitName,
+        country: race.country,
+        rotation: raw.rotation ?? 0,
+        outline: raw.outline.map(([x, y]) => [Math.round(x), Math.round(y)]),
+        corners: (raw.corners ?? []).map((corner) => ({ number: corner.number, x: Math.round(corner.x), y: Math.round(corner.y), angle: Math.round(corner.angle * 10) / 10, length: Math.round(corner.distance) })),
+        sectors: (raw.marshalSectors ?? []).map((sector) => ({ number: sector.number, x: Math.round(sector.x), y: Math.round(sector.y), length: Math.round(sector.distance) })),
+        source: `FastF1 telemetry, ${season.season}`,
+      });
+    }
+  }
+  return tracks;
 }
 
 // ---------------------------------------------------------------------------

@@ -41,7 +41,7 @@ type RoundSort = "round" | "points" | "costCap" | "left" | "cost";
 const TH = "px-2 py-2 font-normal";
 
 export function RoundTable({ rows }: { rows: RoundTableRow[] }) {
-  const { sort, toggle, reset, isDefault } = useSort<RoundSort>("round", "asc");
+  const { sort, toggle, reset, isDefault } = useSort<RoundSort>("round", "desc");
   const withCap = rows.some((r) => r.costCap !== null);
   const withCost = !withCap && rows.some((r) => r.cost !== null);
   const sorted = sortRows(rows, sort, roundValue);
@@ -57,7 +57,7 @@ export function RoundTable({ rows }: { rows: RoundTableRow[] }) {
         <table className="w-full min-w-[880px] text-ui tabular-nums">
           <thead className="text-left text-ink-3">
             <tr className="border-b border-rule">
-              <SortTh sortKey="round" sort={sort} onSort={toggle} firstDir="asc" align="start" className={TH}>
+              <SortTh sortKey="round" sort={sort} onSort={toggle} firstDir="desc" align="start" className={TH}>
                 Round
               </SortTh>
               <th className={TH}>Team</th>

@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import hashlib
+import pytest
 from pathlib import Path
 
 
@@ -17,7 +19,17 @@ def setup_state(monkeypatch, tmp_path):
     forecast = tmp_path / "data" / "predictions" / "next.json"
     forecast.parent.mkdir(parents=True)
     forecast.write_text(json.dumps({"model": {"version": "v1"}}))
+    verified_receipt(tmp_path)
     return model
+
+
+def verified_receipt(root):
+    payload = json.loads((root / "data/predictions/next.json").read_text())
+    content = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    receipt = root / "logs/publication-verified.json"
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    receipt.write_text(json.dumps({"forecastHash": hashlib.sha256(content.encode()).hexdigest(),
+                                   "verifiedAt": "2026-10-27T05:00:00Z"}))
 
 
 def test_failed_deploy_remains_due_across_runs(monkeypatch, tmp_path):
@@ -27,6 +39,7 @@ def test_failed_deploy_remains_due_across_runs(monkeypatch, tmp_path):
     publication.update(True)
     assert publication.needed()
     assert publication.needed()
+    verified_receipt(tmp_path)
     publication.update(False)
     assert not publication.needed()
 
@@ -38,10 +51,12 @@ def test_promoted_model_recovers_without_dispatch(monkeypatch, tmp_path):
     assert publication.needed()
     publication.update(True)
     assert publication.needed()
+    verified_receipt(tmp_path)
     publication.update(False)
     assert publication.needed()
     forecast = tmp_path / "data" / "predictions" / "next.json"
     forecast.write_text(json.dumps({"model": {"version": "v2"}}))
+    verified_receipt(tmp_path)
     publication.update(False)
     assert not publication.needed()
 
@@ -54,7 +69,7 @@ def test_missing_publication_is_due(monkeypatch, tmp_path):
 def test_recovery_recomputes_forecast_without_forcing_other_sources(monkeypatch, tmp_path):
     setup_state(monkeypatch, tmp_path)
     path = tmp_path / "logs" / "refresh_state.json"
-    path.parent.mkdir(parents=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"predict": {"fingerprint": "old", "lastSuccess": "today"},
                                 "cloud": {"checkedThrough": "today"}, "history": {"ok": True}}))
     publication.retry_prediction()
@@ -63,3 +78,11 @@ def test_recovery_recomputes_forecast_without_forcing_other_sources(monkeypatch,
     assert state["predict"]["lastSuccess"] == "today"
     assert state["history"] == {"ok": True}
     assert state["cloud"] == {"checkedThrough": "today"}
+
+
+def test_deployment_cannot_finish_without_current_verification(monkeypatch, tmp_path):
+    setup_state(monkeypatch, tmp_path)
+    publication.update(True)
+    with pytest.raises(ValueError, match="verification"):
+        publication.update(False)
+    assert publication.needed()

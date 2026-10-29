@@ -88,6 +88,7 @@ class RaceForecast:
     market_target: np.ndarray | None = None
     # qualifying chain the race was drawn from, None when the race was drawn directly
     chain: RaceChain | None = None
+    model_win: np.ndarray | None = None
 
 
 def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.ExtrasModel | None,
@@ -108,8 +109,10 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
     if CHAIN and stage != POST_QUALI:
         chain = race_chain(bundle, frame, stage, inputs, seed)
     market_target = None
+    model_win = None
     if market_win is not None:
-        market_target = fit_to_market(inputs, stage, market_win, seed, chain)
+        model_win = _simulated_win(inputs, seed, chain)
+        market_target = fit_to_market(inputs, stage, market_win, seed, chain, model_win)
     direct = simulate.simulate_weekend(inputs, sims=sims, seed=seed)
     weekend = direct
     if chain is not None:
@@ -129,6 +132,7 @@ def forecast_race(bundle, frame: pd.DataFrame, stage: str, extras: fantasy.Extra
     forecast.grid_penalties = {"race": inputs.race_penalties, "sprint": inputs.sprint_penalties,
                                "shift": inputs.penalty_shift}
     forecast.market_target = market_target
+    forecast.model_win = summary["pWin"].copy() if model_win is None else model_win
     forecast.chain = chain
     if history is not None and standings is not None:
         forecast.championship = championship(bundle, history, frame, weekend, standings,
@@ -148,7 +152,8 @@ def fantasy_simulation(inputs: simulate.WeekendInputs, weekend: simulate.Weekend
 
 
 def fit_to_market(inputs: simulate.WeekendInputs, stage: str, market_win: np.ndarray,
-                  seed: int, chain: RaceChain | None = None) -> np.ndarray:
+                  seed: int, chain: RaceChain | None = None,
+                  model_win: np.ndarray | None = None) -> np.ndarray:
     """Pool the model's win chances with the market's and move the race strengths (in place)
     until the simulated win chances match the pool. Returns the pooled win chances.
 
@@ -159,7 +164,7 @@ def fit_to_market(inputs: simulate.WeekendInputs, stage: str, market_win: np.nda
     """
     first_temperature = _first_temperature(inputs.race_schedule)
     floor = 0.5 / MARKET_FIT_SIMS
-    ours = _simulated_win(inputs, seed, chain)
+    ours = _simulated_win(inputs, seed, chain) if model_win is None else model_win
     weight = market.OURS_WEIGHT[stage]
     target = market.pool(ours, market_win, weight)
     current = ours

@@ -118,3 +118,24 @@ def test_export_all_writes_one_file_per_session(tmp_path, monkeypatch):
     assert payload["overtakes"][0]["count"] == 3
     again = session_export.export_all(_results("R"), _laps(), _weather())
     assert again["skipped"] == 1
+
+
+def test_lap_start_times_align_with_lap_order_and_preserve_missing_times():
+    laps = _laps()
+    laps["lapStartS"] = [100.0, 200.0, 400.0, None, 300.5]
+    laps = laps.iloc[::-1]
+    payload = session_export.session_payload(_results("Q"), laps, _weather())
+    assert payload["lapStarts"]["norris"] == [100000, 200000, 400000]
+    assert payload["lapStarts"]["max_verstappen"] == [None, 300500]
+    assert [lap[0] for lap in payload["laps"]["norris"]] == [1, 2, 3]
+
+
+def test_existing_reports_without_start_times_are_rebuilt_once(tmp_path, monkeypatch):
+    monkeypatch.setattr(session_export, "SESSIONS_DIR", tmp_path)
+    old = tmp_path / "2026" / "16_R.json"
+    old.parent.mkdir()
+    old.write_text('{"laps": {}}', encoding="utf-8")
+    first = session_export.export_all(_results("R"), _laps(), _weather())
+    assert first == {"written": 1, "skipped": 0}
+    second = session_export.export_all(_results("R"), _laps(), _weather())
+    assert second == {"written": 0, "skipped": 1}

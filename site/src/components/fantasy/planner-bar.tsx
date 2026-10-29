@@ -4,7 +4,7 @@
 // optimiser's best team per transfer count, free transfers, chip, Cost Cap, Save and Reset. Every
 // control in the row is 2rem tall with the control radius and sits on the row's centre line.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { fixed1, money, signed, tone } from "@/components/fantasy/planner-parts";
 
 export type PlannerChip = "none" | "extraBoost" | "wildcard" | "limitless";
@@ -58,11 +58,11 @@ type PlannerSettingsProps = Pick<PlannerControlsProps, "chip" | "cap" | "bank" |
 
 export function PlannerSettings({ chip, cap, bank, onChip, onCap }: PlannerSettingsProps) {
   return (
-    <div className="flex max-w-full items-center gap-2 overflow-x-auto" aria-label="Team settings">
+    <div className="flex max-w-full flex-wrap items-center gap-4" aria-label="Team settings">
       <CostCapField cap={cap} bank={bank} unlimited={chip === "limitless"} onCap={onCap} />
-      <div className="inline-flex min-h-11 shrink-0 items-stretch rounded-control border border-rule" role="group" aria-label="Chip">
+      <div className="fantasy-segmented shrink-0" role="group" aria-label="Chip">
         {CHIPS.map((c) => (
-          <button key={c.key} type="button" aria-pressed={chip === c.key} title={c.title} onClick={() => onChip(c.key)} className={"press segment -my-px w-11 min-w-11 shrink-0 rounded-control px-1 text-caption " + (chip === c.key ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
+          <button key={c.key} type="button" aria-pressed={chip === c.key} title={c.title} onClick={() => onChip(c.key)} className={"fantasy-choice min-w-11 px-3 " + (chip === c.key ? "font-[600]" : "text-ink-2 hover:text-ink")}>
             {c.label}
           </button>
         ))}
@@ -94,8 +94,8 @@ export function ControlBar(props: ControlBarProps) {
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <button type="button" aria-label={`Save ${teamName}`} onClick={props.onSave} disabled={!canSave} title={canSave ? `Save ${teamName}` : "No unsaved changes"} className="press min-h-11 rounded-control bg-accent px-2.5 text-ui font-[650] text-accent-ink disabled:cursor-default disabled:opacity-85">Save</button>
-          <button type="button" onClick={props.onReset} disabled={!canReset} title="Back to the last saved team" className="press min-h-11 rounded-control bg-bg-hover px-2.5 text-ui text-ink disabled:cursor-default disabled:text-ink-3">Reset</button>
+          <button type="button" aria-label={`Save ${teamName}`} onClick={props.onSave} disabled={!canSave} title={canSave ? `Save ${teamName}` : "No unsaved changes"} className="fantasy-button fantasy-primary">Save</button>
+          <button type="button" onClick={props.onReset} disabled={!canReset} title="Back to the last saved team" className="fantasy-button">Reset</button>
         </div>
       </div>
       {penalty > 0 ? <p role="status" className="text-caption font-[600] text-delta-down">{used} transfers: {signed(-penalty, 0)} points. Only {free} transfers are free.</p> : null}
@@ -119,41 +119,43 @@ export function ControlBar(props: ControlBarProps) {
  * Click the cap to type the one the game shows. */
 function CostCapField({ cap, bank, unlimited, onCap }: { cap: number; bank: number; unlimited: boolean; onCap: (cap: number) => void }) {
   const [editing, setEditing] = useState<string | null>(null);
+  const cancelBlur = useRef(false);
   const negative = !unlimited && bank < -0.049;
   const leftText = unlimited ? "no cap this race" : negative ? `${money(-bank)} over` : `${money(bank)} left`;
   function commit() {
+    if (cancelBlur.current) { cancelBlur.current = false; setEditing(null); return; }
     const value = Number(editing);
-    if (editing !== null && editing.trim() !== "" && Number.isFinite(value)) onCap(value);
+    if (editing !== null && editing.trim() !== "" && Number.isFinite(value) && value > 0 && value <= 1000) onCap(value);
     setEditing(null);
   }
   return (
-    <span className="relative flex min-h-11 shrink-0 flex-col items-start justify-center whitespace-nowrap rounded-control px-2 shadow-[inset_0_0_0_1px_var(--rule-strong)]" title="Team value at today's prices plus the bank. Click the amount to match it to the game.">
-      <span className="flex items-baseline gap-1.5">
-        <span className="text-[0.6875rem] text-ink-3">Cost cap</span>
-        {editing === null ? (
-          <button type="button" onClick={() => setEditing(cap.toFixed(1))} className="press timing -mx-1 rounded-control px-1 text-[0.8125rem] font-[700] text-ink after:absolute after:inset-0 hover:bg-bg-hover">
-            {money(cap)}
-          </button>
-        ) : (
+    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
+      <label className="flex items-center gap-2 text-caption text-ink-2">
+        Cost cap
+        <span className="flex h-11 items-center rounded-control border border-rule bg-bg px-3 focus-within:border-rule-strong sm:h-9">
+          <span className="text-ink-3">$</span>
           <input
-            autoFocus
             aria-label="Cost cap, $M"
             type="number"
-            step={0.1}
+            min="0.1"
+            max="1000"
+            step="0.1"
             inputMode="decimal"
-            value={editing}
+            value={editing ?? cap.toFixed(1)}
+            onFocus={() => setEditing(cap.toFixed(1))}
             onChange={(e) => setEditing(e.target.value)}
             onBlur={commit}
             onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-              if (e.key === "Escape") setEditing(null);
+              if (e.key === "Enter") e.currentTarget.blur();
+              if (e.key === "Escape") { cancelBlur.current = true; e.currentTarget.blur(); }
             }}
-            className="timing h-6 w-16 rounded-control border border-rule-strong bg-bg px-2 text-ui text-ink"
+            className="timing w-20 appearance-none bg-transparent px-1 text-base text-ink outline-none sm:text-ui"
           />
-        )}
-      </span>
-      <span aria-label="Budget remaining" className={"timing text-[0.6875rem] font-[600] " + (unlimited ? "text-ink-3" : negative ? "text-delta-down" : "text-delta-up")}>{leftText}</span>
-    </span>
+          <span className="text-ink-3">M</span>
+        </span>
+      </label>
+      <span aria-label="Budget remaining" className={"timing text-caption " + (unlimited ? "text-ink-3" : negative ? "text-delta-down" : "text-ink-2")}>{leftText}</span>
+    </div>
   );
 }
 

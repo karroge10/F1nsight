@@ -47,7 +47,7 @@ const REGISTRY = {
   racing_point: [{ from: 2019, to: 2020, legacy: "racing_point" }],
   renault: [{ from: 2016, to: 2020, legacy: "renault" }],
   alfa: [{ from: 2019, to: 2023, legacy: "alfa" }],
-  sauber: [{ from: 2024, to: 2025, legacy: "sauber-2024" }],
+  sauber: [{ from: 2025, to: 2025, current: "sauber", season: "2025", scale: 2.1 }, { from: 2024, to: 2024, legacy: "sauber-2024" }],
   // free files from Wikimedia Commons (public domain / text logos), verified visually
   caterham: [{ from: null, to: 2014, commons: "caterham" }],
   marussia: [{ from: 2015, to: 2015, commons: "marussia" }],
@@ -78,16 +78,17 @@ for (const [id, variants] of Object.entries(REGISTRY)) {
   const out = [];
   for (const v of variants) {
     if (v.current) {
-      const colour = path.join(CURRENT_DIR, `${v.current}-colour.webp`);
-      const white = path.join(CURRENT_DIR, `${v.current}-white.webp`);
+      const artworkSeason = v.season ?? CURRENT_SEASON;
+      const colour = path.join(TEAMS_DIR, artworkSeason, `${v.current}-colour.webp`);
+      const white = path.join(TEAMS_DIR, artworkSeason, `${v.current}-white.webp`);
       if (!fs.existsSync(colour)) {
         missing.push(`${id}: ${colour}`);
         continue;
       }
       const contrast = await darkContrast(colour);
-      const whiteSrc = fs.existsSync(white) && contrast < MIN_DARK_CONTRAST ? `/teams/${CURRENT_SEASON}/${v.current}-white.webp` : null;
-      const scale = await opticalScale(colour);
-      out.push({ from: v.from, to: v.to, colour: `/teams/${CURRENT_SEASON}/${v.current}-colour.webp`, white: whiteSrc, plate: false, scale, source: `F1 media CDN, ${CURRENT_SEASON} official variants` });
+      const whiteSrc = fs.existsSync(white) && contrast < MIN_DARK_CONTRAST ? `/teams/${artworkSeason}/${v.current}-white.webp` : null;
+      const scale = v.scale ?? await opticalScale(colour);
+      out.push({ from: v.from, to: v.to, colour: `/teams/${artworkSeason}/${v.current}-colour.webp`, white: whiteSrc, plate: false, scale, source: `F1 media CDN, ${artworkSeason} official variants` });
     } else if (v.commons) {
       const file = path.join(COMMONS_DIR, `${v.commons}.png`);
       if (!fs.existsSync(file)) {

@@ -9,6 +9,7 @@ import type { FantasyFile } from "@/lib/fantasy/engine/types";
 import type { FantasyRoundsFile } from "@/lib/fantasy/thresholds";
 import type { FantasyBacktest } from "@/lib/fantasy/backtest-data";
 import { marketFromRounds } from "@/lib/fantasy/market";
+import { newestTelemetrySessions } from "@/lib/telemetry";
 import type { SessionRef, SessionTelemetry, TelemetryIndexEntry } from "@/lib/telemetry";
 import { activeSource } from "./source";
 import type {
@@ -289,7 +290,7 @@ export async function getFantasyBacktest(): Promise<FantasyBacktest | null> {
 
 export async function getTelemetryIndex(): Promise<TelemetryIndexEntry[]> {
   const index = source.readTelemetryIndex();
-  return index.map((entry) => ({ ...entry, eventName: calendarRaceName(entry.season, entry.round) ?? entry.eventName }));
+  return newestTelemetrySessions(index.map((entry) => ({ ...entry, eventName: calendarRaceName(entry.season, entry.round) ?? entry.eventName })));
 }
 
 /** One session's fastest-lap telemetry, with driver names in the site's full-name form (FastF1 has "Kimi Antonelli"). */
@@ -391,6 +392,7 @@ function toSummary(race: FixtureRace, now: Date): RaceSummary {
     scheduledLaps: race.scheduledLaps,
     cancelled: race.cancelled,
     url: race.url,
+    officialSources: race.officialSources,
     status,
     hasResults,
   };
@@ -408,4 +410,8 @@ function entryName(entries: EntryList, code: string, number: string): string | n
   const byNumber = byCode.find((d) => String(d.number) === number);
   const match = byNumber ?? (byCode.length === 1 ? byCode[0] : null);
   return match?.name ?? null;
+}
+
+export async function getSessionReportIndex() {
+  return source.readSessionReportIndex();
 }

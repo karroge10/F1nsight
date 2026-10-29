@@ -168,3 +168,7 @@ const TELEMETRY_TEAM_IDS: Record<string, string> = {
   "toro rosso": "toro_rosso",
   williams: "williams",
 };
+
+export function newestTelemetrySessions(index: TelemetryIndexEntry[]): TelemetryIndexEntry[] {
+  return [...index].sort((a, b) => b.season - a.season || b.round - a.round || SESSION_CODES.indexOf(b.code) - SESSION_CODES.indexOf(a.code));
+}

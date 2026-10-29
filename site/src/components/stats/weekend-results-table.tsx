@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Lookups, ResultRow } from "@/lib/data";
+import type { DriverForecast, Lookups, ResultRow } from "@/lib/data";
 import { formatGap, formatLapTime, formatPoints, formatRaceTime, positionLabel } from "@/lib/format";
 import type { RaceAnalysis } from "@/lib/race-analysis";
 import { TeamName } from "@/components/ui/team-name";
@@ -14,19 +14,22 @@ interface WeekendResultsTableProps {
   season: number;
   /** Sprint: no fastest lap column. */
   compact?: boolean;
+  forecast?: DriverForecast[];
 }
 
 /**
  * Race or sprint classification: grid and places gained, laps, time or status, points, and from
  * the analysis the on-track overtakes and pit stops of each driver.
  */
-export function WeekendResultsTable({ results, analysis, lookups, season, compact = false }: WeekendResultsTableProps) {
+export function WeekendResultsTable({ results, analysis, lookups, season, compact = false, forecast = [] }: WeekendResultsTableProps) {
   const winnerTime = results.find((r) => r.position === 1)?.timeMs ?? null;
   const showFastest = !compact && results.some((r) => r.fastestLapRank !== null);
   const rowsById = new Map((analysis?.rows ?? []).map((r) => [r.driverId, r]));
   const showOvertakes = analysis !== null && analysis.overtakesTotal !== null;
   const showStops = analysis !== null && analysis.rows.some((r) => r.pitStops > 0);
   const columns = weekendColumns(showOvertakes, showStops, showFastest);
+  const predictions = new Map([...forecast].sort((a, b) => a.expectedPosition - b.expectedPosition || b.pWin - a.pWin).map((driver, index) => [driver.driverId, { position: index + 1, win: driver.pWin }]));
+  if (predictions.size) columns.splice(2, 0, { key: "prediction", label: "Predicted", className: "num", firstDir: "asc", title: "Race forecast finishing position, ranked by expected finish" }, { key: "win", label: "Win chance", className: "num", firstDir: "desc" });
   return (
     <div className="scroll-x">
       <SortableTable className="data-table sm:min-w-[560px]" columns={columns} initialKey="pos" initialDir="asc"
@@ -35,7 +38,8 @@ export function WeekendResultsTable({ results, analysis, lookups, season, compac
             const team = { constructorId: row.constructorId, name: lookups.teamName(row.constructorId), color: lookups.teamColor(row.constructorId) };
             const time = timeText(row, winnerTime);
             const gained = row.grid && row.position ? row.grid - row.position : null;
-            const values = { pos: i, name: lookups.driverName(row.driverId), grid: row.grid === 0 ? 100 : row.grid, laps: row.laps, points: row.points, overtakes: extra?.overtakes, stops: extra?.pitStops, fastest: row.fastestLapMs || null };
+            const predicted = predictions.get(row.driverId);
+            const values = { pos: i, name: lookups.driverName(row.driverId), prediction: predicted?.position, win: predicted?.win, grid: row.grid === 0 ? 100 : row.grid, laps: row.laps, points: row.points, overtakes: extra?.overtakes, stops: extra?.pitStops, fastest: row.fastestLapMs || null };
             const tr = (
               <tr className={row.classified ? "" : "text-ink-3"}>
                 <td className="num text-ink-2">{positionLabel(row.positionText)}</td>
@@ -43,6 +47,7 @@ export function WeekendResultsTable({ results, analysis, lookups, season, compac
                   {/* below md the team column is hidden, so the logo stays in front of the name; on phones the code stands in for the name */}
                   <DriverTag text={lookups.driverName(row.driverId)} compactText={lookups.driverCode(row.driverId)} team={team} season={season} href={`/drivers/${row.driverId}`} logoClassName="md:hidden" className="font-[550] text-ink" />
                 </td>
+                {predictions.size ? <><td className={"num timing " + (row.classified && predicted?.position === row.position ? "text-delta-up" : "text-ink-2")}>{predicted ? `P${predicted.position}` : ""}</td><td className="num timing text-ink-3">{predicted ? `${(predicted.win * 100).toFixed(1)}%` : ""}</td></> : null}
                 <td className="hidden text-ink-2 md:table-cell">
                   <Link href={`/teams/${row.constructorId}`} className="hover:underline underline-offset-2">
                     <TeamName constructorId={team.constructorId} name={team.name} color={team.color} season={season} />

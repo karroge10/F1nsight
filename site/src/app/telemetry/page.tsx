@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getSessionTelemetry, getTelemetryIndex } from "@/lib/data";
+import { getCalendar, getCurrentSeason, getSessionTelemetry, getTelemetryIndex } from "@/lib/data";
 import { PageIntro } from "@/components/ui/page-intro";
 import { TelemetryPage as TelemetryPageBody } from "@/components/telemetry/telemetry-page";
 import { IconWarning } from "@/components/icons";
@@ -15,7 +15,10 @@ export default async function TelemetryPage() {
   const first = index[0] ?? null;
   const session = first ? await getSessionTelemetry(first) : null;
   if (!session) return <NoTelemetry />;
-  return <TelemetryPageBody initial={session} index={index} />;
+  const calendar = await getCalendar(await getCurrentSeason());
+  const latest = [...calendar].filter((r) => !r.cancelled && r.status === "completed").sort((a, b) => b.round - a.round)[0];
+  const notice = latest && (latest.season > session.season || latest.round > session.round) ? `${latest.raceName} telemetry is not available from the upstream feed yet.` : null;
+  return <TelemetryPageBody initial={session} index={index} notice={notice} />;
 }
 
 function NoTelemetry() {

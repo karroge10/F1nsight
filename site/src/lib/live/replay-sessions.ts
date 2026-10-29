@@ -1,5 +1,6 @@
-import { getAvailableTracks, getCalendar, getRaceLapsAvailability } from "@/lib/data";
+import { getAvailableTracks, getCalendar, getRaceLapsAvailability, getSessionReport, getSessionReportIndex } from "@/lib/data";
 import { mergeSessions, type LiveReplaySession } from "@/lib/live/replay-list";
+import type { SessionCode } from "@/lib/data";
 import { sessionName } from "@/lib/sessions";
 
 export type { LiveReplaySession, LiveSearchParams } from "@/lib/live/replay-list";
@@ -10,7 +11,18 @@ export type { LiveReplaySession, LiveSearchParams } from "@/lib/live/replay-list
  */
 export async function replayableSessions(): Promise<LiveReplaySession[]> {
   const local = await fixtureSessions();
-  return mergeSessions(local, []);
+  const tracks = new Set(await getAvailableTracks());
+  const reports: LiveReplaySession[] = [];
+  for (const ref of await getSessionReportIndex()) {
+    if (ref.code === "R") continue;
+    const calendar = await getCalendar(ref.season);
+    const race = calendar.find((r) => r.round === ref.round);
+    if (!race || !tracks.has(race.circuitId)) continue;
+    const report = await getSessionReport(ref.season, ref.round, ref.code as SessionCode);
+    if (!report?.lapStarts || !Object.values(report.lapStarts).some((times) => times.some((t) => t !== null))) continue;
+    reports.push({ season: ref.season, round: ref.round, raceName: race.raceName, circuitId: race.circuitId, session: ref.code, sessionName: sessionName(ref.code), date: race.date, source: "fixture", country: race.country });
+  }
+  return mergeSessions(local, reports);
 }
 
 async function fixtureSessions(): Promise<LiveReplaySession[]> {

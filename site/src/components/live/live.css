@@ -14,6 +14,11 @@
   column-gap: 0.5rem;
   padding: 0 0.5rem 0 0.25rem;
 }
+.lt[data-expanded] .lt-head,
+.lt[data-expanded] .lt-row {
+  column-gap: 0.65rem;
+  padding-right: 0.75rem;
+}
 /* race: P, logo, code, gap, lap, sectors, tyre. Other sessions add a best column. Every column
    but the code has a fixed width, so changing figures never move anything. */
 .lt[data-mode="race"] .lt-head,
@@ -72,8 +77,9 @@
 /* the pinned car: a team-colour rule on the left and a faint team tint, no change in size */
 .lt-row[data-pinned] {
   background: color-mix(in oklch, var(--team) 14%, var(--bg));
-  box-shadow: inset 2px 0 0 0 var(--team);
+  box-shadow: inset 3px 0 0 0 var(--team), inset 0 0 0 1px color-mix(in oklch, var(--team) 25%, transparent);
 }
+.lt-row[data-pinned] .lt-code { font-weight: 700; }
 .lt-row:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: -2px;
@@ -212,4 +218,29 @@
 }
 .pit-row:last-child {
   border-bottom: 0;
+}
+
+.lt-wide { display: none; }
+.lt-sector-detail { display: inline-flex; min-width: 0; flex-direction: column; }
+.lt-sector-value { display: none; }
+.map-option { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2rem; }
+.map-option > span { padding: 0.1rem 0.35rem; border: 1px solid var(--rule); border-radius: var(--radius-chip); font-size: 0.65rem; }
+.map-option[aria-pressed="true"] > span { background: var(--ink); color: var(--bg); }
+.lt-driver-name { display: none; }
+.lt-row { min-height: 2rem; }
+@media (min-width: 1280px) {
+  .lt[data-expanded] .lt-driver-short { display: none; }
+  .lt[data-expanded] .lt-driver-name { display: block; }
+  .lt[data-expanded] .lt-sectors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.3rem; }
+  .lt[data-expanded] .lt-sector-detail .sector { width: 100%; height: 0.2rem; margin-bottom: 0.15rem; }
+  .lt[data-expanded] .lt-sector-value { display: block; font-size: 0.625rem; color: var(--ink-3); }
+  .lt[data-expanded] .lt-wide { display: block; }
+  .lt[data-expanded][data-mode="race"] .lt-head,
+  .lt[data-expanded][data-mode="race"] .lt-row {
+    grid-template-columns: 1.5rem 1.25rem minmax(2.5rem, 1fr) 4.5rem 4.5rem 4.5rem 4.5rem 9.5rem 2.75rem;
+  }
+  .lt[data-expanded][data-mode="laps"] .lt-head,
+  .lt[data-expanded][data-mode="laps"] .lt-row {
+    grid-template-columns: 1.5rem 1.25rem minmax(2.5rem, 1fr) 4.5rem 4rem 4.5rem 4rem 2rem 9.5rem 2.75rem;
+  }
 }

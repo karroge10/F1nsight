@@ -87,10 +87,25 @@ def run(features: pd.DataFrame, stage: str | None, sims: int):
     model_meta = {"version": meta["version"], "trainedAt": meta["trainedAt"],
                   "notes": model_notes(meta), "market": market_block(prices, chosen)}
     payload = export.race_payload(result, trained, model_meta, history, assets, backtest_block)
+    payload["probabilitySources"] = probability_sources(result, prices)
     horizon = fantasy_horizon(trained, history, result, assets, extras)
     rules = export.fantasy_rules_block()
     fantasy_payload = export.fantasy_payload(result, assets, rules, horizon, history)
     return payload, fantasy_payload
+
+
+def probability_sources(result, prices):
+    ids = result.frame["driverId"].tolist()
+    def mapped(values):
+        return {driver_id: float(value) for driver_id, value in zip(ids, values, strict=True)}
+    return {
+        "model": mapped(result.model_win),
+        "market": None if prices is None else mapped(prices.probabilities),
+        "pooledTarget": None if result.market_target is None else mapped(result.market_target),
+        "published": mapped(result.summary["pWin"]),
+        "modelWeight": 1.0 if prices is None else market.OURS_WEIGHT[result.stage],
+        "modelSimulationCount": len(result.sims.race) if prices is None else forecast.MARKET_FIT_SIMS,
+    }
 
 
 def market_prices(history, frame: pd.DataFrame, race_id: int):

@@ -17,6 +17,7 @@ The feeds only cover the running season; past seasons are not served any more.
 import argparse
 import json
 
+from f1p.fantasy.leader import refresh_leader
 from f1p.fantasy.http import get_bytes, get_json, save_bytes, save_json
 from f1p.paths import raw_dir
 
@@ -39,6 +40,7 @@ def fetch_current_season(force: bool = False) -> dict:
     save_json(out / "raceday_en.json", schedule)
     save_json(out / "constraints.json", constraints)
 
+    leader = refresh_leader(constraints, schedule)
     current_gameday = constraints["Data"]["Value"]["GamedayId"]
     fetched = _fetch_gameday_feeds(out, current_gameday, force)
     player_ids = _player_ids(out, current_gameday)
@@ -47,6 +49,7 @@ def fetch_current_season(force: bool = False) -> dict:
     return {
         "season": season,
         "currentGameday": current_gameday,
+        "leader": leader,
         "gamedayFeedsFetched": fetched,
         "players": len(player_ids),
         "dir": str(out),

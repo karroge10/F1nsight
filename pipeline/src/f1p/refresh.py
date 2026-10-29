@@ -49,7 +49,7 @@ import pandas as pd
 from f1p.locks import LockBusy, file_lock
 from f1p.paths import PREDICTIONS_DIR, PROCESSED_DIR, RAW_DIR, SERVE_DIR, ROOT_DIR
 
-STEPS = ["history", "openf1", "fantasy", "fastf1", "penalties", "weather", "predict"]
+STEPS = ["history", "official_results", "openf1", "fantasy", "fastf1", "penalties", "weather", "predict"]
 LOGS_DIR = ROOT_DIR / "logs"
 STATE_PATH = LOGS_DIR / "refresh_state.json"
 SUMMARY_PATH = LOGS_DIR / "refresh-last.json"
@@ -143,6 +143,15 @@ class StepRunner:
         self._run_module(result, "pipeline", "f1p.history.update")
         self._mark_success("history", result)
 
+    def step_official_results(self, result: StepResult) -> None:
+        output = self._run_module(result, "pipeline", "f1p.official_results")
+        result.details = _result_line(output)
+        details = result.details
+        if details:
+            imported = ", ".join(details.get("imported", [])) or "none"
+            result.reason = f"imported: {imported}; cached races: {details.get('races', 0)}"
+        self._mark_success("official_results", result)
+
     def step_openf1(self, result: StepResult) -> None:
         now = datetime.now(timezone.utc)
         season = str(now.year)
@@ -173,12 +182,16 @@ class StepRunner:
         self._mark_success("fantasy", result)
 
     def step_fastf1(self, result: StepResult) -> None:
+        entry = self.state.setdefault("fastf1", {})
+        entry["lastAttempt"] = _now_iso()
         output = self._run_module(result, "pipeline", "f1p.fastf1.incremental")
         details = _result_line(output)
         result.details = details
         if details:
             new_keys = details.get("new", [])
             pending_keys = details.get("pending", [])
+            previous = entry.get("pendingSessions", {})
+            entry["pendingSessions"] = {key: previous.get(key, _now_iso()) for key in pending_keys}
             new = ", ".join(new_keys) or "none"
             pending = ", ".join(pending_keys) or "none"
             result.reason = f"new sessions: {new}; still pending: {pending}; tables rebuilt: {details.get('built')}"

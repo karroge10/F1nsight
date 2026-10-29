@@ -43,6 +43,7 @@ export function BacktestView({ data }: BacktestViewProps) {
           <Summary season={season} />
           <CumulativeChart rounds={season.rounds} />
           <p className="text-ui text-ink-3">{METHOD_NOTE}</p>
+          {season.leader?.source ? <p className="text-caption text-ink-3"><a href={season.leader.source} className="underline underline-offset-2">Official global leaderboard</a>{season.leader.sourceUpdatedAt ? `, updated ${new Date(season.leader.sourceUpdatedAt).toISOString().slice(0, 16).replace("T", " ")} UTC` : ""}. Leader: {season.leader.label}.</p> : null}
         </div>
       </Section>
       <Section title="Round by round" icon={IconHistory} flush>
@@ -55,10 +56,10 @@ export function BacktestView({ data }: BacktestViewProps) {
 
 function SeasonSwitch({ seasons, selected, onSelect }: { seasons: BacktestSeason[]; selected: number; onSelect: (season: number) => void }) {
   return (
-    <div role="tablist" aria-label="Season" className="inline-flex h-8 w-fit items-stretch rounded-control border border-rule">
+    <div role="tablist" aria-label="Season" className="fantasy-segmented w-fit">
       {seasons.map((s) => {
         const active = s.season === selected;
-        const tone = active ? "segment-on font-[600]" : "text-ink-2 hover:text-ink";
+        const tone = active ? "font-[600]" : "text-ink-2 hover:text-ink";
         return (
           <button
             key={s.season}
@@ -66,7 +67,7 @@ function SeasonSwitch({ seasons, selected, onSelect }: { seasons: BacktestSeason
             role="tab"
             aria-selected={active}
             onClick={() => onSelect(s.season)}
-            className={"press segment timing -my-px rounded-control px-3.5 text-ui " + tone}
+            className={"fantasy-choice timing px-3.5 " + tone}
           >
             {s.season}
           </button>
@@ -225,7 +226,7 @@ function codeOf(label: string): string {
 function rankText(season: BacktestSeason): { label: string; value: string; note?: string } {
   const rank = season.worldRank;
   const leader = season.leader;
-  if (!rank && leader) return { label: `Leader after R${leader.round}`, value: String(leader.points), note: `ours ${leader.share}%` };
+  if (!rank && leader) return { label: `Leader after R${leader.round}`, value: String(leader.points), note: leader.share === null ? `Backtest through R${season.rounds.at(-1)?.round ?? 0}` : `ours ${leader.share}%` };
   if (!rank) return { label: "World rank", value: "Not published" };
   const range = `${formatCount(rank.low)} to ${formatCount(rank.high)}`;
   const percentile = rank.percentile === null ? range : `top ${rank.percentile}%, ${range}`;

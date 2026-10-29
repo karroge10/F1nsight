@@ -1,0 +1,852 @@
+{
+  "source": "ml\\reports\\v2\\eval_v2.json",
+  "weatherSource": "data/raw/openmeteo/archive, summarized by f1ml.weather.race_weather",
+  "featureSource": "ml\\cache\\features.parquet",
+  "method": {
+    "evaluation": "existing v2 walk-forward predictions; window comparison refits only the meta-stack, not GBM base models",
+    "eraWindows": {
+      "2019-2021": [
+        2019,
+        2021
+      ],
+      "2022-2025": [
+        2022,
+        2025
+      ],
+      "2026 partial": [
+        2026,
+        2026
+      ]
+    },
+    "wetThresholdMm": 1.0,
+    "aggregation": "equal-weight mean of per-race metrics",
+    "interval": "paired percentile bootstrap of per-race difference, 5000 resamples, seed 73021",
+    "limit": "2026 is partial; ERA5 rainfall is a noisy condition label; small slices are descriptive; 2019-2023 were hyperparameter development years and are not untouched test data"
+  },
+  "nRaces": 168,
+  "rainCoverage": 168,
+  "stackWindowComparison": {
+    "status": "incomplete",
+    "attempt": "The 3/5/10 season stack sweep was canceled after 150 seconds during the first configuration. Window 3 completed scoring 64 saved holdout race IDs, but its metrics were not persisted before cancellation. Windows 5 and 10 did not complete.",
+    "numbersReported": false
+  },
+  "productionBacktest": {
+    "source": "data\\predictions\\backtest.json",
+    "generatedAt": "2026-10-26T01:28:13Z",
+    "nRaces": 66,
+    "raceIds": [
+      202401,
+      202402,
+      202403,
+      202404,
+      202405,
+      202406,
+      202407,
+      202408,
+      202409,
+      202410,
+      202411,
+      202412,
+      202413,
+      202414,
+      202415,
+      202416,
+      202417,
+      202418,
+      202419,
+      202420,
+      202421,
+      202422,
+      202423,
+      202424,
+      202501,
+      202502,
+      202503,
+      202504,
+      202505,
+      202506,
+      202507,
+      202508,
+      202509,
+      202510,
+      202511,
+      202512,
+      202513,
+      202514,
+      202515,
+      202516,
+      202517,
+      202518,
+      202519,
+      202520,
+      202521,
+      202522,
+      202523,
+      202524,
+      202601,
+      202602,
+      202603,
+      202604,
+      202605,
+      202606,
+      202607,
+      202608,
+      202609,
+      202610,
+      202611,
+      202612,
+      202613,
+      202614,
+      202615,
+      202616,
+      202617,
+      202618
+    ],
+    "rainCoverage": 64,
+    "groups": {
+      "all": {
+        "nRaces": 66,
+        "nWet": 9,
+        "nSprint": 18,
+        "postQualifyingWinLogLoss": 1.1854070328412603,
+        "gridWinLogLoss": 1.5191650303448965,
+        "logLossMinusGrid": -0.3337579975036361,
+        "logLossMinusGrid95": [
+          -0.8106840211703296,
+          0.022174059363389356
+        ],
+        "winnerCorrect": 0.5606060606060606,
+        "spearman": 0.7037785504604726
+      },
+      "2024": {
+        "nRaces": 24,
+        "nWet": 4,
+        "nSprint": 6,
+        "postQualifyingWinLogLoss": 1.500891880937955,
+        "gridWinLogLoss": 1.9315344068973073,
+        "logLossMinusGrid": -0.43064252595935243,
+        "logLossMinusGrid95": [
+          -1.4260124123820312,
+          0.24106523039641123
+        ],
+        "winnerCorrect": 0.4166666666666667,
+        "spearman": 0.7566311612364243
+      },
+      "2025": {
+        "nRaces": 24,
+        "nWet": 3,
+        "nSprint": 6,
+        "postQualifyingWinLogLoss": 0.9644358636435468,
+        "gridWinLogLoss": 1.084668870378016,
+        "logLossMinusGrid": -0.12023300673446931,
+        "logLossMinusGrid95": [
+          -0.33377412120509375,
+          0.05782780365293749
+        ],
+        "winnerCorrect": 0.625,
+        "spearman": 0.6704782790309105
+      },
+      "2026": {
+        "nRaces": 18,
+        "nWet": 2,
+        "nSprint": 6,
+        "postQualifyingWinLogLoss": 1.0593887943092861,
+        "gridWinLogLoss": 1.5486674082308562,
+        "logLossMinusGrid": -0.48927861392156974,
+        "logLossMinusGrid95": [
+          -1.6167170550270902,
+          0.15821591284359307
+        ],
+        "winnerCorrect": 0.6666666666666666,
+        "spearman": 0.6777087646652865
+      },
+      "sprint": {
+        "nRaces": 18,
+        "nWet": 3,
+        "nSprint": 18,
+        "postQualifyingWinLogLoss": 1.5106823722256713,
+        "gridWinLogLoss": 2.2285639994600634,
+        "logLossMinusGrid": -0.7178816272343919,
+        "logLossMinusGrid95": [
+          -2.020415434268727,
+          0.059994030628893615
+        ],
+        "winnerCorrect": 0.4444444444444444,
+        "spearman": 0.6787644341420085
+      },
+      "no_sprint": {
+        "nRaces": 48,
+        "nWet": 6,
+        "nSprint": 0,
+        "postQualifyingWinLogLoss": 1.0634287805721065,
+        "gridWinLogLoss": 1.253140416926709,
+        "logLossMinusGrid": -0.18971163635460261,
+        "logLossMinusGrid95": [
+          -0.653409374844975,
+          0.1268531207168089
+        ],
+        "winnerCorrect": 0.6041666666666666,
+        "spearman": 0.7131588440798967
+      },
+      "wet": {
+        "nRaces": 9,
+        "nWet": 9,
+        "nSprint": 3,
+        "postQualifyingWinLogLoss": 1.0980991702286387,
+        "gridWinLogLoss": 2.5471275737765113,
+        "logLossMinusGrid": -1.4490284035478724,
+        "logLossMinusGrid95": [
+          -3.818918205823442,
+          -0.05213007313223344
+        ],
+        "winnerCorrect": 0.5555555555555556,
+        "spearman": 0.6664843928001822
+      },
+      "dry": {
+        "nRaces": 55,
+        "nWet": 0,
+        "nSprint": 14,
+        "postQualifyingWinLogLoss": 1.2242292449351533,
+        "gridWinLogLoss": 1.383015796032189,
+        "logLossMinusGrid": -0.1587865510970357,
+        "logLossMinusGrid95": [
+          -0.5947339622094108,
+          0.1269938920705749
+        ],
+        "winnerCorrect": 0.5454545454545454,
+        "spearman": 0.7034419681975331
+      }
+    }
+  },
+  "groups": {
+    "All races": {
+      "nRaces": 168,
+      "nWet": 19,
+      "nSprint": 29,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.4880952380952381,
+          "spearman": 0.6068501233792178,
+          "logLossWin": 1.5583880706817872,
+          "brierWin": 0.03444148516359792,
+          "mae": 3.625618559894054,
+          "nRaces": 168
+        },
+        "post-practice": {
+          "winnerCorrect": 0.4642857142857143,
+          "spearman": 0.6203589861157693,
+          "logLossWin": 1.5210575475317487,
+          "brierWin": 0.03470506400120329,
+          "mae": 3.53617273823764,
+          "nRaces": 168
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.5892857142857143,
+          "spearman": 0.6658194634902709,
+          "logLossWin": 1.197279025489819,
+          "brierWin": 0.028655233116356232,
+          "mae": 3.3572327970494418,
+          "nRaces": 168,
+          "gridLogLossWin": 1.645716388179147,
+          "logLossWinMinusGrid": -0.44843736268932793,
+          "logLossWinMinusGrid95": [
+            -0.7575774460905007,
+            -0.19114335089971934
+          ]
+        }
+      }
+    },
+    "2019-2021": {
+      "nRaces": 60,
+      "nWet": 6,
+      "nSprint": 3,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.5,
+          "spearman": 0.6029323308270677,
+          "logLossWin": 1.5292230001985359,
+          "brierWin": 0.03454380250416667,
+          "mae": 3.5860835833333335,
+          "nRaces": 60
+        },
+        "post-practice": {
+          "winnerCorrect": 0.4666666666666667,
+          "spearman": 0.6277443609022556,
+          "logLossWin": 1.50586844169362,
+          "brierWin": 0.03488378977499999,
+          "mae": 3.4836065,
+          "nRaces": 60
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.5333333333333333,
+          "spearman": 0.6587468671679197,
+          "logLossWin": 1.3816063147948077,
+          "brierWin": 0.031624316416666666,
+          "mae": 3.4077661666666668,
+          "nRaces": 60,
+          "gridLogLossWin": 1.5261319635163388,
+          "logLossWinMinusGrid": -0.14452564872153098,
+          "logLossWinMinusGrid95": [
+            -0.33123050014031646,
+            0.03818069619779923
+          ]
+        }
+      }
+    },
+    "2022-2025": {
+      "nRaces": 92,
+      "nWet": 11,
+      "nSprint": 21,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.5217391304347826,
+          "spearman": 0.6098207475209761,
+          "logLossWin": 1.5046269547932751,
+          "brierWin": 0.03354895811470251,
+          "mae": 3.5764714759725393,
+          "nRaces": 92
+        },
+        "post-practice": {
+          "winnerCorrect": 0.4782608695652174,
+          "spearman": 0.6146616541353384,
+          "logLossWin": 1.4894247070507611,
+          "brierWin": 0.03422601135397597,
+          "mae": 3.5115773026315793,
+          "nRaces": 92
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.6195652173913043,
+          "spearman": 0.6721423123024952,
+          "logLossWin": 1.089028788474597,
+          "brierWin": 0.027409508610697943,
+          "mae": 3.2325115503432498,
+          "nRaces": 92,
+          "gridLogLossWin": 1.7203414287713783,
+          "logLossWinMinusGrid": -0.631312640296781,
+          "logLossWinMinusGrid95": [
+            -1.1375767848441305,
+            -0.21216950178495148
+          ]
+        }
+      }
+    },
+    "2026 partial": {
+      "nRaces": 16,
+      "nWet": 2,
+      "nSprint": 5,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.25,
+          "spearman": 0.6044607566346698,
+          "logLossWin": 1.9768835013529273,
+          "brierWin": 0.03918982566761364,
+          "mae": 4.056470454545455,
+          "nRaces": 16
+        },
+        "post-practice": {
+          "winnerCorrect": 0.375,
+          "spearman": 0.6254234895539245,
+          "logLossWin": 1.759905527190409,
+          "brierWin": 0.03678939507102273,
+          "mae": 3.8747198863636365,
+          "nRaces": 16
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.625,
+          "spearman": 0.6559853190287974,
+          "logLossWin": 1.1284905534336374,
+          "brierWin": 0.024684086647727276,
+          "mae": 3.8848798295454543,
+          "nRaces": 16,
+          "gridLogLossWin": 1.665063997259348,
+          "logLossWinMinusGrid": -0.5365734438257107,
+          "logLossWinMinusGrid95": [
+            -1.8156486385757404,
+            0.21307171926577778
+          ]
+        }
+      }
+    },
+    "2019": {
+      "nRaces": 21,
+      "nWet": 2,
+      "nSprint": 0,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.47619047619047616,
+          "spearman": 0.5901181525241675,
+          "logLossWin": 1.6115853547098744,
+          "brierWin": 0.03751108858333333,
+          "mae": 3.51477,
+          "nRaces": 21
+        },
+        "post-practice": {
+          "winnerCorrect": 0.38095238095238093,
+          "spearman": 0.6346580737558181,
+          "logLossWin": 1.6524134222510427,
+          "brierWin": 0.0400210325,
+          "mae": 3.423356666666667,
+          "nRaces": 21
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.42857142857142855,
+          "spearman": 0.6479770855710706,
+          "logLossWin": 1.1061608817418682,
+          "brierWin": 0.03178894588095237,
+          "mae": 3.3780207142857144,
+          "nRaces": 21,
+          "gridLogLossWin": 1.3157699966914724,
+          "logLossWinMinusGrid": -0.20960911494960455,
+          "logLossWinMinusGrid95": [
+            -0.441016923872346,
+            0.03175792247517961
+          ]
+        }
+      }
+    },
+    "2020": {
+      "nRaces": 17,
+      "nWet": 3,
+      "nSprint": 0,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.5882352941176471,
+          "spearman": 0.5571870853604599,
+          "logLossWin": 1.4410182008342531,
+          "brierWin": 0.030958782323529405,
+          "mae": 3.771340588235294,
+          "nRaces": 17
+        },
+        "post-practice": {
+          "winnerCorrect": 0.47058823529411764,
+          "spearman": 0.5875276426360018,
+          "logLossWin": 1.4165270562641359,
+          "brierWin": 0.03328133844117648,
+          "mae": 3.6589467647058824,
+          "nRaces": 17
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.5882352941176471,
+          "spearman": 0.6154798761609905,
+          "logLossWin": 1.4921131793220115,
+          "brierWin": 0.030651485014705878,
+          "mae": 3.6095288235294123,
+          "nRaces": 17,
+          "gridLogLossWin": 1.6709136007637957,
+          "logLossWinMinusGrid": -0.17880042144178432,
+          "logLossWinMinusGrid95": [
+            -0.5153188795035789,
+            0.166494883780094
+          ]
+        }
+      }
+    },
+    "2021": {
+      "nRaces": 22,
+      "nWet": 1,
+      "nSprint": 3,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.45454545454545453,
+          "spearman": 0.6505126452494873,
+          "logLossWin": 1.518762643128295,
+          "brierWin": 0.03448163593181818,
+          "mae": 3.5110025000000005,
+          "nRaces": 22
+        },
+        "post-practice": {
+          "winnerCorrect": 0.5454545454545454,
+          "spearman": 0.6522214627477785,
+          "logLossWin": 1.4350211217206812,
+          "brierWin": 0.031218315931818178,
+          "mae": 3.4056275,
+          "nRaces": 22
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.5909090909090909,
+          "spearman": 0.7024606971975393,
+          "logLossWin": 1.559139832847047,
+          "brierWin": 0.03221890346590909,
+          "mae": 3.280252045454546,
+          "nRaces": 22,
+          "gridLogLossWin": 1.6150553030670387,
+          "logLossWinMinusGrid": -0.05591547021999224,
+          "logLossWinMinusGrid95": [
+            -0.4278978842623861,
+            0.2845397342373979
+          ]
+        }
+      }
+    },
+    "2022": {
+      "nRaces": 22,
+      "nWet": 4,
+      "nSprint": 3,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.5909090909090909,
+          "spearman": 0.578058783321941,
+          "logLossWin": 1.4698352051495518,
+          "brierWin": 0.03121035606818182,
+          "mae": 3.7556052272727274,
+          "nRaces": 22
+        },
+        "post-practice": {
+          "winnerCorrect": 0.5454545454545454,
+          "spearman": 0.5977443609022555,
+          "logLossWin": 1.4809880034141143,
+          "brierWin": 0.03394416867045455,
+          "mae": 3.637197954545455,
+          "nRaces": 22
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.5,
+          "spearman": 0.6042378673957621,
+          "logLossWin": 1.1222992407274197,
+          "brierWin": 0.03086469321590909,
+          "mae": 3.4962531818181817,
+          "nRaces": 22,
+          "gridLogLossWin": 2.1315048794196576,
+          "logLossWinMinusGrid": -1.0092056386922383,
+          "logLossWinMinusGrid95": [
+            -2.2718562802134143,
+            -0.1368133030491714
+          ]
+        }
+      }
+    },
+    "2023": {
+      "nRaces": 22,
+      "nWet": 0,
+      "nSprint": 6,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.8636363636363636,
+          "spearman": 0.6049897470950103,
+          "logLossWin": 0.6679732675923149,
+          "brierWin": 0.013525069613636366,
+          "mae": 3.5585352272727278,
+          "nRaces": 22
+        },
+        "post-practice": {
+          "winnerCorrect": 0.8181818181818182,
+          "spearman": 0.598838004101162,
+          "logLossWin": 0.7200232847624334,
+          "brierWin": 0.016055793159090906,
+          "mae": 3.6181611363636366,
+          "nRaces": 22
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.9545454545454546,
+          "spearman": 0.643403964456596,
+          "logLossWin": 0.34659213157661745,
+          "brierWin": 0.007275274113636363,
+          "mae": 3.317872272727272,
+          "nRaces": 22,
+          "gridLogLossWin": 1.7762958197349674,
+          "logLossWinMinusGrid": -1.4297036881583496,
+          "logLossWinMinusGrid95": [
+            -2.603188108108603,
+            -0.6258326229385921
+          ]
+        }
+      }
+    },
+    "2024": {
+      "nRaces": 24,
+      "nWet": 4,
+      "nSprint": 6,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.375,
+          "spearman": 0.6727130325814535,
+          "logLossWin": 2.1620459834933796,
+          "brierWin": 0.04724606078892543,
+          "mae": 3.391822105263158,
+          "nRaces": 24
+        },
+        "post-practice": {
+          "winnerCorrect": 0.375,
+          "spearman": 0.6602548036758562,
+          "logLossWin": 1.9628687204373494,
+          "brierWin": 0.042595965026315796,
+          "mae": 3.3431346820175443,
+          "nRaces": 24
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.375,
+          "spearman": 0.7501461988304093,
+          "logLossWin": 1.7333200233672603,
+          "brierWin": 0.0410821611864035,
+          "mae": 2.9629593092105266,
+          "nRaces": 24,
+          "gridLogLossWin": 1.9315344068973073,
+          "logLossWinMinusGrid": -0.19821438353004708,
+          "logLossWinMinusGrid95": [
+            -1.2875379231505215,
+            0.588524664867843
+          ]
+        }
+      }
+    },
+    "2025": {
+      "nRaces": 24,
+      "nWet": 3,
+      "nSprint": 6,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.2916666666666667,
+          "spearman": 0.5804720133667501,
+          "logLossWin": 1.646032909867463,
+          "brierWin": 0.04035080510910088,
+          "mae": 3.6133564692982456,
+          "nRaces": 24
+        },
+        "post-practice": {
+          "winnerCorrect": 0.20833333333333334,
+          "spearman": 0.5990810359231412,
+          "logLossWin": 1.7289989757620656,
+          "brierWin": 0.042770446820175445,
+          "mae": 3.4671658114035093,
+          "nRaces": 24
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.6666666666666666,
+          "spearman": 0.6827276524644944,
+          "logLossWin": 1.0948065745066604,
+          "brierWin": 0.02902598510252193,
+          "mae": 3.1820533004385965,
+          "nRaces": 24,
+          "gridLogLossWin": 1.0809570958345687,
+          "logLossWinMinusGrid": 0.013849478672092047,
+          "logLossWinMinusGrid95": [
+            -0.20588241901554513,
+            0.21468052899860493
+          ]
+        }
+      }
+    },
+    "2026": {
+      "nRaces": 16,
+      "nWet": 2,
+      "nSprint": 5,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.25,
+          "spearman": 0.6044607566346698,
+          "logLossWin": 1.9768835013529273,
+          "brierWin": 0.03918982566761364,
+          "mae": 4.056470454545455,
+          "nRaces": 16
+        },
+        "post-practice": {
+          "winnerCorrect": 0.375,
+          "spearman": 0.6254234895539245,
+          "logLossWin": 1.759905527190409,
+          "brierWin": 0.03678939507102273,
+          "mae": 3.8747198863636365,
+          "nRaces": 16
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.625,
+          "spearman": 0.6559853190287974,
+          "logLossWin": 1.1284905534336374,
+          "brierWin": 0.024684086647727276,
+          "mae": 3.8848798295454543,
+          "nRaces": 16,
+          "gridLogLossWin": 1.665063997259348,
+          "logLossWinMinusGrid": -0.5365734438257107,
+          "logLossWinMinusGrid95": [
+            -1.8237303873340898,
+            0.2034730991190656
+          ]
+        }
+      }
+    },
+    "Sprint": {
+      "nRaces": 29,
+      "nWet": 4,
+      "nSprint": 29,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.3793103448275862,
+          "spearman": 0.5561503595433999,
+          "logLossWin": 1.7872559128131529,
+          "brierWin": 0.03841258985109718,
+          "mae": 3.7830807993730406,
+          "nRaces": 29
+        },
+        "post-practice": {
+          "winnerCorrect": 0.27586206896551724,
+          "spearman": 0.545857078296122,
+          "logLossWin": 1.9707355614893745,
+          "brierWin": 0.043306497032915364,
+          "mae": 3.8162451253918492,
+          "nRaces": 29
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.41379310344827586,
+          "spearman": 0.6215287434888159,
+          "logLossWin": 1.7637950359080472,
+          "brierWin": 0.04063746057131661,
+          "mae": 3.5290846081504705,
+          "nRaces": 29,
+          "gridLogLossWin": 2.098972469210576,
+          "logLossWinMinusGrid": -0.33517743330252925,
+          "logLossWinMinusGrid95": [
+            -1.2801807766584166,
+            0.38247799894544005
+          ]
+        }
+      }
+    },
+    "No sprint": {
+      "nRaces": 139,
+      "nWet": 15,
+      "nSprint": 0,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.5107913669064749,
+          "spearman": 0.6174277719492806,
+          "logLossWin": 1.5106386647694883,
+          "brierWin": 0.033612981307932596,
+          "mae": 3.5927667257581497,
+          "nRaces": 139
+        },
+        "post-practice": {
+          "winnerCorrect": 0.5035971223021583,
+          "spearman": 0.6359025496177102,
+          "logLossWin": 1.42723983238951,
+          "brierWin": 0.03291052041904754,
+          "mae": 3.477740369694675,
+          "nRaces": 139
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.6258992805755396,
+          "spearman": 0.675059973418632,
+          "logLossWin": 1.079085037704721,
+          "brierWin": 0.026155343935105504,
+          "mae": 3.3213788220715292,
+          "nRaces": 139,
+          "gridLogLossWin": 1.5511521698344601,
+          "logLossWinMinusGrid": -0.4720671321297391,
+          "logLossWinMinusGrid95": [
+            -0.7979387277726625,
+            -0.20262210513480014
+          ]
+        }
+      }
+    },
+    "Wet, ERA5 >= 1 mm": {
+      "nRaces": 19,
+      "nWet": 19,
+      "nSprint": 4,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.6842105263157895,
+          "spearman": 0.5517586351983558,
+          "logLossWin": 1.1606356253379027,
+          "brierWin": 0.024787285056220094,
+          "mae": 3.7631936124401912,
+          "nRaces": 19
+        },
+        "post-practice": {
+          "winnerCorrect": 0.6842105263157895,
+          "spearman": 0.5567716879050132,
+          "logLossWin": 1.286697726195363,
+          "brierWin": 0.027282292455741628,
+          "mae": 3.707636555023923,
+          "nRaces": 19
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.6842105263157895,
+          "spearman": 0.6514156203906897,
+          "logLossWin": 1.0219391112072873,
+          "brierWin": 0.026404225913875597,
+          "mae": 3.3649641148325355,
+          "nRaces": 19,
+          "gridLogLossWin": 1.8656729031395263,
+          "logLossWinMinusGrid": -0.8437337919322393,
+          "logLossWinMinusGrid95": [
+            -2.080932104546658,
+            0.025949179464884856
+          ]
+        }
+      }
+    },
+    "Dry, ERA5 < 1 mm": {
+      "nRaces": 149,
+      "nWet": 0,
+      "nSprint": 25,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.46308724832214765,
+          "spearman": 0.6138752124761063,
+          "logLossWin": 1.60910818116188,
+          "brierWin": 0.03567255766051187,
+          "mae": 3.6080754323881696,
+          "nRaces": 149
+        },
+        "post-practice": {
+          "winnerCorrect": 0.436241610738255,
+          "spearman": 0.6284674335386174,
+          "logLossWin": 1.5509423569639047,
+          "brierWin": 0.03565159191639639,
+          "mae": 3.514308224687711,
+          "nRaces": 149
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.5771812080536913,
+          "spearman": 0.6676561951606873,
+          "logLossWin": 1.2196378065057123,
+          "brierWin": 0.02894227430324974,
+          "mae": 3.356246924312,
+          "nRaces": 149,
+          "gridLogLossWin": 1.6176682419761454,
+          "logLossWinMinusGrid": -0.3980304354704331,
+          "logLossWinMinusGrid95": [
+            -0.7197404290364436,
+            -0.14094319792782775
+          ]
+        }
+      }
+    },
+    "Sprint and wet": {
+      "nRaces": 4,
+      "nWet": 4,
+      "nSprint": 4,
+      "stages": {
+        "pre-weekend": {
+          "winnerCorrect": 0.5,
+          "spearman": 0.4467443311836904,
+          "logLossWin": 1.2018676578377625,
+          "brierWin": 0.028253965301136365,
+          "mae": 3.9792173863636364,
+          "nRaces": 4
+        },
+        "post-practice": {
+          "winnerCorrect": 0.25,
+          "spearman": 0.4202546881036583,
+          "logLossWin": 1.849995377208622,
+          "brierWin": 0.04199156184659091,
+          "mae": 4.022131363636364,
+          "nRaces": 4
+        },
+        "post-qualifying": {
+          "winnerCorrect": 0.5,
+          "spearman": 0.593392077030521,
+          "logLossWin": 1.3733762181292712,
+          "brierWin": 0.03488415901704545,
+          "mae": 3.5974981818181817,
+          "nRaces": 4,
+          "gridLogLossWin": 4.126038239877263,
+          "logLossWinMinusGrid": -2.752662021747992,
+          "logLossWinMinusGrid95": [
+            -8.163252198264376,
+            0.05688897865264819
+          ]
+        }
+      }
+    }
+  }
+}

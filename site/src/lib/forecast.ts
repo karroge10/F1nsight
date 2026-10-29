@@ -137,3 +137,19 @@ function impactSize(impact: WhyRow["impact"]): number {
   if (typeof impact === "number") return Math.abs(impact);
   return impact === "neutral" ? 0 : 0.01;
 }
+
+export const FORECAST_COLUMNS = [
+  { key: "recentFinish", label: "Recent form", legacy: "form" },
+  { key: "qualiGap", label: "One-lap gap", legacy: "quali_pace" },
+  { key: "teamGap", label: "Car gap", legacy: "team" },
+  { key: "championship", label: "Standings", legacy: "championship" },
+] as const;
+
+export function factorCell(driver: DriverForecast, key: typeof FORECAST_COLUMNS[number]["key"], poleMs: number | null) {
+  const factor = driver.keyFactors?.find((f) => f.key === key);
+  if (factor) return { value: factor.value, text: keyFactorRow(factor).value, detail: factor.detail };
+  const column = FORECAST_COLUMNS.find((c) => c.key === key);
+  const legacy = whyRows(driver, poleMs).find((r) => r.kind === column?.legacy);
+  const number = legacy?.value?.match(/[+-]?\d+(?:\.\d+)?/);
+  return { value: number ? Number(number[0]) : null, text: legacy?.value ?? null, detail: legacy?.detail ?? null };
+}

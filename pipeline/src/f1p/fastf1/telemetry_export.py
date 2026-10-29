@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 import fastf1
 import numpy as np
 
-from f1p.fastf1.common import COMPLETED_AFTER, read_expected, get_session, is_done, season_range, season_schedule
+from f1p.fastf1.common import completed_sessions, COMPLETED_AFTER, read_expected, get_session, is_done, season_range, season_schedule
 from f1p.paths import FASTF1_CACHE_DIR, SERVE_DIR
 
 POINTS = 320
@@ -40,7 +40,10 @@ def export(seasons: list[int], codes: list[str], force: bool = False, backfill_d
     pending = []
     failed = []
     for season in seasons:
-        for ref in read_expected(season):
+        refs = {ref.key: ref for ref in read_expected(season)}
+        if backfill_days:
+            refs.update({ref.key: ref for ref in completed_sessions(season, now)})
+        for ref in refs.values():
             if ref.code not in codes:
                 continue
             if backfill_days:

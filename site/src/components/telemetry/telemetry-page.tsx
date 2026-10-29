@@ -12,6 +12,7 @@ interface TelemetryPageProps {
   /** The session prerendered into the HTML: the newest one exported. */
   initial: SessionTelemetry;
   index: TelemetryIndexEntry[];
+  notice?: string | null;
 }
 
 interface Choice {
@@ -27,10 +28,10 @@ const NO_CHOICE: Choice = { key: null, a: null, b: null };
  * URL (`?s=2026-16-Q&a=RUS&b=ANT`) are read in the browser, and any other session is fetched from
  * its build-time file `/api/telemetry/<key>.json`.
  */
-export function TelemetryPage({ initial, index }: TelemetryPageProps) {
+export function TelemetryPage({ initial, index, notice }: TelemetryPageProps) {
   return (
-    <Suspense fallback={<TelemetryBody initial={initial} index={index} choice={NO_CHOICE} />}>
-      <TelemetryBodyFromUrl initial={initial} index={index} />
+    <Suspense fallback={<TelemetryBody initial={initial} index={index} notice={notice} choice={NO_CHOICE} />}>
+      <TelemetryBodyFromUrl initial={initial} index={index} notice={notice} />
     </Suspense>
   );
 }
@@ -39,14 +40,14 @@ export function TelemetryPage({ initial, index }: TelemetryPageProps) {
 // helpers
 // ---------------------------------------------------------------------------
 
-function TelemetryBodyFromUrl({ initial, index }: TelemetryPageProps) {
+function TelemetryBodyFromUrl({ initial, index, notice }: TelemetryPageProps) {
   const search = useSearchParams();
   const ref = parseSessionKey(search.get("s"));
   const choice: Choice = { key: ref ? sessionKey(ref) : null, a: search.get("a"), b: search.get("b") };
-  return <TelemetryBody initial={initial} index={index} choice={choice} />;
+  return <TelemetryBody initial={initial} index={index} notice={notice} choice={choice} />;
 }
 
-function TelemetryBody({ initial, index, choice }: TelemetryPageProps & { choice: Choice }) {
+function TelemetryBody({ initial, index, notice, choice }: TelemetryPageProps & { choice: Choice }) {
   const [picked, setPicked] = useState<string | null>(null);
   const wantedKey = picked ?? choice.key ?? sessionKey(initial);
   const [loaded, setLoaded] = useState<SessionTelemetry>(initial);
@@ -87,8 +88,8 @@ function TelemetryBody({ initial, index, choice }: TelemetryPageProps & { choice
             Telemetry <span className="mx-1.5 text-ink-3">/</span> {shown.season} round {shown.round}
           </>
         }
-        title={`${shown.eventName}, ${shown.sessionName}`}
-        dek={dek}
+        title={notice && picked === null && choice.key === null ? "Telemetry comparison" : `${shown.eventName}, ${shown.sessionName}`}
+        dek={notice && picked === null && choice.key === null ? `${notice} Latest available: ${shown.eventName}, ${shown.sessionName}.` : dek}
       />
       <Section title="Fastest laps" icon={IconGauge} info="Pick a session and two drivers. The track map shows driver A's speed, or which driver is quicker at each point. The chart interpolates values, so it can smooth out short brake taps." flush>
         <div aria-busy={session === null && missing !== wantedKey} className={session === null && missing !== wantedKey ? "opacity-60 transition-opacity" : undefined}>

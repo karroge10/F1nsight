@@ -16,6 +16,15 @@ export interface LiveSearchParams {
   session?: string;
 }
 
+export interface ReplayWeekend {
+  season: number;
+  round: number;
+  raceName: string;
+  country: string | null;
+  date: string;
+  hasSprint: boolean;
+}
+
 /** The session the URL asks for, or the same round's first session, or nothing. */
 export function pickSession(sessions: LiveReplaySession[], params: LiveSearchParams): LiveReplaySession | null {
   if (sessions.length === 0) return null;
@@ -24,6 +33,7 @@ export function pickSession(sessions: LiveReplaySession[], params: LiveSearchPar
   const code = params.session ?? "R";
   const exact = sessions.find((s) => s.season === season && s.round === round && s.session === code);
   if (exact) return exact;
+  if (params.session !== undefined) return null;
   const sameRound = sessions.find((s) => s.season === season && s.round === round);
   return sameRound ?? null;
 }
@@ -36,6 +46,17 @@ export function mergeSessions(local: LiveReplaySession[], service: LiveReplaySes
   const out = [...merged.values()];
   out.sort((a, b) => b.season - a.season || b.round - a.round || sessionOrder(a.session) - sessionOrder(b.session));
   return out;
+}
+
+/** The most recently completed session in the newest weekend with replay data. */
+export function pickDefaultSession(sessions: LiveReplaySession[]): LiveReplaySession | null {
+  if (sessions.length === 0) return null;
+  const latestWeekend = sessions.reduce((latest, session) => {
+    if (session.season > latest.season || (session.season === latest.season && session.round > latest.round)) return session;
+    return latest;
+  });
+  const weekend = sessions.filter((s) => s.season === latestWeekend.season && s.round === latestWeekend.round);
+  return weekend.sort((a, b) => defaultSessionOrder(a.session) - defaultSessionOrder(b.session))[0] ?? null;
 }
 
 /** This season's sessions in the live service archive, or none when there is no service. */
@@ -83,7 +104,13 @@ function toReplaySession(s: ServiceSession): LiveReplaySession {
 }
 
 function sessionOrder(code: string) {
-  const order = ["R", "S", "Q", "SQ", "FP3", "FP2", "FP1"];
+  const order = ["FP1", "FP2", "FP3", "SQ", "S", "Q", "R"];
+  const idx = order.indexOf(code);
+  return idx === -1 ? 99 : idx;
+}
+
+function defaultSessionOrder(code: string) {
+  const order = ["R", "Q", "S", "SQ", "FP3", "FP2", "FP1"];
   const idx = order.indexOf(code);
   return idx === -1 ? 99 : idx;
 }

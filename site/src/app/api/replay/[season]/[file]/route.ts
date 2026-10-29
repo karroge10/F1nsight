@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { getAvailableTracks, getCalendar, getEntryList, getRace, getRaceLapsAvailability, getTrackOutline } from "@/lib/data";
+import { getEntryList, getRace, getTrackOutline, getSessionReport } from "@/lib/data";
+import { replayableSessions } from "@/lib/live/replay-sessions";
+import type { SessionCode } from "@/lib/data";
 import type { ReplayPayload } from "@/lib/live/mock-stream";
 
 type Params = Promise<{ season: string; file: string }>;
@@ -9,14 +11,8 @@ export const dynamicParams = false;
 
 /** One file per race with lap data and a track outline: `/api/replay/2025/16.json`. */
 export async function generateStaticParams(): Promise<{ season: string; file: string }[]> {
-  const lapFiles = await getRaceLapsAvailability();
-  const tracks = new Set(await getAvailableTracks());
-  const params: { season: string; file: string }[] = [];
-  for (const { season, round } of lapFiles) {
-    const calendar = await getCalendar(season);
-    const race = calendar.find((r) => r.round === round);
-    if (race && tracks.has(race.circuitId)) params.push({ season: String(season), file: `${round}.json` });
-  }
+  const sessions = await replayableSessions();
+  const params = sessions.filter((s) => s.source === "fixture").map((s) => ({ season: String(s.season), file: s.session === "R" ? `${s.round}.json` : `${s.round}_${s.session}.json` }));
   return params;
 }
 
@@ -24,8 +20,11 @@ export async function generateStaticParams(): Promise<{ season: string; file: st
 export async function GET(_request: Request, context: { params: Params }) {
   const params = await context.params;
   const season = Number(params.season);
-  const round = Number(params.file.replace(/\.json$/, ""));
-  const payload = await replayPayload(season, round);
+  const match = /^(\d+)(?:_(FP1|FP2|FP3|SQ|S|Q))?\.json$/.exec(params.file);
+  if (!match) notFound();
+  const round = Number(match[1]);
+  const code = (match[2] ?? "R") as SessionCode;
+  const payload = code === "R" ? await replayPayload(season, round) : await sessionPayload(season, round, code);
   if (!payload) notFound();
   return Response.json(payload);
 }
@@ -96,4 +95,18 @@ function timingSectors(points: number): { number: number; start: number; end: nu
     { number: 2, start: third, end: third * 2 },
     { number: 3, start: third * 2, end: points - 1 },
   ];
+}
+
+async function sessionPayload(season: number, round: number, code: SessionCode): Promise<ReplayPayload | null> {
+  const race = await getRace(season, round);
+  const report = await getSessionReport(season, round, code);
+  if (!race || !report?.lapStarts) return null;
+  const track = await getTrackOutline(race.circuitId);
+  if (!track) return null;
+  return {
+    session: { season, round, code, name: report.sessionName, meeting: race.raceName, start: null, totalLaps: null },
+    track: { outline: track.outline, rotation: track.rotation, corners: track.corners, sectors: timingSectors(track.outline.length), finish: track.outline[0] },
+    drivers: report.drivers.filter((d) => d.number !== null).map((d) => ({ driverId: d.driverId, number: d.number!, code: d.code, name: d.name, team: d.team, teamColor: d.color ?? "#8A8F98", grid: null, laps: [], pitLaps: [], retiredAfterLap: null })),
+    report,
+  };
 }

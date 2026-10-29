@@ -63,7 +63,7 @@ export function PickList(props: PickListProps) {
     <div>
       <div className="flex h-8 items-stretch rounded-control border border-rule" role="group" aria-label="Pick list">
         {(["driver", "constructor"] as const).map((k) => (
-          <button key={k} type="button" aria-pressed={kind === k} onClick={() => props.onKind(k)} className={"press segment -my-px flex-1 rounded-control text-ui font-[600] " + (kind === k ? "segment-on" : "text-ink-2 hover:text-ink")}>
+          <button key={k} type="button" aria-pressed={kind === k} onClick={() => props.onKind(k)} className={"fantasy-choice flex-1 " + (kind === k ? "font-[600]" : "text-ink-2 hover:text-ink")}>
             {k === "driver" ? "Drivers" : "Constructors"}
           </button>
         ))}

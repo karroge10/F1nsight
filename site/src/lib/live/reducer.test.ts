@@ -22,6 +22,55 @@ function row(pos: number, number: number, drs: boolean | null = null): TimingRow
 }
 
 describe("live reducer", () => {
+  it("interpolates reconstructed motion along the circuit instead of cutting across corners", () => {
+    const state = { ...initialLiveState(), mode: "replay" as const, track: { ...init.track!, outline: [[0, 0], [100, 0], [100, 100], [0, 100]] as [number, number][] }, frames: Array.from({ length: 6 }, (_, index) => ({ t: index * 1000, receivedAt: index * 1000, cars: new Map([[12, { number: 12, x: index <= 2 ? index * 40 : 100, y: index <= 2 ? 0 : (index - 2) * 40 - 20, trackProgress: index * 0.1, status: "onTrack" as const }]]) })) };
+    const animate = createCarAnimator();
+    animate(state, 0);
+    const car = animate(state, 500)[0];
+    expect(car.x).toBeCloseTo(100);
+    expect(car.y).toBeCloseTo(0);
+  });
+  it("discards frames from the old timeline before a forward or backward seek", () => {
+    let state = liveReducer(initialLiveState(), { type: "message", message: init, receivedAt: 0 });
+    const frame = (t: number, x: number) => ({ type: "message" as const, message: { type: "frame" as const, t, cars: [{ number: 12, x, y: 0, status: "onTrack" as const }] }, receivedAt: t });
+    state = liveReducer(state, frame(1000, 100));
+    state = liveReducer(state, frame(2000, 200));
+    const animate = createCarAnimator();
+    animate(state, 0);
+    for (const [time, x] of [[90000, 900], [500, 50]]) {
+      state = liveReducer(state, { type: "seek", t: time });
+      expect(state.frames).toHaveLength(0);
+      expect(animate(state, 10)).toEqual([]);
+      state = liveReducer(state, frame(time, x));
+      expect(animate(state, 20)[0].x).toBe(x);
+      expect(state.t).toBe(time);
+    }
+    expect(state.seekRevision).toBe(2);
+  });
+
+  it("uses playback speed rather than burst arrival intervals for replay interpolation", () => {
+    let state = liveReducer(initialLiveState(), { type: "message", message: init, receivedAt: 0 });
+    state = { ...state, playback: { ...state.playback, speed: 8 }, frames: Array.from({ length: 8 }, (_, i) => ({ t: i * 1000, receivedAt: i, cars: new Map([[12, { number: 12, x: i * 100, y: 0, status: "onTrack" as const }]]) })) };
+    const animate = createCarAnimator();
+    const before = animate(state, 0)[0].x;
+    const after = animate(state, 16)[0].x;
+    expect(after - before).toBeGreaterThan(10);
+    expect(after - before).toBeLessThan(14);
+  });
+
+  it("keeps paused duplicate frames from discarding interpolation history or moving the car", () => {
+    let state = liveReducer(initialLiveState(), { type: "message", message: init, receivedAt: 0 });
+    for (let i = 0; i < 8; i++) state = liveReducer(state, { type: "message", message: { type: "frame", t: i * 1000, cars: [{ number: 12, x: i * 100, y: 0, status: "onTrack" }] }, receivedAt: i * 1000 });
+    const animate = createCarAnimator();
+    const before = animate(state, 0)[0].x;
+    state = liveReducer(state, { type: "playback", playback: { paused: true } });
+    state = liveReducer(state, { type: "message", message: { type: "frame", t: 7000, cars: [{ number: 12, x: 700, y: 0, status: "onTrack" }] }, receivedAt: 9000 });
+    expect(state.frames).toHaveLength(8);
+    expect(animate(state, 500)[0].x).toBe(before);
+    expect(animate(state, 1500)[0].x).toBe(before);
+    expect(createCarAnimator()(state, 0)[0].x).toBe(700);
+  });
+
   it("stores session, track, drivers, sources and timeline on init", () => {
     const state = liveReducer(initialLiveState(), { type: "message", message: init, receivedAt: 0 });
     expect(state.session?.name).toBe("Race");

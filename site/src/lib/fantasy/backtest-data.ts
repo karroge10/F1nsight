@@ -45,7 +45,9 @@ export interface BacktestLeader {
   round: number;
   label: string;
   /** Our total as a percentage of the leader's, one decimal. */
-  share: number;
+  share: number | null;
+  source?: string;
+  sourceUpdatedAt?: string | null;
 }
 
 export interface BacktestSeason {

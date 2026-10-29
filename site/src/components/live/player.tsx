@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LiveState } from "@/lib/live/reducer";
 import type { LiveControls } from "@/lib/live/use-live-session";
 import { IconPause, IconPlay, IconSkipBack, IconSkipForward } from "@/components/icons";
@@ -19,6 +19,9 @@ const SKIP_MS = 10000;
  */
 export function Player({ state, controls }: PlayerProps) {
   const [lapInput, setLapInput] = useState("");
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
+  const scrubbing = useRef(false);
+  const scrubValue = useRef<number | null>(null);
   const timeline = state.timeline;
   const start = timeline?.start ?? 0;
   const end = timeline?.end ?? Math.max(state.t, 1);
@@ -125,7 +128,7 @@ export function Player({ state, controls }: PlayerProps) {
     return () => window.removeEventListener("keydown", onKey);
   }); // intentionally re-bound each render so handlers see fresh state
 
-  const elapsedText = formatClock(t - green);
+  const elapsedText = formatClock((scrubTime ?? t) - green);
   const totalText = formatClock(end - green);
   const lapText = state.lap ? (state.lap.total ? `Lap ${state.lap.current} of ${state.lap.total}` : `Lap ${state.lap.current}`) : "";
   const isRace = state.session?.code === "R" || state.session?.code === "S";
@@ -147,8 +150,16 @@ export function Player({ state, controls }: PlayerProps) {
         min={Math.round(start)}
         max={Math.round(end)}
         step={1000}
-        value={Math.round(t)}
-        onChange={(e) => controls.seek(Number(e.target.value))}
+        value={Math.round(scrubTime ?? t)}
+        onPointerDown={() => { scrubbing.current = true; }}
+        onChange={(e) => {
+          const value = Number(e.target.value);
+          if (scrubbing.current) { scrubValue.current = value; setScrubTime(value); }
+          else controls.seek(value);
+        }}
+        onPointerUp={() => { scrubbing.current = false; if (scrubValue.current !== null) controls.seek(scrubValue.current); scrubValue.current = null; setScrubTime(null); }}
+        onPointerCancel={() => { scrubbing.current = false; scrubValue.current = null; setScrubTime(null); }}
+        onBlur={() => { if (scrubValue.current !== null) controls.seek(scrubValue.current); scrubbing.current = false; scrubValue.current = null; setScrubTime(null); }}
         aria-label="Replay position"
         aria-valuetext={elapsedText}
         disabled={!ready}

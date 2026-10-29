@@ -20,19 +20,19 @@ const ICON_SIZE = "1.125rem";
  * on wide screens; on phones the left side stacks into rows and the menus stack beside it.
  */
 export function StatusBar({ state, raceName, actions }: StatusBarProps) {
-  const status = state.session ? trackStatus(state.trackState) : { label: "No session", icon: null };
+  const status = state.source === "mock" ? { label: "Reconstructed replay", icon: null } : state.session ? trackStatus(state.trackState) : { label: "No session", icon: null };
   const isRace = state.session?.code === "R" || state.session?.code === "S";
   const lapText = state.lap ? (state.lap.total ? `${state.lap.current} / ${state.lap.total}` : String(state.lap.current)) : "";
   const clockText = state.clock?.remainingMs !== null && state.clock?.remainingMs !== undefined ? formatRemaining(state.clock.remainingMs) : "";
   const partText = state.sessionPart ? `Q${state.sessionPart}` : "";
   const pending = pendingLabel(state);
   return (
-    <div className="track-status flex items-start gap-4 border-y border-rule py-2" data-status={!state.session ? "idle" : state.trackState === "vscEnding" ? "vsc" : state.trackState}>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-5">
+    <div className="track-status flex items-start gap-3 border-y border-rule py-2" data-status={!state.session ? "idle" : state.trackState === "vscEnding" ? "vsc" : state.trackState}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-4">
         <div className="flex min-h-8 items-center gap-x-5">
           <span className="flex items-center gap-2">
             {/* the track state colour; with no session there is no state to show */}
-            {state.session ? <span className="inline-block h-5 w-1.5 rounded-chip" style={{ background: "var(--status)" }} aria-hidden="true" /> : null}
+            {state.session && state.source !== "mock" ? <span className="inline-block h-5 w-1.5 rounded-chip" style={{ background: "var(--status)" }} aria-hidden="true" /> : null}
             {status.icon ? <span className="text-ink-2">{status.icon}</span> : null}
             <span className="text-ui font-[550] text-ink">{status.label}</span>
           </span>
@@ -50,16 +50,16 @@ export function StatusBar({ state, raceName, actions }: StatusBarProps) {
           ) : null}
         </div>
         {state.session ? (
-          <span className="flex min-h-8 min-w-0 items-center text-ui text-ink-2">
+          <span className="flex min-h-8 min-w-0 items-center text-caption text-ink-2">
             <span className="text-pretty lg:truncate">
               {raceName ?? state.session.meeting ?? state.session.name} {state.session.season}, {state.session.name}
             </span>
           </span>
         ) : null}
-        <span className="flex items-center gap-2 text-caption text-ink-3 lg:ml-auto">
+        <span className="flex flex-wrap items-center gap-2 text-caption text-ink-3 lg:ml-auto">
           {state.connection === "live" ? <span className="live-dot inline-block size-2 rounded-full bg-accent" aria-hidden="true" /> : null}
           {state.connection === "live" ? <span className="mr-2">Live</span> : null}
-          {state.weather ? <Weather state={state} /> : pending}
+          {state.weather && state.source !== "mock" ? <Weather state={state} /> : pending}
         </span>
       </div>
       {/* the menus' popovers anchor to this box */}

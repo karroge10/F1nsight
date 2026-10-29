@@ -30,3 +30,12 @@ function driver(code: string, lapTimeMs: number, speed: number[]): TelemetryDriv
   const zeros = speed.map(() => 0);
   return { number: "1", code, name: code, team: "T", color: "#fff", lapNumber: 1, lapTimeMs, length: 5000, speed, throttle: zeros, brake: zeros, gear: zeros, x: zeros, y: zeros };
 }
+
+
+describe("telemetry recency", () => {
+  it("selects the newest round and latest session without relying on file order", async () => {
+    const { newestTelemetrySessions } = await import("./telemetry");
+    const entries = [{ season: 2026, round: 17, code: "R" }, { season: 2026, round: 18, code: "Q" }, { season: 2026, round: 18, code: "R" }];
+    expect(newestTelemetrySessions(entries as import("./telemetry").TelemetryIndexEntry[]).map((s) => `${s.round}-${s.code}`)).toEqual(["18-R", "18-Q", "17-R"]);
+  });
+});

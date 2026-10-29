@@ -5,6 +5,7 @@ import * as fixtures from "./fixtures-source";
 import * as sqlite from "./sqlite-source";
 import type { SessionRef } from "@/lib/telemetry";
 import type { SessionCode } from "./types";
+import { mergeOfficialResults } from "./official-results";
 
 export type SourceKind = "sqlite" | "fixtures";
 
@@ -15,7 +16,13 @@ export function activeSource(): SourceKind {
 const impl = () => (sqlite.sqliteAvailable() ? sqlite : fixtures);
 
 export const readIndex = () => impl().readIndex();
-export const readSeason = (season: number) => impl().readSeason(season);
+export const readSeason = (season: number) => {
+  const data = impl().readSeason(season);
+  if (!data || !sqlite.sqliteAvailable()) return data;
+  const official = fixtures.readOfficialResults(season);
+  if (!official) return data;
+  return mergeOfficialResults(data, official);
+};
 export const readSeasonSummaries = () => impl().readSeasonSummaries();
 export const readDrivers = () => impl().readDrivers();
 export const readConstructors = () => impl().readConstructors();
@@ -32,3 +39,5 @@ export const readTelemetryIndex = () => fixtures.readTelemetryIndex();
 export const readSessionTelemetry = (ref: SessionRef) => fixtures.readSessionTelemetry(ref);
 export const readSessionReport = (season: number, round: number, code: SessionCode) => fixtures.readSessionReport(season, round, code);
 export const predictionSource = () => fixtures.predictionSource();
+
+export const readSessionReportIndex = () => fixtures.readSessionReportIndex();

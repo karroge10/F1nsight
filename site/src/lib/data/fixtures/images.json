@@ -400,8 +400,17 @@
     "sauber": {
       "variants": [
         {
-          "from": 2024,
+          "from": 2025,
           "to": 2025,
+          "colour": "/teams/2025/sauber-colour.webp",
+          "white": null,
+          "plate": false,
+          "scale": 2.1,
+          "source": "F1 media CDN, 2025 official artwork"
+        },
+        {
+          "from": 2024,
+          "to": 2024,
           "colour": "/teams/legacy/sauber-2024.png",
           "white": null,
           "plate": true,

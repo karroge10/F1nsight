@@ -88,7 +88,7 @@ export default async function DriverPage({ params }: { params: Params }) {
       {seasonResults.length > 0 ? (
         <Section title={`${activeSeason} season`} icon={IconCalendar} aside={<Sparkline values={positions.map((p) => (p === null ? null : 23 - p))} width={140} height={24} title="finishing positions" />} flush>
           <div className="scroll-x">
-            <SortableTable className="data-table min-w-[560px]" columns={SEASON_COLUMNS} initialKey="round" initialDir="asc"
+            <SortableTable className="data-table min-w-[560px]" columns={SEASON_COLUMNS} initialKey="round" initialDir="desc"
               rows={seasonResults.map(({ race, result, sprint, qualifying }) => {
                   const points = (result?.points ?? 0) + (sprint?.points ?? 0);
                   const values = {

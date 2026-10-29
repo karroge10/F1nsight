@@ -35,6 +35,7 @@ from f1p.fastf1.common import (
     logger,
     read_expected,
     season_schedule,
+    session_dir,
     setup_fastf1,
     write_expected,
 )
@@ -83,7 +84,7 @@ def main() -> int:
     _remember_expected(refs)
     result = {"new": [], "pending": [], "skipped": [], "failed": [], "built": False}
     for ref in refs:
-        if is_done(ref):
+        if _already_complete(ref):
             continue
         status = download_one(ref, now, args.accept_partial)
         bucket = {"done": "new", "pending": "pending", "claimed": "skipped"}.get(status, "failed")
@@ -111,12 +112,16 @@ def finished_sessions(now: datetime) -> list[SessionRef]:
 def download_one(ref: SessionRef, now: datetime, accept_partial: bool) -> str:
     """Load and write one session. Returns done, pending, claimed or failed."""
     with session_claim(ref) as claimed:
-        if not claimed or is_done(ref):
+        if not claimed or _already_complete(ref):
             logger.info("%s: claimed by another process, skipping", ref.key)
             return "claimed"
         try:
             session = get_session(ref)
             session.load(laps=True, telemetry=ref.wants_positions, weather=True, messages=True)
+        except fastf1.exceptions.DataNotLoadedError as exc:
+            logger.info("%s: archive not ready (%s), will retry", ref.key, exc)
+            append_manifest(ref, "pending", attempts=1, problem=str(exc), source="incremental")
+            return "pending"
         except Exception as exc:
             problem = f"{type(exc).__name__}: {exc}"
             logger.warning("%s: load failed: %s", ref.key, problem)
@@ -126,10 +131,22 @@ def download_one(ref: SessionRef, now: datetime, accept_partial: bool) -> str:
         if _should_wait(ref, problems, now, accept_partial):
             logger.info("%s: archive incomplete (%s), will retry on the next refresh", ref.key, problems)
             return "pending"
-        meta = write_session(session, ref)
+        try:
+            meta = write_session(session, ref)
+        except fastf1.exceptions.DataNotLoadedError as exc:
+            logger.info("%s: archive incomplete during export (%s), will retry", ref.key, exc)
+            append_manifest(ref, "pending", attempts=1, problem=str(exc), source="incremental")
+            return "pending"
     append_manifest(ref, "done", attempts=1, missing=problems, counts=meta["counts"], source="incremental")
     logger.info("%s done: %s%s", ref.key, meta["counts"], f" (missing {problems})" if problems else "")
     return "done"
+
+
+def _already_complete(ref):
+    if not is_done(ref):
+        return False
+    metadata = json.loads((session_dir(ref) / "meta.json").read_text(encoding="utf-8"))
+    return all(metadata.get("counts", {}).get(part, 0) > 0 for part in CORE_PARTS)
 
 
 def tables_stale() -> bool:
@@ -171,7 +188,7 @@ def _event_refs(season: int, event, now: datetime) -> list[SessionRef]:
 def _should_wait(ref: SessionRef, problems: list[str], now: datetime, accept_partial: bool) -> bool:
     if not problems or accept_partial:
         return False
-    if CORE_PARTS.issubset(problems):
+    if CORE_PARTS.intersection(problems):
         return True
     start = datetime.fromisoformat(ref.start_utc).replace(tzinfo=timezone.utc)
     ended_at = start + SESSION_LENGTH[ref.code]

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCalendar, getLookups, getPredictionHistory, getRace, getSeasons, getSessionReport } from "@/lib/data";
+import { getCalendar, getLookups, getNextRacePrediction, getPredictionHistory, getRace, getSeasons, getSessionReport } from "@/lib/data";
 import type { Lookups, Race, SessionReport } from "@/lib/data";
 import { formatDate, formatLapTime } from "@/lib/format";
 import { SESSION_SPECS, sessionFinished, type SessionSpec } from "@/lib/sessions";
@@ -12,9 +12,11 @@ import { LocalTime } from "@/components/ui/local-time";
 import { PageIntro } from "@/components/ui/page-intro";
 import { Flag } from "@/components/ui/flag";
 import { RacePager } from "@/components/stats/race-pager";
+import { RacePrediction } from "@/components/stats/race-prediction";
 import { HeadlineStack, type HeadlineItem } from "@/components/stats/headline-stack";
 import { SessionSwitcher, type SessionTab } from "@/components/stats/session-switcher";
 import { SessionPanel, type SessionState } from "./session-panel";
+import { buildBacktestRecord, hasVerifiedPublication, readPublishedForecastReport } from "@/lib/model-record";
 
 type Params = Promise<{ season: string; round: string }>;
 
@@ -59,7 +61,14 @@ export default async function RacePage({ params }: { params: Params }) {
   const calendar = await getCalendar(year);
   const replays = await replayableSessions();
   const history = await getPredictionHistory();
-  const forecast = history.find((h) => h.race.season === year && h.race.round === rnd) ?? null;
+  const nextForecast = await getNextRacePrediction();
+  const forecastCandidates = history.filter((h) => h.race.season === year && h.race.round === rnd);
+  const stagePriority: Record<string, number> = { "pre-weekend": 0, "post-practice": 1, "post-qualifying": 2 };
+  const forecast = forecastCandidates.sort((a, b) => (stagePriority[b.race.stage] ?? -1) - (stagePriority[a.race.stage] ?? -1))[0]
+    ?? (nextForecast.race.season === year && nextForecast.race.round === rnd ? nextForecast : null);
+  const predictionRows = buildBacktestRecord(history).rows.filter((row) => row.season === year && row.round === rnd);
+  const publicationVerified = hasVerifiedPublication(readPublishedForecastReport(), year, rnd);
+  const prediction = predictionRows.sort((a, b) => (stagePriority[b.stage] ?? -1) - (stagePriority[a.stage] ?? -1))[0] ?? null;
   const now = new Date();
   const sessions = weekendSessions(race, now);
   const reports = await loadReports(race, sessions);
@@ -112,7 +121,10 @@ export default async function RacePage({ params }: { params: Params }) {
         aside={<HeadlineStack items={headline} season={year} />}
       />
 
+      <RacePrediction record={prediction} forecastDrivers={prediction ? [] : forecast?.drivers ?? []} publicationVerified={publicationVerified} />
+
       <SessionSwitcher key={`${year}-${rnd}-${initial}`} tabs={tabs} panels={panels} initial={initial} />
+
 
       <div className="mx-auto mt-10 w-full max-w-[1440px] px-4 sm:mt-14 sm:px-6">{pager}</div>
     </>
@@ -188,7 +200,7 @@ function hasHistory(race: Race, spec: SessionSpec): boolean {
 /** Winner, pole and fastest lap of the race, as codes with the team logo. */
 function headlineItems(race: Race, lookups: Lookups): HeadlineItem[] {
   const winner = race.results.find((r) => r.position === 1) ?? null;
-  const pole = race.results.find((r) => r.grid === 1) ?? null;
+  const pole = race.results.find((r) => r.grid === 1) ?? race.qualifying.find((r) => r.position === 1) ?? null;
   const fastest = race.results.find((r) => r.fastestLapRank === 1) ?? null;
   const teamOf = (constructorId: string) => ({ constructorId, name: lookups.teamName(constructorId), color: lookups.teamColor(constructorId) });
   return [

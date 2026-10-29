@@ -117,6 +117,8 @@ def session_payload(results: pd.DataFrame, laps: pd.DataFrame, weather: pd.DataF
         "drivers": drivers,
         "classification": classification,
         "laps": _laps_by_driver(laps),
+        "lapStarts": {str(driver_id): [_ms(row.get("lapStartS")) for _, row in group.sort_values("lapNumber").iterrows()]
+                      for driver_id, group in laps.groupby("driverId")},
         "stints": _stints(laps),
         "pitStops": _pit_stops(laps),
         "sectorBests": _sector_bests(laps),
@@ -177,6 +179,11 @@ def _grouped(frame: pd.DataFrame) -> dict:
 def _stale(path: Path, season: int, round_number: int, code: str) -> bool:
     """True when the JSON is missing or older than the session's raw meta.json."""
     if not path.exists():
+        return True
+    try:
+        if "lapStarts" not in json.loads(path.read_text(encoding="utf-8")):
+            return True
+    except (ValueError, OSError):
         return True
     meta_path = fastf1_root() / str(season) / f"{round_number:02d}_{code}" / "meta.json"
     if not meta_path.exists():

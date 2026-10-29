@@ -19,6 +19,7 @@ import type {
   TrackState,
   WeatherState,
 } from "@/lib/data/types";
+import { trackSampler } from "./track-motion";
 
 export type ConnectionState = "idle" | "connecting" | "loading" | "live" | "replay" | "ended" | "offline";
 
@@ -40,6 +41,7 @@ export interface PitStopEvent {
 }
 
 export interface LiveState {
+  seekRevision: number;
   connection: ConnectionState;
   source: LiveSource;
   mode: LiveMode | null;
@@ -73,6 +75,7 @@ export interface LiveState {
 }
 
 export type LiveAction =
+  | { type: "seek"; t: number }
   | { type: "message"; message: LiveMessage; receivedAt: number }
   | { type: "connection"; connection: ConnectionState; source?: LiveSource }
   | { type: "playback"; playback: Partial<PlaybackState> }
@@ -89,6 +92,7 @@ const CLOCK_CORRECTION_MS = 3000;
 
 export function initialLiveState(): LiveState {
   return {
+    seekRevision: 0,
     connection: "idle",
     source: null,
     mode: null,
@@ -123,6 +127,8 @@ export function initialLiveState(): LiveState {
 
 export function liveReducer(state: LiveState, action: LiveAction): LiveState {
   switch (action.type) {
+    case "seek":
+      return { ...state, seekRevision: state.seekRevision + 1, frames: [], frame: null, t: action.t, playback: { ...state.playback, t: action.t, ended: false } };
     case "reset":
       return initialLiveState();
     case "connection":
@@ -176,7 +182,7 @@ function applyMessage(state: LiveState, message: LiveMessage, receivedAt: number
       for (const car of message.cars) cars.set(car.number, car);
       const frame: CarFrame = { t: message.t, receivedAt, cars };
       const newest = state.frames.at(-1);
-      const frames = newest && newest.t < message.t ? [...state.frames, frame].slice(-MAX_FRAMES) : [frame];
+      const frames = newest && newest.t === message.t ? [...state.frames.slice(0, -1), frame] : newest && newest.t < message.t ? [...state.frames, frame].slice(-MAX_FRAMES) : [frame];
       return { ...state, frame, frames, positionsSource: message.source ?? state.positionsSource, t: Math.max(state.t, message.t) };
     }
     case "timing": {
@@ -289,7 +295,9 @@ function applyMessage(state: LiveState, message: LiveMessage, receivedAt: number
 export function createCarAnimator() {
   let renderT: number | null = null;
   let lastNow: number | null = null;
+  let revision = -1;
   return (state: LiveState, now: number, reducedMotion = false): LiveCar[] => {
+    if (revision !== state.seekRevision) { renderT = null; lastNow = null; revision = state.seekRevision; }
     const frames = state.frames;
     const newest = frames.at(-1);
     const elapsed = lastNow === null ? 0 : now - lastNow;
@@ -298,13 +306,15 @@ export function createCarAnimator() {
       renderT = newest?.t ?? null;
       return newest ? [...newest.cars.values()] : [];
     }
+    if (state.playback.paused) { renderT ??= newest.t; return carsAt(frames, Math.max(frames[0].t, Math.min(newest.t, renderT)), state.track); }
     const step = (newest.t - frames[0].t) / (frames.length - 1);
     const target = newest.t - step * PLAYOUT_FRAMES;
     const arrivalSpan = newest.receivedAt - frames[0].receivedAt;
-    const rate = state.playback.paused || arrivalSpan <= 0 ? 0 : (newest.t - frames[0].t) / arrivalSpan;
+    const rate = state.playback.paused ? 0 : state.mode === "replay" ? state.playback.speed : arrivalSpan <= 0 ? 0 : (newest.t - frames[0].t) / arrivalSpan;
     if (renderT === null || Math.abs(target - renderT) > step * 12) renderT = target;
     else renderT += elapsed * rate + (target - renderT) * Math.min(1, elapsed / CLOCK_CORRECTION_MS);
-    return carsAt(frames, renderT);
+    renderT = Math.max(frames[0].t, Math.min(newest.t, renderT));
+    return carsAt(frames, renderT, state.track);
   };
 }
 
@@ -340,7 +350,7 @@ function hasWeatherReadings(message: WeatherState): boolean {
   return readings.every((value) => typeof value === "number" && Number.isFinite(value));
 }
 
-function carsAt(frames: CarFrame[], t: number): LiveCar[] {
+function carsAt(frames: CarFrame[], t: number, track: LiveTrack | null): LiveCar[] {
   const nextIndex = frames.findIndex((f) => f.t > t);
   if (nextIndex === -1) return [...frames[frames.length - 1].cars.values()];
   if (nextIndex === 0) return [...frames[0].cars.values()];
@@ -355,7 +365,15 @@ function carsAt(frames: CarFrame[], t: number): LiveCar[] {
       out.push(car);
       continue;
     }
-    out.push({ ...car, x: from.x + (car.x - from.x) * alpha, y: from.y + (car.y - from.y) * alpha });
+    if (track && car.trackProgress !== undefined && from.trackProgress !== undefined) {
+      let delta = car.trackProgress - from.trackProgress;
+      if (delta < -0.5) delta += 1;
+      if (delta > 0.5) delta -= 1;
+      const progress = from.trackProgress + delta * alpha;
+      const offset = (from.trackOffset ?? 0) + ((car.trackOffset ?? 0) - (from.trackOffset ?? 0)) * alpha;
+      const [x, y] = trackSampler(track.outline).sample(progress, offset).point;
+      out.push({ ...car, x, y, trackProgress: progress, trackOffset: offset });
+    } else out.push({ ...car, x: from.x + (car.x - from.x) * alpha, y: from.y + (car.y - from.y) * alpha });
   }
   return out;
 }

@@ -3,6 +3,7 @@
 // real track outline.
 
 import type {
+  SessionReport,
   LiveCar,
   LiveCommand,
   LiveDriver,
@@ -16,6 +17,7 @@ import type {
   TrackState,
 } from "@/lib/data/types";
 import { formatLapTime } from "@/lib/format";
+import { gridPlacement, trackSampler } from "./track-motion";
 
 export interface ReplayDriver extends LiveDriver {
   driverId: string;
@@ -28,6 +30,7 @@ export interface ReplayDriver extends LiveDriver {
 export interface ReplayPayload {
   session: LiveSessionInfo & { totalLaps: number | null };
   track: LiveTrack;
+  report?: SessionReport;
   drivers: ReplayDriver[];
 }
 
@@ -39,6 +42,7 @@ export interface MockStreamOptions {
 }
 
 interface CarModel {
+  trackLength?: number;
   driver: ReplayDriver;
   lapEnds: number[];
   lapTimes: number[];
@@ -86,6 +90,7 @@ export class MockLiveStream {
     this.frameInterval = 1000 / (options.frameHz ?? 8);
     this.timingInterval = 1000 / (options.timingHz ?? 2);
     this.cars = payload.drivers.map(buildCarModel);
+    for (const car of this.cars) car.trackLength = trackSampler(payload.track.outline).length;
     this.endMs = Math.max(...this.cars.map((c) => c.lapEnds[c.lapEnds.length - 1] ?? 0)) + 20000;
   }
 
@@ -100,8 +105,8 @@ export class MockLiveStream {
       session: this.payload.session,
       track: this.payload.track,
       drivers: this.payload.drivers.map((d) => ({ number: d.number, code: d.code, name: d.name, team: d.team, teamColor: d.teamColor })),
-      sources: { timing: "fixture", positions: "fixture", positionsAvailable: true },
-      positionsSource: "fixture",
+      sources: { timing: "Race lap timing", positions: "Lap reconstruction", positionsAvailable: true },
+      positionsSource: "estimated",
       timeline: { start: -PRE_START_MS, end: this.endMs, green: 0 },
     });
     this.onMessage({ type: "weather", t: this.simT, ...this.weatherAt(0) });
@@ -172,8 +177,9 @@ export class MockLiveStream {
     const cars: LiveCar[] = [];
     for (const car of this.cars) {
       const progress = progressAt(car, this.simT);
-      const point = pointOnOutline(outline, progress.fraction);
-      cars.push({ number: car.driver.number, x: point[0], y: point[1], status: progress.status, speed: null });
+      const lateral = gridPlacement(car.driver.grid ?? 20, car.trackLength ?? 50000, this.simT).lateral;
+      const point = trackSampler(outline).sample(progress.fraction, lateral).point;
+      cars.push({ number: car.driver.number, x: point[0], y: point[1], status: progress.status, speed: null, trackProgress: progress.fraction, trackOffset: lateral });
     }
     this.onMessage({ type: "frame", t: this.simT, cars });
   }
@@ -391,7 +397,7 @@ function stintAt(car: CarModel, lap: number) {
 function progressAt(car: CarModel, t: number): Progress {
   const totalLaps = car.lapTimes.length;
   const finalEnd = car.lapEnds[totalLaps - 1] ?? 0;
-  const gridOffset = ((car.driver.grid ?? 20) - 1) * 0.0035;
+  const gridOffset = gridPlacement(car.driver.grid ?? 20, car.trackLength ?? 50000, t).offset;
   if (totalLaps === 0) return { lapsCompleted: 0, lapIndex: 0, fraction: 1 - gridOffset, distance: -gridOffset, status: "retired" };
   if (t < 0) return { lapsCompleted: 0, lapIndex: 0, fraction: 1 - gridOffset, distance: -gridOffset, status: "onTrack" };
   if (t >= finalEnd) {
@@ -440,16 +446,7 @@ function gapText(laps: number, lapTimeMs: number): string {
 }
 
 export function pointOnOutline(outline: [number, number][], fraction: number): [number, number] {
-  const n = outline.length;
-  if (n === 0) return [0, 0];
-  const f = ((fraction % 1) + 1) % 1;
-  const scaled = f * n;
-  const i = Math.floor(scaled) % n;
-  const j = (i + 1) % n;
-  const k = scaled - Math.floor(scaled);
-  const a = outline[i];
-  const b = outline[j];
-  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+  return trackSampler(outline).sample(fraction).point;
 }
 
 function seededNoise(seed: number): number {

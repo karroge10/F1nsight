@@ -21,9 +21,10 @@ const TEAM_KEYWORDS: [string, string][] = [
 ];
 
 /** Constructor id for a team name as the live feed spells it ("Red Bull Racing", "Kick Sauber"), or null. */
-export function constructorIdForTeam(team: string | null | undefined): string | null {
+export function constructorIdForTeam(team: string | null | undefined, season?: number | null): string | null {
   const name = (team ?? "").toLowerCase().replace(/_/g, " ").trim();
   if (!name) return null;
+  if (season !== null && season !== undefined && season >= 2026 && (name.includes("kick") || name.includes("sauber"))) return "audi";
   // 2024-25 feeds spell Racing Bulls as a bare "RB", which no keyword below can match
   if (name === "rb" || name.startsWith("rb ") || name.endsWith(" rb")) return "rb";
   for (const [keyword, id] of TEAM_KEYWORDS) {

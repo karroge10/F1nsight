@@ -94,8 +94,20 @@ short `data/raw/<source>/README.md` describing what was fetched, coverage and ga
 }
 ```
 
-Also `data/predictions/history/<season>-<round>.json`: the same shape as published before that
-race plus an `"actual"` block, so the site can show the model's track record.
+Also `data/predictions/history/<season>-<round>.json`: historical walk-forward backtests in the
+same shape plus an `"actual"` block. These are labelled as backtests and may be regenerated.
+
+Verified published forecasts are immutable snapshots under
+`data/published/<season>-<round>/<sha256>.json`, with the full forecast, its hash, first successful
+production verification time and workflow URL. The cloud state retains these separately from
+backtests. A new forecast includes `probabilitySources`: driver-id maps for the unpooled model,
+market (nullable), pooled target (nullable) and final published probabilities, plus `modelWeight`
+and `modelSimulationCount`. This preserves the exact distributions used in the publication.
+
+`data/reports/published-forecasts.json` and `.md` score the last verified pre-race snapshot at
+each stage against official results. Both generation and first verification must precede the
+race start. Missing snapshots are unavailable, never filled from a backtest. Aggregate model,
+market and published comparisons use the same races and report their sample count.
 
 ## Fantasy contract: data/predictions/fantasy.json (written by `f1ml.predict`)
 

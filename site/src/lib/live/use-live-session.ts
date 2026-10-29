@@ -8,10 +8,10 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { LiveCommand, LiveMessage } from "@/lib/data/types";
 import { LiveSocket, liveServiceWs, liveUrl, probeServiceOnce, replayUrl } from "./client";
 import { MockLiveStream, type ReplayPayload } from "./mock-stream";
+import { SessionReplayStream } from "./session-replay";
 import { initialLiveState, liveReducer, type LiveState } from "./reducer";
 import { clampToTimeline } from "./seek";
 
-const UNAVAILABLE = "Replays of this session are not available here yet";
 const LOAD_FAILED = "Could not load this replay, reload to try again";
 
 export interface ReplayTarget {
@@ -35,7 +35,7 @@ export interface LiveControls {
 export function useLiveSession({ replay, preferLive = true }: UseLiveSessionOptions): { state: LiveState; controls: LiveControls } {
   const [state, dispatch] = useReducer(liveReducer, undefined, initialLiveState);
   const socketRef = useRef<LiveSocket | null>(null);
-  const mockRef = useRef<MockLiveStream | null>(null);
+  const mockRef = useRef<MockLiveStream | SessionReplayStream | null>(null);
   const speedRef = useRef(1);
   const replayKey = replay ? `${replay.season}:${replay.round}:${replay.session}` : "";
 
@@ -81,18 +81,12 @@ export function useLiveSession({ replay, preferLive = true }: UseLiveSessionOpti
         return;
       }
 
-      if (replay.session !== "R") {
-        dispatch({ type: "error", message: UNAVAILABLE });
-        dispatch({ type: "connection", connection: "offline" });
-        return;
-      }
-
       try {
-        const response = await fetch(`/api/replay/${replay.season}/${replay.round}.json`);
+        const response = await fetch(`/api/replay/${replay.season}/${replay.round}${replay.session === "R" ? "" : `_${replay.session}`}.json`);
         if (!response.ok) throw new Error(LOAD_FAILED);
         const payload = (await response.json()) as ReplayPayload;
         if (cancelled) return;
-        const stream = new MockLiveStream(payload, { speed: speedRef.current, onMessage });
+        const stream = payload.report ? new SessionReplayStream(payload, { speed: speedRef.current, onMessage }) : new MockLiveStream(payload, { speed: speedRef.current, onMessage });
         mockRef.current = stream;
         dispatch({ type: "connection", connection: "replay", source: "mock" });
         stream.start();
@@ -141,8 +135,8 @@ export function useLiveSession({ replay, preferLive = true }: UseLiveSessionOpti
   const seek = useCallback(
     (t: number) => {
       const target = clampToTimeline(t, timeline);
+      dispatch({ type: "seek", t: target });
       send({ cmd: "seek", t: target });
-      dispatch({ type: "playback", playback: { t: target } });
     },
     [send, timeline],
   );

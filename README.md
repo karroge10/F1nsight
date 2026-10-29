@@ -92,6 +92,42 @@ A successfully recalculated forecast can still be published when an independent 
 fails; the workflow keeps its failed status and logs that source error. FastF1 sessions with
 neither laps nor results remain pending for a later retry instead of being marked complete.
 
+### Published forecasts and race reports
+
+Every deployment exports the exact forecast as `/forecast.json`. Before upload, the build is
+checked against the current forecast. After upload, the production JSON and the home page's
+race, stage, model and forecast timestamp must match before publication is marked complete.
+A failed verification leaves publication pending for the next cloud check.
+
+Verified snapshots are stored under `data/published/<season>-<round>/<sha256>.json`, separately
+from historical backtests. Each contains the full forecast, its hash, the first verification
+time and the workflow URL. New forecasts also retain the model's unpooled win probabilities,
+the market probabilities, the pooled target and the final simulated probabilities. The model
+distribution used for pooling is estimated with the pilot simulation count recorded in the
+snapshot. Without a market, it is the final model simulation distribution.
+
+`python cloud/forecast_records.py report` evaluates the last verified forecast at each stage
+published before the race start against the official results in `f1.sqlite`. Forecasts
+generated or first verified after the start are excluded. Snapshots without a known race start
+time remain archived but unscored. Missing historical snapshots and
+missing market data are reported as unavailable. It writes JSON and Markdown to `data/reports/`,
+adds the report to the Actions summary and retains a 90-day workflow artifact with both reports
+and published snapshots, including when the state upload fails. The site links
+to `/reports/published-forecasts.md`. Log loss, full-field Brier score and winner accuracy are
+compared across the same races for the model, market and published forecast.
+
+The `forecast-records` cloud state group retains snapshots and reports. Uploads merge immutable
+snapshots from the latest state under the state lock, so a manual publish cannot erase cloud
+snapshots. Historical backtests remain in the separate `backtest` group.
+
+Incomplete FastF1 loads stay pending. Missing laps or results are retried even after the
+partial-data timeout, including older exports incorrectly marked complete. Pending sessions
+trigger another full refresh every two hours, within the downloader's ten-day window.
+
+The recurring T3 check is separate from GitHub Actions: Actions performs collection, verification
+and reporting with this PC off; T3 reads the saved results and reports new weekend milestones
+in the chat. A registered task is not proof that a future chat notification was delivered.
+
 ### The retrain gate
 
 `ml/scripts/retrain_if_better.py`: rebuilds the FastF1 tables if stale, then features, trains a

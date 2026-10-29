@@ -6,7 +6,7 @@
 // Boost and (with a budget) Limitless sit on the rounds where they add most.
 
 import { useMemo, useState } from "react";
-import { hindsightPath, STARTING_COST_CAP, type HindsightPathRound, type HindsightRoundInput } from "@/lib/fantasy/hindsight";
+import { STARTING_COST_CAP, type HindsightPathRound } from "@/lib/fantasy/hindsight";
 import type { BacktestPick } from "@/lib/fantasy/backtest-data";
 import { RoundTable, type RoundTableRow } from "@/components/fantasy/round-table";
 import { Section } from "@/components/ui/section";
@@ -21,7 +21,7 @@ export interface HindsightLabels {
 
 interface HindsightViewProps {
   season: number;
-  inputs: HindsightRoundInput[];
+  paths: { free: HindsightPathRound[]; budget: HindsightPathRound[] };
   labels: HindsightLabels;
 }
 
@@ -35,10 +35,10 @@ const MODES: { key: Mode; label: string }[] = [
 const SEASON_INFO =
   "Best team of every round on the points actually scored, as if every round had unlimited free transfers. x3 Boost and Limitless go on their best rounds; Wildcard and Autopilot add nothing here. Not achievable, it shows the ceiling.";
 
-export function HindsightView({ season, inputs, labels }: HindsightViewProps) {
+export function HindsightView({ season, paths, labels }: HindsightViewProps) {
   const [mode, setMode] = useState<Mode>("budget");
-  const free = useMemo(() => hindsightPath(inputs, false), [inputs]);
-  const budget = useMemo(() => hindsightPath(inputs, true), [inputs]);
+  const free = paths.free;
+  const budget = paths.budget;
   const path = mode === "budget" ? budget : free;
   const rows = useMemo(() => tableRows(path, labels), [path, labels]);
   const freeTotal = sumBy(free, (r) => r.team.score);
@@ -49,16 +49,17 @@ export function HindsightView({ season, inputs, labels }: HindsightViewProps) {
     <>
       <Section title={`${season} best teams in hindsight`} icon={IconTrophy} info={SEASON_INFO} flush tight>
         <div className="grid gap-4">
-          <div role="tablist" aria-label="Budget" className="inline-flex h-8 w-fit items-stretch rounded-control border border-rule">
+          <div role="tablist" aria-label="Budget" className="fantasy-segmented w-fit">
             {MODES.map((m) => {
               const active = m.key === mode;
               return (
-                <button key={m.key} type="button" role="tab" aria-selected={active} onClick={() => setMode(m.key)} className={"press segment -my-px rounded-control px-3.5 text-ui " + (active ? "segment-on font-[600]" : "text-ink-2 hover:text-ink")}>
+                <button key={m.key} type="button" role="tab" aria-selected={active} onClick={() => setMode(m.key)} className={"fantasy-choice px-3.5 " + (active ? "font-[600]" : "text-ink-2 hover:text-ink")}>
                   {m.label}
                 </button>
               );
             })}
           </div>
+          <p className="text-caption text-ink-3">{mode === "free" ? "Only x3 Boost adds points with no budget cap. Limitless, Wildcard and Autopilot add nothing when every round already has unlimited transfers and perfect knowledge." : "Budget mode uses x3 Boost and Limitless on separate rounds. Chip timing is a greedy estimate, not a guaranteed optimal season strategy."}</p>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-float border border-rule p-4 sm:grid-cols-4">
             <Stat label="No budget" value={freeTotal.toFixed(0)} note="pts" testId="total-free" />
             <Stat label="Budget" value={budgetTotal.toFixed(0)} note={`pts from ${formatMoney(STARTING_COST_CAP)}`} testId="total-capped" />

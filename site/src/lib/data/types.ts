@@ -21,6 +21,7 @@ export interface RaceSummary {
   scheduledLaps: number | null;
   cancelled: boolean;
   url: string | null;
+  officialSources?: { race?: string; qualifying?: string };
   status: RaceStatus;
   hasResults: boolean;
 }
@@ -147,6 +148,7 @@ export interface SessionReport {
   drivers: SessionDriver[];
   classification: SessionClassificationRow[];
   laps: Record<string, SessionLap[]>;
+  lapStarts?: Record<string, (number | null)[]>;
   stints: SessionStint[];
   pitStops: { driverId: string; stop: number; lap: number | null; durationMs: number | null }[];
   sectorBests: { sector: number; driverId: string; ms: number | null }[];
@@ -380,6 +382,7 @@ export interface Prediction {
     version: string;
     trainedAt: string;
     notes: string;
+    market?: { source: string; event: string; fetchedAt: string; volume: number; modelWeight: number } | null;
     backtest: BacktestMetrics;
   };
   race: {
@@ -545,6 +548,8 @@ export interface LiveTimeline {
 export type CarStatus = "onTrack" | "offTrack" | "pit" | "stopped" | "retired" | "stale";
 
 export interface LiveCar {
+  trackProgress?: number;
+  trackOffset?: number;
   number: number;
   x: number;
   y: number;

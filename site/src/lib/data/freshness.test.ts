@@ -25,6 +25,30 @@ afterAll(() => {
 });
 
 describe("published data is picked up without a restart", () => {
+  it("does not compare a newer global leader against an older backtest total", async () => {
+    const fixtures = await import("./fixtures-source");
+    const before = fixtures.readFantasyBacktest();
+    const season = before!.seasons.at(-1)!;
+    const dir = path.join(dataDir, "serve");
+    fs.mkdirSync(dir, { recursive: true });
+    writeJson(path.join(dir, "fantasy_leader.json"), { season: season.season, round: 999, points: 5268, team: "Leader", source: "https://fantasy.formula1.com", sourceUpdatedAt: "2026-10-26T01:53:00Z" });
+    const after = fixtures.readFantasyBacktest()!.seasons.find((s) => s.season === season.season)!;
+    expect(after.leader?.points).toBe(5268);
+    expect(after.leader?.share).toBeNull();
+  });
+  it("discovers session reports independently of fastest-lap telemetry", async () => {
+    const dir = path.join(dataDir, "serve/sessions/2026");
+    fs.mkdirSync(dir, { recursive: true });
+    writeJson(path.join(dir, "17_FP1.json"), {});
+    writeJson(path.join(dir, "17_Q.json"), {});
+    writeJson(path.join(dir, "invalid.json"), {});
+    const fixtures = await import("./fixtures-source");
+    expect(fixtures.readSessionReportIndex()).toEqual([
+      { season: 2026, round: 17, code: "FP1" },
+      { season: 2026, round: 17, code: "Q" },
+    ]);
+  });
+
   it("re-reads f1.sqlite after the pipeline swaps in a new file", async () => {
     const serveDir = path.join(dataDir, "serve");
     fs.mkdirSync(serveDir, { recursive: true });

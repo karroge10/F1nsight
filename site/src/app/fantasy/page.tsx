@@ -3,7 +3,7 @@ import { getCalendar, getEntryList, getFantasyBacktest, getFantasyFile, getFanta
 import type { RaceSummary } from "@/lib/data/types";
 import { fantasyDeadline } from "@/lib/fantasy";
 import { recentRoundPoints } from "@/lib/fantasy/thresholds";
-import { hindsightInputs } from "@/lib/fantasy/hindsight";
+import { hindsightInputs, hindsightPath } from "@/lib/fantasy/hindsight";
 import { FantasyViews } from "@/components/fantasy/fantasy-views";
 import { FantasyPlanner } from "@/components/fantasy/fantasy-planner";
 import { BacktestView } from "@/components/fantasy/backtest-view";
@@ -53,7 +53,7 @@ async function hindsightPanel(rounds: NonNullable<RoundsData>, plannerSeason: nu
   const races = buildRaceLabels(calendar);
   const inputs = hindsightInputs(rounds, races);
   const labels = buildHindsightLabels(entries, constructorCode);
-  return <HindsightView season={rounds.season} inputs={inputs} labels={labels} />;
+  return <HindsightView season={rounds.season} paths={{ free: hindsightPath(inputs, false), budget: hindsightPath(inputs, true) }} labels={labels} />;
 }
 
 /** Shown when the per-round fantasy file has not been exported yet. */

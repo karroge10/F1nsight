@@ -63,6 +63,17 @@ def test_weekend_plan_for_singapore_2026():
     assert "F1nsight-refresh-FP2" not in runs
 
 
+def test_pending_archives_trigger_periodic_retry_without_another_session():
+    now = datetime(2026, 10, 24, 5, tzinfo=timezone.utc)
+    state = {"fastf1": {"pendingSessions": {"2026/18_FP2": "2026-10-23T23:00:00+00:00"},
+                        "lastAttempt": "2026-10-24T02:00:00+00:00"}}
+    assert weekend.pending_retry_due(state, now)
+    state["fastf1"]["lastAttempt"] = "2026-10-24T04:00:00+00:00"
+    assert not weekend.pending_retry_due(state, now)
+    state["fastf1"]["pendingSessions"] = {"2026/17_R": "2026-10-12T00:00:00+00:00"}
+    assert not weekend.pending_retry_due(state, now)
+
+
 def test_first_refresh_comes_after_incremental_counts_the_session_as_ended():
     for _, label, length in weekend.SESSIONS:
         code = {"Sprint": "S", "Quali": "Q", "Race": "R"}.get(label, label)
@@ -79,7 +90,7 @@ def test_incremental_waits_for_incomplete_archive_only_for_a_while():
     late = start + timedelta(hours=5)
     assert incremental._should_wait(ref, ["laps"], soon, accept_partial=False) is True
     assert incremental._should_wait(ref, ["weather"], soon, accept_partial=False) is False
-    assert incremental._should_wait(ref, ["laps"], late, accept_partial=False) is False
+    assert incremental._should_wait(ref, ["laps"], late, accept_partial=False) is True
     assert incremental._should_wait(ref, ["laps"], soon, accept_partial=True) is False
 
 
@@ -87,7 +98,7 @@ def test_refresh_step_selection():
     args = argparse.Namespace(only="fastf1,predict", skip=None)
     assert refresh._selected_steps(args) == ["fastf1", "predict"]
     args = argparse.Namespace(only=None, skip="openf1")
-    assert refresh._selected_steps(args) == ["history", "fantasy", "fastf1", "penalties", "weather", "predict"]
+    assert refresh._selected_steps(args) == ["history", "official_results", "fantasy", "fastf1", "penalties", "weather", "predict"]
     args = argparse.Namespace(only="penalties,predict", skip=None)
     assert refresh._selected_steps(args) == ["penalties", "predict"]
     with pytest.raises(SystemExit):

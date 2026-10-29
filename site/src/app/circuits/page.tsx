@@ -18,7 +18,7 @@ export default async function CircuitsPage() {
   const calendar = await getCalendar(season);
   const lookups = await getLookups();
   const currentIds = new Set(calendar.map((r) => r.circuitId));
-  const current = circuits.filter((c) => currentIds.has(c.circuitId)).sort((a, b) => (calendar.find((r) => r.circuitId === a.circuitId)?.round ?? 0) - (calendar.find((r) => r.circuitId === b.circuitId)?.round ?? 0));
+  const current = circuits.filter((c) => currentIds.has(c.circuitId)).sort((a, b) => (calendar.find((r) => r.circuitId === b.circuitId)?.round ?? 0) - (calendar.find((r) => r.circuitId === a.circuitId)?.round ?? 0));
   const past = circuits.filter((c) => !currentIds.has(c.circuitId)).sort((a, b) => b.raceCount - a.raceCount);
 
   return (

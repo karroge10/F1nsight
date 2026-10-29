@@ -101,7 +101,9 @@ export default async function CircuitPage({ params }: { params: Params }) {
               <SortableTable
                 className="data-table min-w-[480px]"
                 columns={RACE_COLUMNS}
-                rows={circuit.races.map((r) => ({
+                initialKey="season"
+                initialDir="desc"
+                rows={[...circuit.races].sort((a, b) => b.season - a.season || b.round - a.round).map((r) => ({
                   key: `${r.season}-${r.round}`,
                   values: {
                     season: r.season,

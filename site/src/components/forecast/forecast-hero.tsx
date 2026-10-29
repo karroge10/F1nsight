@@ -99,7 +99,15 @@ export function ForecastHero({ prediction, race, now, totalRounds, facts }: Fore
               <Info text={stage.detail} />
             </dd>
           </dl>
+          <p className="mt-3 text-ui text-ink-3">
+            Updated <time dateTime={prediction.generatedAt}>{new Date(prediction.generatedAt).toISOString().replace("T", " ").slice(0, 16)} UTC</time>
+            {prediction.race.inputsUsed.length ? ` · Includes ${prediction.race.inputsUsed.join(", ")}` : " · Before practice"}
+          </p>
 
+          <p className="mt-1 text-caption text-ink-3">
+            {prediction.model.market ? `Market-blended forecast: model weight ${Math.round(prediction.model.market.modelWeight * 100)}%, ${prediction.model.market.source} weight ${Math.round((1 - prediction.model.market.modelWeight) * 100)}%` : "Forecast source: model simulation"}
+            {prediction.model.market ? <Info text="These are configured weights in a logarithmic blend of model and market winner probabilities, not confidence scores. They were selected in an earlier historical experiment. Market information also adjusts the race simulation, including podium and points probabilities. Backtest results on the Model record page are reported separately." /> : null}
+          </p>
           <div className="mt-auto max-w-xl pt-8">
             <HeroCountdown schedule={schedule} builtAt={builtAt} />
           </div>

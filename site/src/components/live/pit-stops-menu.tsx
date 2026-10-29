@@ -59,7 +59,7 @@ export function PitStopsMenu({ stops, drivers, season, driver, onClearDriver }: 
 
 function PitRow({ stop, driver, season }: { stop: PitStopEvent; driver: LiveDriver | undefined; season: number | null }) {
   const color = driver?.teamColor ?? "#8A8F98";
-  const constructorId = constructorIdForTeam(driver?.team);
+  const constructorId = constructorIdForTeam(driver?.team, season);
   const lapText = stop.lap !== null ? `L${stop.lap}` : "";
   const durationText = stop.duration !== null ? `${stop.duration.toFixed(1)}s` : "";
   return (

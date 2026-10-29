@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DriverForecast, KeyFactor } from "@/lib/data";
 import { sessionName } from "./sessions";
-import { forecastStageText, paceInSeconds, predictedOrder, topWhyRows, whyRows } from "./forecast";
+import { factorCell, forecastStageText, paceInSeconds, predictedOrder, topWhyRows, whyRows } from "./forecast";
 
 describe("forecast helpers", () => {
   it("orders drivers by win chance, then podium, then points", () => {
@@ -87,5 +87,14 @@ describe("forecastStageText", () => {
   it("falls back to the pre-weekend label when nothing fed the forecast", () => {
     expect(forecastStageText("pre-weekend", []).label).toBe("Pre-weekend forecast");
     expect(forecastStageText("post-practice", []).label).toBe("Pre-weekend forecast");
+  });
+});
+
+describe("sortable forecast factors", () => {
+  it("sorts by raw values and preserves missing data", () => {
+    const driver = { keyFactors: KEY_FACTORS } as DriverForecast;
+    expect(factorCell(driver, "qualiGap", 90000)).toMatchObject({ value: 0.4178, text: "+0.421 s" });
+    expect(factorCell(driver, "teamGap", 90000).value).toBeNull();
+    expect(factorCell(driver, "recentFinish", null).value).toBe(3.27);
   });
 });

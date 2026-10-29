@@ -9,6 +9,11 @@ from f1p.fastf1 import telemetry_export
 from f1p.fastf1.common import SessionRef
 
 
+@pytest.fixture(autouse=True)
+def no_schedule_requests(monkeypatch):
+    monkeypatch.setattr(telemetry_export, "completed_sessions", lambda *args: [])
+
+
 def test_online_backfill_recovers_missing_export_without_parsed_cache(monkeypatch, tmp_path):
     now = datetime.now(timezone.utc)
     recent = SessionRef(2026, 17, "R", "Race", "Singapore Grand Prix", (now - timedelta(days=12)).isoformat())
@@ -163,3 +168,15 @@ def test_refresh_requests_online_telemetry_backfill(monkeypatch):
         "pipeline", "f1p.fastf1.telemetry_export", "--backfill-days", "14"
     )
 
+
+
+def test_backfill_discovers_completed_race_missing_from_saved_expected_file(monkeypatch, tmp_path):
+    ref = SessionRef(2026, 18, "R", "Race", "United States", (datetime.now(timezone.utc) - timedelta(days=2)).isoformat())
+    monkeypatch.setattr(telemetry_export, "TELEMETRY_DIR", tmp_path)
+    monkeypatch.setattr(telemetry_export, "read_expected", lambda season: [])
+    monkeypatch.setattr(telemetry_export, "completed_sessions", lambda *args: [ref])
+    monkeypatch.setattr(telemetry_export, "setup_online", Mock())
+    loader = Mock(return_value={"season": 2026, "round": 18, "code": "R", "eventName": "United States", "sessionName": "Race", "drivers": []})
+    monkeypatch.setattr(telemetry_export, "session_payload", loader)
+    assert telemetry_export.export([2026], ["R"], backfill_days=14)["written"] == 1
+    loader.assert_called_once_with(ref)

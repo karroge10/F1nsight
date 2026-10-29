@@ -94,12 +94,14 @@ function RacePanel({ spec, race, report, lookups, forecast, replayable }: Sessio
   return (
     <>
       <Section title={label} icon={iconFor(spec)} info={`${classified} classified of ${results.length} starters. Overtakes are on-track passes; stops leave out red flag stoppages.`} aside={<ReplayLink season={race.season} round={race.round} code={spec.code} prerendered={replayable} />}>
+        {isRace && race.officialSources?.race ? <p className="text-caption text-ink-3"><a href={race.officialSources.race} className="hover:text-ink underline underline-offset-2">Official race classification from Formula 1</a></p> : null}
+        {isRace && race.officialSources?.race && !report && !raceLaps ? <p className="mt-3 rounded-control border border-rule p-3 text-ui text-ink-2">Classification is available. Detailed timing has not arrived yet, so tyre strategy, lap charts, pit-stop analysis and session conditions are unavailable for this session.</p> : null}
         <SessionPodium entries={podium} season={season} label={`${label} podium`} />
         <div className="mt-8">
           <RaceAnalysisTiles analysis={analysis} lookups={lookups} season={season} />
         </div>
         <div className="mt-6">
-          <WeekendResultsTable results={results} analysis={analysis} lookups={lookups} season={season} compact={!isRace} />
+          <WeekendResultsTable results={results} analysis={analysis} lookups={lookups} season={season} compact={!isRace} forecast={isRace ? forecast?.drivers : undefined} />
         </div>
       </Section>
       {report && report.stints.length > 0 ? (
@@ -126,6 +128,7 @@ function QualifyingPanel({ spec, race, report, lookups, replayable }: SessionPan
   return (
     <>
       <Section title={label} icon={iconFor(spec)} info="Before grid penalties. The gap is to the fastest time of the part a driver went out in." aside={<ReplayLink season={race.season} round={race.round} code={spec.code} prerendered={replayable} />}>
+        {race.officialSources?.qualifying ? <p className="text-caption text-ink-3"><a href={race.officialSources.qualifying} className="hover:text-ink underline underline-offset-2">Official qualifying classification from Formula 1</a></p> : null}
         <SessionPodium entries={podium} season={race.season} label={`${label} top three`} />
         <div className="mt-6">{report ? <QualifyingReportTable report={report} lookups={lookups} /> : <QualifyingTable qualifying={history} lookups={lookups} season={race.season} />}</div>
       </Section>

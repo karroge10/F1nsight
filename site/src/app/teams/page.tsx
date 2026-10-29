@@ -26,10 +26,10 @@ export default async function TeamsPage() {
 
   return (
     <>
-      <PageIntro label="Teams" title={`${constructors.length} constructors since 1950`} dek={`${entries.constructors.length} on the ${season} grid.`} />
+      <PageIntro label="Teams" title={`${season} teams`} dek={`${entries.constructors.length} teams this season. Explore ${constructors.length} constructors in the archive below.`} />
       <Section title={`${season} constructors`} icon={IconGarage} flush>
         {/* one column read top to bottom, capped so the few columns stay close together */}
-        <div className="max-w-3xl">
+        <div className="w-full">
           <div className="scroll-x">
             <SortableTable className="data-table" columns={TEAM_COLUMNS} initialKey="pos" initialDir="asc"
               rows={current.map((c, i) => {

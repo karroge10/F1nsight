@@ -248,14 +248,14 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
             const on = i === teams.active;
             const score = on && projected !== null ? projected : teamScores[i];
             return (
-              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"press inline-flex min-h-11 items-center gap-2.5 rounded-control px-3.5 text-ui leading-none " + (on ? "selected-pill" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points" : "Empty team"}>
+              <button key={i} type="button" aria-pressed={on} onClick={() => switchTeam(i)} className={"fantasy-button gap-2.5 " + (on ? "selected-pill" : "bg-bg-raised text-ink-2 hover:text-ink")} title={team.drivers.some(Boolean) ? "Projected points" : "Empty team"}>
                 Team {i + 1}
                 {score === null ? null : <b className={"timing font-[650] " + (on ? "text-bg" : "text-ink")}>{fixed1(score)}</b>}
               </button>
             );
           })}
           {teams.teams.length < MAX_TEAMS ? (
-            <button type="button" onClick={newTeam} className="press inline-flex min-h-11 items-center rounded-control px-3.5 text-ui leading-none text-ink-3 shadow-[inset_0_0_0_1px_var(--rule-strong)] hover:text-ink">
+            <button type="button" onClick={newTeam} className="fantasy-button">
               + Add team
             </button>
           ) : null}
@@ -293,9 +293,9 @@ export function FantasyPlanner({ meta }: { meta: PlannerMeta }) {
 
           <div className="mt-4 grid border-t border-rule lg:grid-cols-[minmax(0,1fr)_22rem]">
             <section className="min-w-0 lg:border-e lg:border-rule lg:pe-6" aria-label="Optimiser views">
-              <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
+              <div className="fantasy-segmented my-3 w-fit">
                 {TABS.map((t) => (
-                  <button key={t.key} type="button" aria-pressed={tab === t.key} onClick={() => setTab(t.key)} className={"-mb-px border-b-2 px-3 pt-2.5 pb-2 text-ui font-[600] first:ps-0 " + (tab === t.key ? "border-accent text-ink" : "border-transparent text-ink-3 hover:text-ink")}>
+                  <button key={t.key} type="button" aria-pressed={tab === t.key} onClick={() => setTab(t.key)} className={"fantasy-choice px-3 " + (tab === t.key ? "selected-pill" : "text-ink-2 hover:text-ink")}>
                     {t.label}
                   </button>
                 ))}

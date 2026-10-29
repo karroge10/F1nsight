@@ -1,14 +1,18 @@
 import Link from "next/link";
+import { memo } from "react";
 import type { LiveReplaySession } from "@/lib/live/replay-sessions";
+import type { ReplayWeekend } from "@/lib/live/replay-list";
 import { formatDate } from "@/lib/format";
 import { Flag } from "@/components/ui/flag";
 
 interface SessionBrowserProps {
+  weekends: ReplayWeekend[];
   sessions: LiveReplaySession[];
   selected: { season: number; round: number; session: string } | null;
 }
 
 interface Weekend {
+  hasSprint?: boolean;
   key: string;
   season: number;
   round: number;
@@ -32,39 +36,42 @@ const INLINE_CHIPS = 2;
  * and the weekend's sessions as short chips in running order. Two columns on wide
  * screens, read down the left column first.
  */
-export function SessionBrowser({ sessions, selected }: SessionBrowserProps) {
-  const weekends = groupWeekends(sessions);
+export const SessionBrowser = memo(function SessionBrowser({ sessions, selected, weekends: calendar }: SessionBrowserProps) {
+  const weekends = groupWeekends(sessions, calendar);
   const seasons = new Set(weekends.map((w) => w.season));
   const showSeason = seasons.size > 1;
 
   return (
     <div>
       <p className="text-ui text-ink-3">
-        Pick a session to replay.
+        Choose a session to replay. Dimmed sessions have no replay data.
       </p>
-      <ul className="mt-3 gap-x-10 border-t border-rule lg:columns-2" aria-label="Replayable sessions">
+      <ul className="mt-3 gap-x-10 border-t border-rule " aria-label="Replayable sessions">
         {weekends.map((weekend) => (
           <WeekendRow key={weekend.key} weekend={weekend} selected={selected} showSeason={showSeason} />
         ))}
       </ul>
     </div>
   );
-}
+});
 
 function WeekendRow({ weekend, selected, showSeason }: { weekend: Weekend; selected: SessionBrowserProps["selected"]; showSeason: boolean }) {
   const isSelected = selected !== null && selected.season === weekend.season && selected.round === weekend.round;
   const roundText = showSeason ? `${weekend.season} R${weekend.round}` : `R${weekend.round}`;
   const dateText = formatDate(weekend.date);
+  const sprint = weekend.hasSprint || weekend.sessions.some((s) => s.session === "S" || s.session === "SQ");
+  const codes = sprint ? ["FP1", "SQ", "S", "Q", "R"] : ["FP1", "FP2", "FP3", "Q", "R"];
   return (
-    <li className={"grid min-h-11 break-inside-avoid items-center gap-x-3 gap-y-1.5 border-b border-rule py-1.5 " + GRID} style={{ "--round-w": showSeason ? "3.5rem" : "1.75rem" } as React.CSSProperties} data-weekend={weekend.key}>
+    <li className={"grid min-h-11 break-inside-avoid items-center gap-x-3 gap-y-1.5 border-b border-rule py-1.5 " + GRID} style={{ "--round-w": showSeason ? "4.5rem" : "1.75rem" } as React.CSSProperties} data-weekend={weekend.key}>
       <span className="timing text-caption text-ink-3">{roundText}</span>
       <span className="timing hidden text-caption text-ink-3 sm:block">{dateText}</span>
       <Flag of={weekend.country} size={18} />
-      <span className={"truncate text-ui " + (isSelected ? "font-[600] text-ink" : "text-ink")}>{weekend.raceName}</span>
-      <span className={"flex flex-wrap gap-1 sm:col-span-1 sm:justify-end " + (weekend.sessions.length > INLINE_CHIPS ? "col-span-full" : "justify-end")}>
-        {weekend.sessions.map((s) => (
-          <SessionChip key={s.session} session={s} active={isSelected && selected.session === s.session} />
-        ))}
+      <Link href={`/races/${weekend.season}/${weekend.round}`} className={"truncate text-ui hover:underline " + (isSelected ? "font-[600] text-ink" : "text-ink")}>{weekend.raceName}{weekend.sessions.length === 0 ? <span className="ml-2 text-caption text-ink-3">Replay unavailable</span> : null}</Link>
+      <span className={"flex flex-wrap gap-1 sm:col-span-1 sm:justify-end " + (codes.length > INLINE_CHIPS ? "col-span-full" : "justify-end")}>
+        {codes.map((code) => {
+          const session = weekend.sessions.find((s) => s.session === code);
+          return session ? <SessionChip key={code} session={session} active={isSelected && selected.session === code} /> : <span key={code} aria-disabled="true" title={`${code}: no replay recording available`} className="timing inline-flex h-11 min-w-9 items-center justify-center rounded-control border border-rule px-1.5 text-caption text-ink-3 opacity-40 sm:h-8">{code}</span>;
+        })}
       </span>
     </li>
   );
@@ -86,12 +93,13 @@ function SessionChip({ session, active }: { session: LiveReplaySession; active: 
   );
 }
 
-function groupWeekends(sessions: LiveReplaySession[]): Weekend[] {
+function groupWeekends(sessions: LiveReplaySession[], calendar: ReplayWeekend[]): Weekend[] {
   const byKey = new Map<string, Weekend>();
+  for (const race of calendar) { const key = `${race.season}-${race.round}`; byKey.set(key, { ...race, key, sessions: [] }); }
   for (const s of sessions) {
     const key = `${s.season}-${s.round}`;
     const weekend = byKey.get(key) ?? { key, season: s.season, round: s.round, raceName: s.raceName, country: s.country, date: s.date, sessions: [] };
-    weekend.sessions.push(s);
+    if (!weekend.sessions.some((existing) => existing.session === s.session)) weekend.sessions.push(s);
     if (s.date > weekend.date) weekend.date = s.date;
     if (!weekend.country) weekend.country = s.country;
     byKey.set(key, weekend);

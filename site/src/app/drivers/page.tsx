@@ -5,6 +5,7 @@ import type { Driver, Lookups } from "@/lib/data";
 import { PageIntro } from "@/components/ui/page-intro";
 import { Section } from "@/components/ui/section";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { Flag } from "@/components/ui/flag";
 import { TeamName } from "@/components/ui/team-name";
 import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { EntityIndex, type IndexRow } from "@/components/stats/entity-index";
@@ -20,16 +21,17 @@ export default async function DriversPage() {
   const standings = await getStandings(season);
   const drivers = await getDrivers();
   const lookups = await getLookups();
+  const driverById = new Map(drivers.map((driver) => [driver.driverId, driver]));
   const standingById = new Map((standings?.drivers.list ?? []).map((s) => [s.id, s]));
   const grid = [...entries.drivers].sort((a, b) => (standingById.get(a.driverId)?.position ?? 99) - (standingById.get(b.driverId)?.position ?? 99));
   const rows: IndexRow[] = drivers.map((d) => indexRow(d, lookups));
 
   return (
     <>
-      <PageIntro label="Drivers" title={`${drivers.length} drivers since 1950`} dek={`${entries.drivers.length} on the ${season} grid.`} />
+      <PageIntro label="Drivers" title={`${season} drivers`} dek={`${entries.drivers.length} drivers this season. Explore ${drivers.length} drivers in the archive below.`} />
       <Section title={`${season} grid`} icon={IconHelmet} flush>
         {/* one column read top to bottom, capped so the few columns stay close together */}
-        <div className="max-w-3xl">
+        <div className="w-full">
           <div className="scroll-x">
             <SortableTable className="data-table" columns={GRID_COLUMNS} initialKey="pos" initialDir="asc"
               rows={grid.map((d, i) => {
@@ -42,6 +44,7 @@ export default async function DriversPage() {
                         <Link href={`/drivers/${d.driverId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
                           {/* on phones the team column is hidden, so the logo moves in front of the name */}
                           <TeamLogo constructorId={d.constructorId} name={d.team} color={d.teamColor} size={18} season={season} className="sm:hidden" />
+                          <Flag of={driverById.get(d.driverId)?.nationality} fallback={driverById.get(d.driverId)?.countryCode} size={18} />
                           <span className="font-[550]">{d.name}</span>
                         </Link>
                       </td>

@@ -176,6 +176,10 @@ jobs:
           python3 cloud/publication.py start
           python3 cloud/state.py push --groups publication
 
+      - name: Evaluate published forecasts
+        if: steps.gate.outputs.run == 'true'
+        run: python3 cloud/forecast_records.py report
+
       - name: Build site
         id: build
         # The outcome check matters: when the gate skips Refresh, its empty code compares equal
@@ -186,8 +190,10 @@ jobs:
         env:
           NODE_OPTIONS: --disable-warning=ExperimentalWarning
         run: |
+          python3 ../cloud/forecast_records.py prepare
           npm run build
           node scripts/check-export.mjs
+          python3 ../cloud/forecast_records.py check-build
 
       - name: Upload to Cloudflare Pages
         id: deploy
@@ -198,15 +204,20 @@ jobs:
         # From the repo root: inside site/ wrangler detects Next.js and rewrites the project.
         run: site/node_modules/.bin/wrangler pages deploy site/out --project-name f1nsight --branch main --commit-dirty=true
 
+      - name: Verify live forecast and archive publication
+        id: verify
+        if: steps.deploy.outcome == 'success'
+        run: python3 cloud/forecast_records.py verify --url https://f1nsight.pages.dev
+
       - name: Push state
         if: always() && (steps.refresh.outcome == 'success' || steps.publication.outcome == 'success')
         env:
-          DEPLOYED: ${{ steps.deploy.outcome }}
+          VERIFIED: ${{ steps.verify.outcome }}
           PUSH_EVENT: ${{ github.event_name == 'push' }}
         run: |
-          if [ "$DEPLOYED" = "success" ]; then python3 cloud/publication.py finish; fi
+          if [ "$VERIFIED" = "success" ]; then python3 cloud/publication.py finish; fi
           if [ "$PUSH_EVENT" = "true" ]; then
-            python3 cloud/state.py push --groups publication
+            python3 cloud/state.py push --groups publication,forecast-records
           else
             python3 cloud/state.py push --skip model,backtest
           fi
@@ -229,6 +240,16 @@ jobs:
           name: refresh-logs-${{ github.run_id }}
           path: logs/
           retention-days: 14
+
+      - name: Keep forecast evaluation
+        if: always() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-forecasts-${{ github.run_id }}
+          path: |
+            data/reports/
+            data/published/
+          retention-days: 90
 
       - name: Result
         if: steps.gate.outputs.run == 'true' && github.event_name != 'push'

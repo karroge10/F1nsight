@@ -15,5 +15,6 @@ export default async function LivePage() {
   const season = await getCurrentSeason();
   const calendar = await getCalendar(season);
   const raceNames = Object.fromEntries(calendar.map((r) => [`${r.season}-${r.round}`, r.raceName]));
-  return <LivePageBody sessions={sessions} next={next} raceNames={raceNames} />;
+  const weekends = calendar.filter(r => r.status === "completed" && !r.cancelled).map(r => ({ season: r.season, round: r.round, raceName: r.raceName, country: r.country, date: r.date, hasSprint: r.hasSprint }));
+  return <LivePageBody sessions={sessions} next={next} raceNames={raceNames} weekends={weekends} />;
 }

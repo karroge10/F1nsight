@@ -33,6 +33,9 @@ async function buildPayload(): Promise<ReplayPayload> {
 }
 
 describe("mock live stream", () => {
+  it("moves by physical distance rather than the number of outline vertices", () => {
+    expect(pointOnOutline([[0, 0], [1, 0], [100, 0], [100, 100], [0, 100]], 0.25)).toEqual([100, 0]);
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     vi.spyOn(performance, "now").mockImplementation(() => Date.now());

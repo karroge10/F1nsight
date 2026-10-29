@@ -100,6 +100,8 @@ def print_due(now: datetime) -> int:
     checked = cloud.get("checkedThrough")
     since = datetime.fromisoformat(checked) if checked else now - FIRST_CHECK_LOOKBACK
     due = due_runs(since, now)
+    if pending_retry_due(state, now):
+        due.append(_task(f"{TASK_PREFIX}pending-data", now, "retry incomplete FastF1 archives"))
     force = any(task["name"] == f"{TASK_PREFIX}weekly" for task in due)
     news_only = bool(due) and all(task["name"] == NEWS_TASK for task in due)
     if due:
@@ -110,6 +112,17 @@ def print_due(now: datetime) -> int:
                "newsOnly": news_only}
     print(json.dumps(payload))
     return 0
+
+
+def pending_retry_due(state, now):
+    fastf1 = state.get("fastf1", {})
+    pending = fastf1.get("pendingSessions", {})
+    recent = [key for key, first_seen in pending.items()
+              if datetime.fromisoformat(first_seen) > now - timedelta(days=10)]
+    if not recent:
+        return False
+    attempted = fastf1.get("lastAttempt") or fastf1.get("lastSuccess")
+    return attempted is None or now - datetime.fromisoformat(attempted) >= NEWS_EVERY
 
 
 def due_runs(since: datetime, now: datetime) -> list[dict]:

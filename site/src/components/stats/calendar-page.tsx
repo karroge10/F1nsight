@@ -1,16 +1,27 @@
 import Link from "next/link";
-import { getCalendar, getLookups, getRace, getSeasons } from "@/lib/data";
+import { getCalendar, getLookups, getNextRacePrediction, getPredictionHistory, getRace, getSeasons } from "@/lib/data";
+import { buildBacktestRecord } from "@/lib/model-record";
 import { formatDate } from "@/lib/format";
 import { PageIntro } from "@/components/ui/page-intro";
 import { Flag } from "@/components/ui/flag";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { SeasonPicker } from "./season-picker";
+import { CalendarPrediction } from "./race-prediction";
 
 export async function CalendarPageContent({ season }: { season: number }) {
   const calendar = await getCalendar(season);
   const seasons = await getSeasons();
   const lookups = await getLookups();
+  const history = await getPredictionHistory();
+  const nextForecast = await getNextRacePrediction();
+  const predictionRows = buildBacktestRecord(history).rows.filter((row) => row.season === season);
+  const predictions = new Map<number, (typeof predictionRows)[number]>();
+  const stagePriority: Record<string, number> = { "pre-weekend": 0, "post-practice": 1, "post-qualifying": 2 };
+  for (const row of predictionRows) {
+    const current = predictions.get(row.round);
+    if (!current || (stagePriority[row.stage] ?? -1) > (stagePriority[current.stage] ?? -1)) predictions.set(row.round, row);
+  }
   const winners = new Map<number, { driverId: string; constructorId: string } | null>();
   const poles = new Map<number, { driverId: string; constructorId: string } | null>();
   for (const race of calendar) {
@@ -36,14 +47,19 @@ export async function CalendarPageContent({ season }: { season: number }) {
         aside={<SeasonPicker seasons={seasons.map((s) => s.season)} current={season} hrefFor={(s) => `/races/${s}`} />}
       />
       <div className="mx-auto mt-6 max-w-[1440px] px-4 sm:px-6">
+        <p className="mb-4 max-w-3xl text-caption text-ink-3">Grand Prix race predictions only. Historical rows are retrospective backtests: green names picked the race winner, red names did not. Open a race to compare its forecast with the results.</p>
         <div className="scroll-x">
-          <SortableTable className="data-table min-w-[640px]" columns={CALENDAR_COLUMNS} initialKey="round" initialDir="asc"
+          <SortableTable className="data-table min-w-[640px]" columns={CALENDAR_COLUMNS} initialKey="round" initialDir="desc"
             rows={calendar.map((race) => {
                 const winner = winners.get(race.round) ?? null;
                 const pole = poles.get(race.round) ?? null;
+                const prediction = predictions.get(race.round) ?? null;
+                const upcomingForecast = race.status === "next" && nextForecast.race.season === season && nextForecast.race.round === race.round
+                  ? [...nextForecast.drivers].sort((a, b) => b.pWin - a.pWin || a.expectedPosition - b.expectedPosition)[0] ?? null
+                  : null;
                 const dateText = formatDate(race.date, { day: "numeric", month: "short" });
                 const isNext = race.status === "next";
-                const values = { round: race.round, name: race.raceName, circuit: race.circuitName, winner: winner ? lookups.driverName(winner.driverId) : null, pole: pole ? lookups.driverName(pole.driverId) : null };
+                const values = { round: race.round, name: race.raceName, circuit: race.circuitName, winner: winner ? lookups.driverName(winner.driverId) : null, prediction: prediction?.predictedWinner.name ?? null, accuracy: prediction?.exactPositionAccuracy ?? null, pole: pole ? lookups.driverName(pole.driverId) : null };
                 const tr = (
                   <tr className={race.status === "upcoming" ? "text-ink-3" : ""}>
                     <td className="num text-ink-2">{race.round}</td>
@@ -72,6 +88,7 @@ export async function CalendarPageContent({ season }: { season: number }) {
                         </Link>
                       ) : null}
                     </td>
+                    <td><CalendarPrediction record={prediction} forecast={upcomingForecast} /></td>
                     <td className="hidden text-ink-2 lg:table-cell">
                       {pole ? (
                         <span className="flex items-center gap-2">
@@ -98,6 +115,7 @@ const CALENDAR_COLUMNS: SortColumn[] = [
   { key: "circuit", label: "Circuit", firstDir: "asc", className: "hidden md:table-cell" },
   { label: "Date" },
   { key: "winner", label: "Winner", firstDir: "asc" },
+  { key: "prediction", label: "Race win prediction", firstDir: "asc", className: "min-w-[170px]" },
   { key: "pole", label: "Pole", firstDir: "asc", className: "hidden lg:table-cell" },
   { label: "Format", className: "hidden sm:table-cell" },
 ];

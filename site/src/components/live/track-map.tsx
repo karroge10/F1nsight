@@ -13,6 +13,10 @@ const MIN_CORNER_PX = 9;
 
 interface TrackMapProps {
   state: LiveState;
+  showLabels?: boolean;
+  showCorners?: boolean;
+  zoom?: number;
+  mode?: "overview" | "helicopter";
   /** Car to emphasise: full opacity, bigger dot, label always on; every other car fades. */
   highlight?: number | null;
   onHover?: (number: number | null) => void;
@@ -25,8 +29,12 @@ interface TrackMapProps {
  * SVG track outline with one dot per car, moved imperatively on requestAnimationFrame. The
  * highlight props are optional: without them the map is static decoration and ignores the pointer.
  */
-export function TrackMap({ state, highlight = null, onHover, onSelect, className = "h-auto w-full" }: TrackMapProps) {
+export function TrackMap({ state, mode = "overview", highlight = null, onHover, onSelect, showLabels = true, showCorners = true, zoom = 1, className = "h-auto w-full" }: TrackMapProps) {
   const projected = useMemo(() => (state.track && state.track.outline.length > 2 ? projectTrack(state.track) : null), [state.track]);
+  const modeRef = useRef(mode);
+  const displayRef = useRef({ showLabels, zoom });
+  useEffect(() => { displayRef.current = { showLabels, zoom }; }, [showLabels, zoom]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
   const stateRef = useRef(state);
   const carRefs = useRef(new Map<number, SVGGElement>());
   useEffect(() => {
@@ -44,10 +52,16 @@ export function TrackMap({ state, highlight = null, onHover, onSelect, className
   const positionsAvailable = state.sources?.positionsAvailable ?? true;
   const estimated = state.positionsSource === "estimated";
   const svgRef = useRef<SVGSVGElement>(null);
-  const unitsPerPx = useUnitsPerPx(svgRef, projected?.viewBox ?? null);
-  const fontSize = projected ? Math.max(11 * projected.scale, MIN_LABEL_PX * unitsPerPx) : 0;
-  const r = projected ? Math.max(11 * projected.scale, MIN_DOT_PX * unitsPerPx) : 0;
-  const cornerSize = projected ? Math.max(9 * projected.scale, MIN_CORNER_PX * unitsPerPx) : 0;
+  const sizeViewBox = useMemo(() => {
+    if (!projected || mode === "overview") return projected?.viewBox ?? null;
+    const [, , width, height] = projected.viewBox.split(" ").map(Number);
+    const zoomWidth = Math.max(width, height) * 0.32;
+    return `0 0 ${zoomWidth} ${zoomWidth * 0.85}`;
+  }, [projected, mode]);
+  const unitsPerPx = useUnitsPerPx(svgRef, sizeViewBox);
+  const fontSize = projected ? Math.max(11 * projected.scale * (mode === "helicopter" ? 0.15 : 1), MIN_LABEL_PX * unitsPerPx) : 0;
+  const r = projected ? Math.max(11 * projected.scale * (mode === "helicopter" ? 0.1 : 1), MIN_DOT_PX * unitsPerPx) : 0;
+  const cornerSize = projected ? Math.max(9 * projected.scale * (mode === "helicopter" ? 0.15 : 1), MIN_CORNER_PX * unitsPerPx) : 0;
   const sizeRef = useRef({ r, fontSize });
   useEffect(() => {
     sizeRef.current = { r, fontSize };
@@ -71,6 +85,20 @@ export function TrackMap({ state, highlight = null, onHover, onSelect, className
       const labelH = labelSize * 1.3;
       const shown: { x1: number; x2: number; y: number }[] = [];
       const hl = highlightRef.current;
+      const svg = svgRef.current;
+      if (svg) {
+        const target = hl !== null ? positions.find((car) => car.number === hl) : stateRef.current.timing.map((row) => positions.find((car) => car.number === row.number)).find(Boolean);
+        if (modeRef.current === "helicopter" && target) {
+          const [, , fullWidth, fullHeight] = projected.viewBox.split(" ").map(Number);
+          const width = Math.max(fullWidth, fullHeight) * 0.32;
+          const height = width * 0.85;
+          svg.setAttribute("viewBox", `${target.px - width / 2} ${target.py - height / 2} ${width} ${height}`);
+        } else {
+          const [x, y, width, height] = projected.viewBox.split(" ").map(Number);
+          const factor = displayRef.current.zoom;
+          svg.setAttribute("viewBox", `${x + width * (1 - 1 / factor) / 2} ${y + height * (1 - 1 / factor) / 2} ${width / factor} ${height / factor}`);
+        }
+      }
       // The highlighted car claims label space first, then cars on track; dimmed cars in the
       // pit lane only label what is left.
       const order = [...cars.keys()].sort((a, b) => labelRank(cars[a], hl) - labelRank(cars[b], hl));
@@ -87,7 +115,7 @@ export function TrackMap({ state, highlight = null, onHover, onSelect, className
         const labelOverlap = shown.some((b) => b.x1 < box.x2 && b.x2 > box.x1 && Math.abs(b.y - py) < labelH);
         const crowded = !lit && (dotUnderLabel || labelOverlap);
         const label = g.querySelector("text");
-        if (label) label.style.visibility = crowded ? "hidden" : "visible";
+        if (label) label.style.visibility = crowded || !displayRef.current.showLabels ? "hidden" : "visible";
         if (!crowded) shown.push(box);
         const dot = g.querySelector("circle");
         if (dot) dot.setAttribute("r", (lit ? dotR * 1.4 : dotR).toFixed(2));
@@ -113,17 +141,18 @@ export function TrackMap({ state, highlight = null, onHover, onSelect, className
 
   return (
     <div className="relative">
-      <svg ref={svgRef} viewBox={projected.viewBox} className={className} role="img" aria-label="Track map with car positions">
+      <svg ref={svgRef} viewBox={projected.viewBox} className={className} role="img" aria-label={mode === "helicopter" ? "Helicopter view following the selected car or leader" : "Track map with car positions"} style={mode === "helicopter" ? { background: "var(--bg-raised)" } : undefined}>
+        {mode === "helicopter" ? <path d={projected.path} fill="none" stroke="var(--rule-strong)" strokeWidth={28 * projected.scale} strokeLinejoin="round" strokeLinecap="round" /> : null}
         <path d={projected.path} fill="none" stroke="color-mix(in oklch, var(--ink-3) 60%, var(--bg-sunken))" strokeWidth={10 * projected.scale} strokeLinejoin="round" strokeLinecap="round" />
-        <path d={projected.path} fill="none" stroke="var(--bg)" strokeWidth={4 * projected.scale} strokeLinejoin="round" strokeLinecap="round" />
+        <path d={projected.path} fill="none" stroke="var(--sector-green)" strokeOpacity={0.8} strokeWidth={4 * projected.scale} strokeLinejoin="round" strokeLinecap="round" />
         {projected.sectorMarks.map((s) => (
           <circle key={`s${s.number}`} cx={s.x} cy={s.y} r={3.5 * projected.scale} fill="var(--bg)" stroke="var(--ink-3)" strokeWidth={1.5 * projected.scale} />
         ))}
-        {projected.corners.map((c) => (
+        {showCorners ? projected.corners.map((c) => (
           <text key={`c${c.number}`} x={c.x} y={c.y} fontSize={cornerSize} textAnchor="middle" dy="0.35em" fill="var(--ink-3)" fontFamily="var(--font-sans)">
             {c.number}
           </text>
-        ))}
+        )) : null}
         <rect x={projected.finish[0] - 2 * projected.scale} y={projected.finish[1] - 9 * projected.scale} width={4 * projected.scale} height={18 * projected.scale} fill="var(--ink)" />
         {positionsAvailable
           ? drivers.map((d) => <CarDot key={d.number} driver={d} r={r} fontSize={fontSize} register={registerCar} onHover={onHover} onSelect={onSelect} />)
@@ -196,9 +225,9 @@ function useUnitsPerPx(svgRef: React.RefObject<SVGSVGElement | null>, viewBox: s
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg || !viewBox) return;
-    const viewWidth = Number(viewBox.split(" ")[2]);
+    const [, , viewWidth, viewHeight] = viewBox.split(" ").map(Number);
     const measure = () => {
-      if (svg.clientWidth > 0) setUnitsPerPx(viewWidth / svg.clientWidth);
+      if (svg.clientWidth > 0 && svg.clientHeight > 0) setUnitsPerPx(Math.max(viewWidth / svg.clientWidth, viewHeight / svg.clientHeight));
     };
     measure();
     const observer = new ResizeObserver(measure);

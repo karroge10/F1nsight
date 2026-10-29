@@ -89,26 +89,61 @@ export const STARTING_COST_CAP = 100;
 
 /** Best team under the budget, Boost on the team's top scoring driver. Null when no legal team exists. */
 export function bestTeam(assets: HindsightAsset[], rules: HindsightRules = DEFAULT_HINDSIGHT_RULES): HindsightTeam | null {
+  return createTeamSolver()(assets, rules);
+}
+
+function createTeamSolver(): (assets: HindsightAsset[], rules: HindsightRules) => HindsightTeam | null {
+  const preparedByAssets = new WeakMap<HindsightAsset[], PreparedTeamOptions>();
+  return (assets, rules) => {
+    let prepared = preparedByAssets.get(assets);
+    if (!prepared) {
+      prepared = prepareTeamOptions(assets, rules);
+      preparedByAssets.set(assets, prepared);
+    }
+    return bestPreparedTeam(prepared, rules);
+  };
+}
+
+interface DriverOption {
+  combo: HindsightAsset[];
+  cost: number;
+  score: number;
+  top: HindsightAsset;
+  second: HindsightAsset;
+}
+
+interface PreparedTeamOptions {
+  drivers: DriverOption[];
+  pairs: PairOption[];
+}
+
+function prepareTeamOptions(assets: HindsightAsset[], rules: HindsightRules): PreparedTeamOptions {
   const drivers = assets.filter((a) => a.kind === "driver").sort((a, b) => a.price - b.price);
-  const pairs = constructorOptions(assets, rules);
+  const driverOptions = combinations(drivers, rules.drivers).map((combo) => {
+    const [top, second] = topTwo(combo);
+    return { combo, cost: sumBy(combo, (d) => d.price), score: sumBy(combo, (d) => d.score), top, second };
+  });
+  return { drivers: driverOptions, pairs: constructorOptions(assets, rules) };
+}
+
+function bestPreparedTeam(prepared: PreparedTeamOptions, rules: HindsightRules): HindsightTeam | null {
+  const { drivers, pairs } = prepared;
   if (pairs.length === 0) return null;
   const extra = rules.boostMultiplier - 1;
   let best: HindsightTeam | null = null;
-  for (const combo of combinations(drivers, rules.drivers)) {
-    const cost = sumBy(combo, (d) => d.price);
-    const remaining = rules.budget - cost;
+  for (const option of drivers) {
+    const remaining = rules.budget - option.cost;
     const index = lastIndexWithin(pairs, remaining);
     if (index < 0) continue;
-    const [top, second] = topTwo(combo);
-    const boostExtra = rules.extraBoost ? top.score + second.score : 0;
-    const driverScore = sumBy(combo, (d) => d.score) + extra * top.score + boostExtra;
+    const boostExtra = rules.extraBoost ? option.top.score + option.second.score : 0;
+    const driverScore = option.score + extra * option.top.score + boostExtra;
     const pair = pairs[index].bestUpToHere;
     const total = driverScore + pair.score;
     if (best && total <= best.score) continue;
-    const teamCost = round1(cost + pair.cost);
-    const boost = rules.extraBoost ? second.id : top.id;
-    const extraBoost = rules.extraBoost ? top.id : null;
-    best = { drivers: combo.map((d) => d.id), constructors: pair.ids, boost, extraBoost, cost: teamCost, score: total };
+    const teamCost = round1(option.cost + pair.cost);
+    const boost = rules.extraBoost ? option.second.id : option.top.id;
+    const extraBoost = rules.extraBoost ? option.top.id : null;
+    best = { drivers: option.combo.map((d) => d.id), constructors: pair.ids, boost, extraBoost, cost: teamCost, score: total };
   }
   return best;
 }
@@ -129,21 +164,23 @@ export function hindsightInputs(file: FantasyRoundsFile, races: Record<number, R
 
 /** A season of fresh best teams, with or without a budget, x3 Boost and Limitless on their best rounds. */
 export function hindsightPath(inputs: HindsightRoundInput[], budgeted: boolean, rules: HindsightRules = DEFAULT_HINDSIGHT_RULES): HindsightPathRound[] {
+  const solve = createTeamSolver();
   const noChips: ChipPlan = new Map();
-  const plain = playPath(inputs, budgeted, noChips, rules);
-  const chips = chooseChips(inputs, plain, budgeted, rules);
-  return playPath(inputs, budgeted, chips, rules);
+  const plain = playPath(inputs, budgeted, noChips, rules, solve);
+  const chips = chooseChips(inputs, plain, budgeted, rules, solve);
+  return playPath(inputs, budgeted, chips, rules, solve);
 }
 
 /** Best team without a price limit and within `budget` for every round, oldest first. */
 export function hindsightSeason(inputs: HindsightRoundInput[], budget: number, rules: HindsightRules = DEFAULT_HINDSIGHT_RULES): HindsightRound[] {
   const freeRules = { ...rules, budget: Number.POSITIVE_INFINITY };
   const cappedRules = { ...rules, budget };
+  const solve = createTeamSolver();
   const out: HindsightRound[] = [];
   for (const input of inputs) {
-    const free = bestTeam(input.assets, freeRules);
+    const free = solve(input.assets, freeRules);
     if (!free) continue;
-    const capped = bestTeam(input.assets, cappedRules);
+    const capped = solve(input.assets, cappedRules);
     out.push({ round: input.round, raceName: input.raceName, free, capped });
   }
   return out;
@@ -197,14 +234,14 @@ type ChipPlan = Map<number, "extraBoost" | "limitless">;
 
 /** Plays the season round by round. The Cost Cap after a round is the money left plus the held
  * team at its new prices; it stays put after Limitless, whose team is handed back. */
-function playPath(inputs: HindsightRoundInput[], budgeted: boolean, chips: ChipPlan, rules: HindsightRules): HindsightPathRound[] {
+function playPath(inputs: HindsightRoundInput[], budgeted: boolean, chips: ChipPlan, rules: HindsightRules, solve: (assets: HindsightAsset[], rules: HindsightRules) => HindsightTeam | null): HindsightPathRound[] {
   const out: HindsightPathRound[] = [];
   let cap = STARTING_COST_CAP;
   for (const input of inputs) {
     const chip = chips.get(input.round) ?? null;
     const capped = budgeted && chip !== "limitless";
     const budget = capped ? cap : Number.POSITIVE_INFINITY;
-    const team = bestTeam(input.assets, { ...rules, budget, extraBoost: chip === "extraBoost" });
+    const team = solve(input.assets, { ...rules, budget, extraBoost: chip === "extraBoost" });
     if (!team) continue;
     const left = capped ? round1(cap - team.cost) : null;
     out.push({ round: input.round, raceName: input.raceName, raceCode: input.raceCode, country: input.country, team, chip, costCap: budgeted ? round1(cap) : null, left });
@@ -214,16 +251,16 @@ function playPath(inputs: HindsightRoundInput[], budgeted: boolean, chips: ChipP
 }
 
 /** x3 Boost and (with a budget) Limitless on the two different rounds where they add most. */
-function chooseChips(inputs: HindsightRoundInput[], plain: HindsightPathRound[], budgeted: boolean, rules: HindsightRules): ChipPlan {
+function chooseChips(inputs: HindsightRoundInput[], plain: HindsightPathRound[], budgeted: boolean, rules: HindsightRules, solve: (assets: HindsightAsset[], rules: HindsightRules) => HindsightTeam | null): ChipPlan {
   const byRound = new Map(inputs.map((input) => [input.round, input] as const));
   const boostGain: number[] = [];
   const limitlessGain: number[] = [];
   for (const played of plain) {
     const assets = byRound.get(played.round)?.assets ?? [];
     const budget = played.costCap ?? Number.POSITIVE_INFINITY;
-    const boosted = bestTeam(assets, { ...rules, budget, extraBoost: true });
+    const boosted = solve(assets, { ...rules, budget, extraBoost: true });
     boostGain.push(boosted ? boosted.score - played.team.score : 0);
-    const free = budgeted ? bestTeam(assets, { ...rules, budget: Number.POSITIVE_INFINITY }) : null;
+    const free = budgeted ? solve(assets, { ...rules, budget: Number.POSITIVE_INFINITY }) : null;
     limitlessGain.push(free ? free.score - played.team.score : 0);
   }
   const plan: ChipPlan = new Map();

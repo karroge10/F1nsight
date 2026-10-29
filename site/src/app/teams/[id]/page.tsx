@@ -78,7 +78,7 @@ export default async function TeamPage({ params }: { params: Params }) {
       {seasonResults.length > 0 ? (
         <Section title={`${activeSeason} season`} icon={IconCalendar} flush>
           <div className="scroll-x">
-            <SortableTable className="data-table min-w-[520px]" columns={seasonColumns} initialKey="round" initialDir="asc"
+            <SortableTable className="data-table min-w-[520px]" columns={seasonColumns} initialKey="round" initialDir="desc"
               rows={seasonResults.map(({ race, results }) => {
                   const total = results.reduce((a, r) => a + r.points, 0);
                   const values: Record<string, number | string | null> = { round: race.round, name: race.raceName, total };

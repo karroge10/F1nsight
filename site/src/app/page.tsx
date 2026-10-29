@@ -31,12 +31,20 @@ export default async function HomePage() {
 
   return (
     <>
+      <span
+        hidden
+        id="forecast-publication"
+        data-forecast-generated-at={prediction.generatedAt}
+        data-forecast-model={prediction.model.version}
+        data-forecast-race={`${prediction.race.season}-${prediction.race.round}`}
+        data-forecast-stage={prediction.race.stage}
+      />
       <ForecastHero prediction={prediction} race={race} now={now} totalRounds={totalRounds} facts={facts} />
 
       <Section
-        title="Finishing Order"
+        title="Race probabilities"
         icon={IconListNumbers}
-        info="Drivers ranked by win chance, then podium and points chance. Percentages are the share of simulated races. Main factors shows the two model inputs that moved each forecast most; open a row for the full breakdown, the same fields for every driver."
+        info="Drivers ranked by win chance, then podium and points chance. Percentages are the share of simulated races. Average finish is the mean simulated result. Sort recent form, one-lap gap, car gap or standings to compare inputs; open a row for the full breakdown."
         flush
       >
         <ForecastTable drivers={prediction.drivers} poleMs={poleMs} />
@@ -51,13 +59,16 @@ export default async function HomePage() {
       </Section>
 
       <Section
-        title="Model record"
+        title="Backtest record"
         icon={IconPulse}
-        info="Backtest over this season's completed rounds, and the last seven forecasts against the actual results."
+        info="Historical backtests against actual results. Verified forecasts published before each race are evaluated separately in the published forecast report."
         aside={
-          <Link href="/fantasy" className="tap-hit hover:text-ink underline-offset-2 hover:underline">
-            Fantasy for this race
-          </Link>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/races" className="tap-hit hover:text-ink underline-offset-2 hover:underline">Predictions vs results</Link>
+            <Link href="/fantasy" className="tap-hit hover:text-ink underline-offset-2 hover:underline">
+              Fantasy for this race
+            </Link>
+          </div>
         }
       >
         <TrackRecord prediction={prediction} history={history} entries={entries} />

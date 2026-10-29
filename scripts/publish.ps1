@@ -25,10 +25,13 @@ function Main {
     Push-Location $site
     try {
         if (-not $SkipBuild) {
+            if (-not (Invoke-Native "python" @("../cloud/forecast_records.py", "report"))) { return 1 }
+            if (-not (Invoke-Native "python" @("../cloud/forecast_records.py", "prepare"))) { return 1 }
             Write-Host "publish: building the static site..."
             if (-not (Invoke-Native "npm" @("run", "build"))) { return 1 }
         }
         if (-not (Invoke-Native "node" @("scripts/check-export.mjs"))) { return 1 }
+        if (-not (Invoke-Native "python" @("../cloud/forecast_records.py", "check-build"))) { return 1 }
         if ($NoDeploy) { return 0 }
         if (-not (Test-WranglerLogin)) {
             Write-Host "publish: wrangler is not logged in, skipping the upload. Run 'npx wrangler login' in site once to enable it."
@@ -46,6 +49,8 @@ function Main {
             Pop-Location
         }
         if (-not $deployed) { return 1 }
+        if (-not (Invoke-Native "python" @("../cloud/forecast_records.py", "verify"))) { return 1 }
+        if (-not (Invoke-Native "python" @("../cloud/state.py", "push", "--groups", "forecast-records"))) { return 1 }
         Write-Host "publish: done"
         return 0
     } finally {

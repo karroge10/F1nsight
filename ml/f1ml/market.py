@@ -39,6 +39,7 @@ OURS_WEIGHT = {"pre-weekend": 0.2, "post-practice": 0.35, "post-qualifying": 0.3
 ARCHIVE_DIR = paths.RAW_DIR / "polymarket"
 TIMEOUT_S = 30
 PROBABILITY_FLOOR = 1e-6
+MAX_PRICE_SPREAD = 0.05
 # Share of the field that must have its own price; the rest split the "Other" price, or get the
 # smallest listed price each when the event has no "Other" outcome.
 MIN_PRICED_SHARE = 0.8
@@ -179,13 +180,23 @@ def _yes_price(market: dict) -> float | None:
     values = json.loads(values) if isinstance(values, str) else values
     if "Yes" not in outcomes:
         return None
-    price = float(values[outcomes.index("Yes")])
+    try:
+        bid = float(market.get("bestBid") or 0.0)
+        ask = float(market["bestAsk"]) if market.get("bestAsk") is not None else 1.0
+        price = float(values[outcomes.index("Yes")])
+    except (TypeError, ValueError, IndexError):
+        return None
+    if not all(np.isfinite(value) for value in (bid, ask, price)):
+        return None
+    if not 0 <= bid <= price <= ask <= 1 or ask - bid > MAX_PRICE_SPREAD:
+        return None
     return price if price > 0 else None
 
 
 def _complete_field(prices: dict, other: float | None, field: int) -> np.ndarray | None:
     if field == 0 or len(prices) < MIN_PRICED_SHARE * field:
         return None
+    prices = dict(prices)
     missing = [index for index in range(field) if index not in prices]
     if missing:
         share = other / len(missing) if other else min(prices.values())

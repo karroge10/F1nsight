@@ -31,4 +31,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 /site/.qa/
+/site/public/forecast.json
+/site/public/reports/
 /.wrangler/
