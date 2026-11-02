@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCurrentSeason, getDriver, getDrivers, getDriverSeasonResults, getLookups } from "@/lib/data";
+import { getCurrentSeason, getDriver, getDrivers, getDriverSeasonResults, getLookups, getSeasons } from "@/lib/data";
 import type { Lookups } from "@/lib/data";
 import { formatDate, formatLapTime, formatPoints, positionLabel } from "@/lib/format";
 import { EntityHeader } from "@/components/stats/entity-header";
@@ -13,6 +13,7 @@ import { Sparkline } from "@/components/ui/sparkline";
 import { IconCalendar, IconHistory, IconTrophy } from "@/components/icons";
 import { DriverPortrait } from "@/components/ui/driver-portrait";
 import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
+import { ChampionBadge } from "@/components/ui/champion-badge";
 
 type Params = Promise<{ id: string }>;
 
@@ -35,6 +36,8 @@ export default async function DriverPage({ params }: { params: Params }) {
   if (!driver) notFound();
   const lookups = await getLookups();
   const currentSeason = await getCurrentSeason();
+  const titleSeasons = (await getSeasons()).filter(s => s.driverTitleClinched && s.driverChampion?.driverId === id).map(s => s.season);
+  const isChampion = titleSeasons.includes(currentSeason);
   const activeSeason = driver.career.lastSeason ?? currentSeason;
   const seasonResults = await getDriverSeasonResults(id, activeSeason);
   const currentTeam = driver.career.constructorIds[driver.career.constructorIds.length - 1] ?? "";
@@ -60,11 +63,12 @@ export default async function DriverPage({ params }: { params: Params }) {
             ) : null}
           </>
         }
-        title={`${driver.givenName} ${driver.familyName}`}
+        title={<span className={isChampion ? "champion-name" : undefined}>{driver.givenName} {driver.familyName}</span>}
         color={lookups.teamColor(currentTeam)}
         media={<DriverPortrait driverId={driver.driverId} name={`${driver.givenName} ${driver.familyName}`} teamColor={lookups.teamColor(currentTeam)} size={128} />}
         meta={
           <>
+            {isChampion ? <><ChampionBadge season={currentSeason} />{". "}</> : null}
             {driver.nationality ? (
               <>
                 <Flag of={driver.nationality} fallback={driver.countryCode} keepSpace={false} className="mr-1.5" />
@@ -79,7 +83,7 @@ export default async function DriverPage({ params }: { params: Params }) {
           { label: "Wins", value: driver.career.wins },
           { label: "Podiums", value: driver.career.podiums },
           { label: "Poles", value: driver.career.poles },
-          { label: "Titles", value: driver.career.titles, note: driver.seasons.filter((s) => s.position === 1 && s.season !== currentSeason).map((s) => s.season).join(", ") },
+          { label: "Titles", value: driver.career.titles, note: titleSeasons.join(", ") },
           { label: "Points", value: formatPoints(driver.career.points) },
           { label: "Fastest laps", value: driver.career.fastestLaps, note: "2004 onwards" },
         ]}

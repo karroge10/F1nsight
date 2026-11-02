@@ -92,12 +92,23 @@ A successfully recalculated forecast can still be published when an independent 
 fails; the workflow keeps its failed status and logs that source error. FastF1 sessions with
 neither laps nor results remain pending for a later retry instead of being marked complete.
 
+OpenF1 HTTP 401 responses defer that source until the next refresh, preserve the cached files,
+and leave its last successful refresh timestamp unchanged. Other source errors still fail the run.
+
 ### Published forecasts and race reports
 
 Every deployment exports the exact forecast as `/forecast.json`. Before upload, the build is
 checked against the current forecast. After upload, the production JSON and the home page's
 race, stage, model and forecast timestamp must match before publication is marked complete.
 A failed verification leaves publication pending for the next cloud check.
+
+Verification allows three minutes for Pages activation and reports both forecast hashes and
+identities when they differ. A mismatch never counts as a successful publication.
+
+Championship displays distinguish a confirmed champion from a simulated favourite. Confirmed
+results take precedence while standings feeds catch up; modern seasons also recognize a title
+when the points lead exceeds every rival's maximum remaining race and sprint points. Champion
+badges, season history, profiles and career title totals share the same status.
 
 Builds refresh the current season's session exports from the processed FastF1 tables before
 rendering replay routes. Exports missing lap start times are upgraded even when no new session

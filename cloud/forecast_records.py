@@ -97,14 +97,20 @@ def check_site(base_url, payload, fetcher=fetch):
     query = "?forecast=" + digest(payload)
     remote = json.loads(fetcher(base_url.rstrip("/") + "/forecast.json" + query))
     if digest(remote) != digest(payload):
-        raise ValueError("deployed forecast differs from the forecast being published")
+        expected = identity(payload)
+        try:
+            received = identity(remote)
+        except (KeyError, TypeError):
+            received = "unrecognized forecast"
+        raise ValueError(f"deployed forecast differs from the forecast being published: "
+                         f"expected {digest(payload)} {expected}; received {digest(remote)} {received}")
     parser = ForecastMarker()
     parser.feed(fetcher(base_url.rstrip("/") + "/" + query))
     if parser.markers != [identity(payload)]:
         raise ValueError("home page race, stage, model or forecast timestamp differs")
 
 
-def verify(base_url, attempts=5, fetcher=fetch, sleeper=time.sleep):
+def verify(base_url, attempts=13, fetcher=fetch, sleeper=time.sleep):
     payload = read(forecast_path())
     for attempt in range(attempts):
         try:
@@ -114,7 +120,7 @@ def verify(base_url, attempts=5, fetcher=fetch, sleeper=time.sleep):
             if attempt + 1 == attempts:
                 raise
             print(f"publication verification attempt {attempt + 1}: {error}")
-            sleeper(10)
+            sleeper(15)
     race = payload["race"]
     record_id = digest(payload)
     path = ROOT / "data/published" / f"{race['season']}-{race['round']:02d}" / f"{record_id}.json"

@@ -5,6 +5,7 @@ import { IconArrowDown, IconArrowUp, IconMinus } from "@/components/icons";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { TeamNames } from "@/components/ui/team-name";
 import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
+import { ChampionBadge } from "@/components/ui/champion-badge";
 
 interface StandingsTablesProps {
   standings: SeasonStandings;
@@ -26,7 +27,7 @@ export function DriverStandingsTable({ standings, lookups, limit }: StandingsTab
             const gapText = gap === 0 ? "" : `−${formatPoints(gap)}`;
             const values = { pos: row.position, name: lookups.driverName(row.id), points: row.points, gap, wins: row.wins };
             const tr = (
-              <tr>
+              <tr className={standings.championship.driverId === row.id ? "champion-row" : undefined}>
                 <td className="num text-ink-2">{row.position ?? ""}</td>
                 <td className="!px-0">
                   <Movement row={row} />
@@ -36,6 +37,7 @@ export function DriverStandingsTable({ standings, lookups, limit }: StandingsTab
                     {/* on phones the team column is hidden, so the logo moves in front of the name */}
                     <TeamLogo constructorId={teamId} name={lookups.teamName(teamId)} color={lookups.teamColor(teamId)} size={18} season={standings.season} className="sm:hidden" />
                     <span className="font-[550]">{lookups.driverName(row.id)}</span>
+                    {standings.championship.driverId === row.id ? <ChampionBadge season={standings.season} /> : null}
                   </Link>
                 </td>
                 <td className="hidden text-ink-2 sm:table-cell">
@@ -65,7 +67,7 @@ export function ConstructorStandingsTable({ standings, lookups, limit }: Standin
             const gapText = gap === 0 ? "" : `−${formatPoints(gap)}`;
             const values = { pos: row.position, name: lookups.teamName(row.id), points: row.points, gap, wins: row.wins };
             const tr = (
-              <tr>
+              <tr className={standings.championship.constructorId === row.id ? "champion-row" : undefined}>
                 <td className="num text-ink-2">{row.position ?? ""}</td>
                 <td className="!px-0">
                   <Movement row={row} />
@@ -74,6 +76,7 @@ export function ConstructorStandingsTable({ standings, lookups, limit }: Standin
                   <Link href={`/teams/${row.id}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
                     <TeamLogo constructorId={row.id} name={lookups.teamName(row.id)} color={lookups.teamColor(row.id)} size={28} season={standings.season} />
                     <span className="font-[550]">{lookups.teamName(row.id)}</span>
+                    {standings.championship.constructorId === row.id ? <ChampionBadge season={standings.season} /> : null}
                   </Link>
                 </td>
                 <td className="num text-ink">{pointsText}</td>

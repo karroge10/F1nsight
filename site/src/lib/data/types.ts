@@ -175,12 +175,15 @@ export interface StandingsTable {
 
 export interface SeasonStandings {
   season: number;
+  championship: import("./championship").ChampionshipStatus;
   drivers: StandingsTable;
   constructors: StandingsTable;
 }
 
 export interface SeasonSummary {
   season: number;
+  driverTitleClinched?: boolean;
+  constructorTitleClinched?: boolean;
   rounds: number;
   completedRounds: number;
   inProgress: boolean;

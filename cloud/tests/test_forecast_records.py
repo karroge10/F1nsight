@@ -67,6 +67,27 @@ def test_failed_verification_does_not_archive_or_acknowledge(monkeypatch, tmp_pa
     assert not (tmp_path / "logs/publication-verified.json").exists()
 
 
+def test_verification_waits_for_pages_activation_beyond_forty_seconds(monkeypatch, tmp_path):
+    monkeypatch.setattr(records, "ROOT", tmp_path)
+    records.write(records.forecast_path(), forecast())
+    waits = []
+    def fetch(url):
+        if sum(waits) < 60:
+            return "{}"
+        return json.dumps(forecast()) if "/forecast.json" in url else marker(forecast())
+    path = records.verify("https://example.com", fetcher=fetch, sleeper=waits.append)
+    assert path.exists()
+    assert sum(waits) >= 60
+
+
+def test_mismatch_reports_expected_and_received_identity():
+    payload = forecast()
+    stale = copy.deepcopy(payload)
+    stale["generatedAt"] = "2026-10-23T23:00:00Z"
+    with pytest.raises(ValueError, match="2026-10-23T23:00:00Z"):
+        records.check_site("https://example.com", payload, lambda url: json.dumps(stale))
+
+
 def test_evaluation_excludes_post_start_publications_and_uses_last_pre_start_stage():
     first = record()
     last = record(verified="2026-10-25T19:00:00Z")

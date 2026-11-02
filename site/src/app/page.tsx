@@ -50,7 +50,7 @@ export default async function HomePage() {
         <ForecastTable drivers={prediction.drivers} poleMs={poleMs} />
       </Section>
 
-      <Section title="Title odds" icon={IconCrown} info="Share of simulated season endings in which each driver or team takes the title.">
+      <Section title="Championship" icon={IconCrown} info="Confirmed champions are marked once the title is secured. Open titles show the share of simulated season endings won by each driver or team.">
         <TitleOdds prediction={prediction} standings={standings} entries={entries} totalRounds={totalRounds} />
       </Section>
 

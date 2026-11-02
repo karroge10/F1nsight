@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getConstructor, getConstructors, getConstructorSeasonResults, getCurrentSeason, getEntryList } from "@/lib/data";
+import { getConstructor, getConstructors, getConstructorSeasonResults, getCurrentSeason, getEntryList, getSeasons } from "@/lib/data";
 import { formatPoints, positionLabel } from "@/lib/format";
 import { EntityHeader } from "@/components/stats/entity-header";
 import { Section } from "@/components/ui/section";
@@ -9,6 +9,7 @@ import { IconCalendar, IconHistory } from "@/components/icons";
 import { Flag } from "@/components/ui/flag";
 import { TeamLogo } from "@/components/ui/team-logo";
 import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
+import { ChampionBadge } from "@/components/ui/champion-badge";
 
 type Params = Promise<{ id: string }>;
 
@@ -37,7 +38,8 @@ export default async function TeamPage({ params }: { params: Params }) {
   const seasonsDesc = [...team.seasons].sort((a, b) => b.season - a.season);
   const span = team.career.firstSeason === team.career.lastSeason ? String(team.career.firstSeason) : `${team.career.firstSeason} to ${team.career.lastSeason}`;
   const seasonColumns = teamSeasonColumns(drivers);
-  const titleSeasons = team.seasons.filter((s) => s.position === 1 && s.season !== currentSeason && s.season >= 1958).map((s) => s.season);
+  const titleSeasons = (await getSeasons()).filter(s => s.constructorTitleClinched && s.constructorChampion?.constructorId === id).map(s => s.season);
+  const isChampion = titleSeasons.includes(currentSeason);
 
   return (
     <>
@@ -56,11 +58,12 @@ export default async function TeamPage({ params }: { params: Params }) {
             ) : null}
           </>
         }
-        title={team.name}
+        title={<span className={isChampion ? "champion-name" : undefined}>{team.name}</span>}
         color={team.color}
         media={<TeamLogo constructorId={team.constructorId} name={team.name} color={team.color} size={112} season={team.career.lastSeason} />}
         meta={
           <>
+            {isChampion ? <><ChampionBadge season={currentSeason} />{". "}</> : null}
             {span}. {team.career.driverCount} drivers have raced for the team.
             {drivers.length ? ` ${activeSeason} line-up: ${drivers.map((d) => d.name).join(", ")}.` : ""}
           </>

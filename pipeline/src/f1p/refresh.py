@@ -157,8 +157,14 @@ class StepRunner:
         season = str(now.year)
         season_dir = RAW_DIR / "openf1" / season
         before = _newest_mtime(season_dir)
-        self._run_module(result, "pipeline", "f1p.openf1.download", "--refresh", "--seasons", season)
+        output = self._run_module(result, "pipeline", "f1p.openf1.download", "--refresh", "--seasons", season)
         if result.status == "failed":
+            return
+        details = _result_line(output)
+        if details and details.get("deferred"):
+            result.status = "skipped"
+            result.reason = details["reason"]
+            result.details = details
             return
         after = _newest_mtime(season_dir)
         processed_at = _mtime(PROCESSED_DIR / "openf1_sessions.parquet")

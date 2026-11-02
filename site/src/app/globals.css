@@ -22,6 +22,8 @@
   --accent: oklch(0.66 0.215 28);
   --accent-ink: oklch(0.98 0.005 90);
   --focus: oklch(0.75 0.16 28);
+  --champion: oklch(0.84 0.15 85);
+  --champion-bg: oklch(0.84 0.15 85 / 0.08);
 
   --sector-purple: oklch(0.64 0.23 305);
   --sector-green: oklch(0.74 0.19 150);
@@ -67,6 +69,8 @@
   --accent: oklch(0.56 0.215 28);
   --accent-ink: oklch(0.99 0 0);
   --focus: oklch(0.56 0.215 28);
+  --champion: oklch(0.46 0.095 75);
+  --champion-bg: oklch(0.8 0.14 85 / 0.12);
 
   --sector-purple: oklch(0.56 0.23 305);
   --sector-green: oklch(0.66 0.19 150);
@@ -827,4 +831,17 @@ select option {
 .fantasy-primary { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 .fantasy-primary:hover { color: var(--accent-ink); background: var(--accent); }
 .fantasy-button:disabled { cursor: default; opacity: 0.4; }
+.champion-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--champion);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.champion-row { background: var(--champion-bg); }
+.champion-row td:first-child { box-shadow: inset 2px 0 var(--champion); }
+.champion-row a, .champion-name { color: var(--champion); }
 @media (max-width: 639px) { .fantasy-button, .fantasy-choice { min-height: 2.75rem; } }

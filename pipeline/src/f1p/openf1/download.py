@@ -58,7 +58,15 @@ def main() -> None:
         for season in args.seasons:
             is_current = season == now.year
             refresh = args.refresh and is_current
-            download_season(client, root, season, now, refresh)
+            try:
+                download_season(client, root, season, now, refresh)
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code != 401:
+                    raise
+                reason = "OpenF1 access restricted (HTTP 401); retaining cached data and retrying on the next refresh"
+                print(reason, flush=True)
+                print("RESULT " + json.dumps({"deferred": True, "reason": reason}), flush=True)
+                return
 
 
 def download_season(client: httpx.Client, root: Path, season: int, now: datetime, refresh: bool) -> None:

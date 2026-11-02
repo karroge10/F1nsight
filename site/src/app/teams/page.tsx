@@ -9,6 +9,7 @@ import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { EntityIndex, type IndexRow } from "@/components/stats/entity-index";
 import { IconGarage, IconHistory } from "@/components/icons";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { ChampionBadge } from "@/components/ui/champion-badge";
 
 export const metadata: Metadata = {
   title: "Teams",
@@ -38,12 +39,13 @@ export default async function TeamsPage() {
                   const pointsText = standing ? formatPoints(standing.points) : "0";
                   const values = { pos: i, name: c.name, points: standing?.points ?? 0 };
                   const tr = (
-                    <tr>
+                    <tr className={standings?.championship.constructorId === c.constructorId ? "champion-row" : undefined}>
                       <td className="num text-ink-2">{standing?.position ?? ""}</td>
                       <td>
                         <Link href={`/teams/${c.constructorId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
                           <TeamLogo constructorId={c.constructorId} name={c.name} color={c.color} size={28} season={season} />
                           <span className="font-[550]">{c.name}</span>
+                          {standings?.championship.constructorId === c.constructorId ? <ChampionBadge season={season} /> : null}
                         </Link>
                       </td>
                       <td className="hidden text-ink-2 md:table-cell">{drivers.join(", ")}</td>

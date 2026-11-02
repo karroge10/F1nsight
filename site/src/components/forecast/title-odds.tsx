@@ -4,6 +4,7 @@ import type { EntryList } from "@/lib/data";
 import { formatPoints } from "@/lib/format";
 import { ProbBar } from "@/components/ui/prob-bar";
 import { TeamLogo } from "@/components/ui/team-logo";
+import { ChampionBadge } from "@/components/ui/champion-badge";
 
 interface TitleOddsProps {
   prediction: Prediction;
@@ -17,17 +18,20 @@ export function TitleOdds({ prediction, standings, entries, totalRounds }: Title
   const teamById = new Map(entries.constructors.map((c) => [c.constructorId, c]));
   const driverStanding = new Map((standings?.drivers.list ?? []).map((s) => [s.id, s]));
   const teamStanding = new Map((standings?.constructors.list ?? []).map((s) => [s.id, s]));
-  const drivers = [...prediction.championship.drivers].sort((a, b) => b.pTitle - a.pTitle || b.expectedFinalPoints - a.expectedFinalPoints).slice(0, 5);
-  const constructors = [...prediction.championship.constructors]
+  const champion = standings?.season === prediction.race.season ? standings.championship : null;
+  const drivers = champion?.driverId
+    ? [{ driverId: champion.driverId, pTitle: 1, expectedFinalPoints: driverStanding.get(champion.driverId)?.points ?? 0 }]
+    : [...prediction.championship.drivers].sort((a, b) => b.pTitle - a.pTitle || b.expectedFinalPoints - a.expectedFinalPoints).slice(0, 5);
+  const constructors = champion?.constructorId ? [{ constructorId: champion.constructorId, pTitle: 1 }] : [...prediction.championship.constructors]
     .sort((a, b) => b.pTitle - a.pTitle || (teamStanding.get(b.constructorId)?.points ?? 0) - (teamStanding.get(a.constructorId)?.points ?? 0))
     .slice(0, 5);
-  const remaining = standings ? totalRounds - standings.drivers.rounds : null;
+  const remaining = standings ? Math.max(0, totalRounds - standings.drivers.rounds) : null;
 
   return (
     <div className="grid gap-8 md:grid-cols-2">
       <div>
         <h3 className="text-h3 font-[550] text-ink">
-          Drivers&apos; title <span className="text-ui font-normal text-ink-3">{remaining !== null ? `${remaining} rounds left` : ""}</span>
+          Drivers&apos; title <span className="text-ui font-normal text-ink-3">{champion?.driverId ? "title secured" : remaining !== null ? `${remaining} rounds left` : ""}</span>
         </h3>
         <ul className="mt-3 divide-y divide-rule">
           {drivers.map((d) => {
@@ -36,35 +40,35 @@ export function TitleOdds({ prediction, standings, entries, totalRounds }: Title
             const pointsText = standing ? formatPoints(standing.points) : "";
             const expectedText = formatPoints(Math.round(d.expectedFinalPoints));
             return (
-              <li key={d.driverId} className="flex items-center gap-3 py-2">
+              <li key={d.driverId} className={`flex items-center gap-3 py-2 ${champion?.driverId ? "champion-row px-2" : ""}`}>
                 <TeamLogo constructorId={info?.constructorId ?? ""} name={info?.team ?? ""} color={info?.teamColor ?? "#8A8F98"} size={24} season={entries.season} />
                 <Link href={`/drivers/${d.driverId}`} className="tap-hit min-w-0 flex-1 truncate text-ui text-ink hover:underline underline-offset-2">
                   {info?.name ?? d.driverId}
                 </Link>
                 <span className="timing hidden text-caption text-ink-3 sm:inline">
-                  {pointsText} pts, exp. {expectedText}
+                  {pointsText} pts{champion?.driverId ? "" : `, exp. ${expectedText}`}
                 </span>
-                <ProbBar value={d.pTitle} width="w-20" label="title" />
+                {champion?.driverId ? <ChampionBadge season={entries.season} /> : <ProbBar value={d.pTitle} width="w-20" label="title" />}
               </li>
             );
           })}
         </ul>
       </div>
       <div>
-        <h3 className="text-h3 font-[550] text-ink">Constructors&apos; title</h3>
+        <h3 className="text-h3 font-[550] text-ink">Constructors&apos; title{champion?.constructorId ? <span className="ml-2 text-ui font-normal text-ink-3">title secured</span> : null}</h3>
         <ul className="mt-3 divide-y divide-rule">
           {constructors.map((c) => {
             const info = teamById.get(c.constructorId);
             const standing = teamStanding.get(c.constructorId);
             const pointsText = standing ? formatPoints(standing.points) : "";
             return (
-              <li key={c.constructorId} className="flex items-center gap-3 py-2">
+              <li key={c.constructorId} className={`flex items-center gap-3 py-2 ${champion?.constructorId ? "champion-row px-2" : ""}`}>
                 <TeamLogo constructorId={c.constructorId} name={info?.name ?? c.constructorId} color={info?.color ?? "#8A8F98"} size={24} season={entries.season} />
                 <Link href={`/teams/${c.constructorId}`} className="tap-hit min-w-0 flex-1 truncate text-ui text-ink hover:underline underline-offset-2">
                   {info?.name ?? c.constructorId}
                 </Link>
                 <span className="timing hidden text-caption text-ink-3 sm:inline">{pointsText} pts</span>
-                <ProbBar value={c.pTitle} width="w-20" label="title" />
+                {champion?.constructorId ? <ChampionBadge season={entries.season} /> : <ProbBar value={c.pTitle} width="w-20" label="title" />}
               </li>
             );
           })}

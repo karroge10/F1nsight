@@ -10,6 +10,7 @@ import { TeamName } from "@/components/ui/team-name";
 import { Meter } from "@/components/ui/prob-bar";
 import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { IconCalendar, IconGarage, IconHelmet } from "@/components/icons";
+import { ChampionBadge } from "@/components/ui/champion-badge";
 
 export const metadata: Metadata = {
   title: "History and records",
@@ -65,7 +66,7 @@ export default async function HistoryPage() {
                         {/* below md the car column is hidden, so the logo moves in front of the name */}
                         <TeamLogo constructorId={s.driverChampion.constructorId ?? ""} name={lookups.teamName(s.driverChampion.constructorId ?? "")} color={lookups.teamColor(s.driverChampion.constructorId ?? "")} size={18} season={s.season} className="md:hidden" />
                         {lookups.driverName(s.driverChampion.driverId)}
-                        {s.inProgress ? <span className="text-caption text-ink-3">leads</span> : null}
+                        {s.inProgress ? s.driverTitleClinched ? <ChampionBadge season={s.season} /> : <span className="text-caption text-ink-3">leads</span> : null}
                       </Link>
                     ) : (
                       ""
@@ -81,6 +82,7 @@ export default async function HistoryPage() {
                       <Link href={`/teams/${s.constructorChampion.constructorId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
                         <TeamLogo constructorId={s.constructorChampion.constructorId} name={lookups.teamName(s.constructorChampion.constructorId)} color={lookups.teamColor(s.constructorChampion.constructorId)} size={18} season={s.season} />
                         {lookups.teamName(s.constructorChampion.constructorId)}
+                        {s.inProgress ? s.constructorTitleClinched ? <ChampionBadge season={s.season} /> : <span className="text-caption text-ink-3">leads</span> : null}
                       </Link>
                     ) : (
                       <span className="text-ink-3">{s.season < 1958 ? "not awarded" : ""}</span>

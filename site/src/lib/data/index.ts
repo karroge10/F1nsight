@@ -12,6 +12,7 @@ import { marketFromRounds } from "@/lib/fantasy/market";
 import { newestTelemetrySessions } from "@/lib/telemetry";
 import type { SessionRef, SessionTelemetry, TelemetryIndexEntry } from "@/lib/telemetry";
 import { activeSource } from "./source";
+import { championshipStatus } from "./championship";
 import type {
   Circuit,
   Constructor,
@@ -75,7 +76,19 @@ export async function getCurrentSeason(): Promise<number> {
 
 export async function getSeasons(): Promise<SeasonSummary[]> {
   const list = source.readSeasonSummaries();
-  return [...list].sort((a, b) => b.season - a.season);
+  return list.map(summary => {
+    const data = summary.inProgress ? source.readSeason(summary.season) : null;
+    const status = championshipStatus(summary, data);
+    const driver = data?.standings.drivers.list.find(row => row.id === status.driverId);
+    const constructor = data?.standings.constructors.list.find(row => row.id === status.constructorId);
+    return {
+      ...summary,
+      driverTitleClinched: status.driverId !== null,
+      constructorTitleClinched: status.constructorId !== null,
+      driverChampion: driver ? { driverId: driver.id, points: driver.points, wins: driver.wins, constructorId: driver.constructorIds?.at(-1) ?? null } : summary.driverChampion,
+      constructorChampion: constructor ? { constructorId: constructor.id, points: constructor.points, wins: constructor.wins } : summary.constructorChampion,
+    };
+  }).sort((a, b) => b.season - a.season);
 }
 
 export async function getCalendar(season: number, now: Date = new Date()): Promise<RaceSummary[]> {
@@ -118,7 +131,9 @@ export async function getRace(season: number, round: number, now: Date = new Dat
 export async function getStandings(season: number): Promise<SeasonStandings | null> {
   const data = source.readSeason(season);
   if (!data) return null;
-  return { season, drivers: data.standings.drivers, constructors: data.standings.constructors };
+  const summary = source.readSeasonSummaries().find(row => row.season === season);
+  const championship = summary ? championshipStatus(summary, data) : { driverId: null, constructorId: null };
+  return { season, drivers: data.standings.drivers, constructors: data.standings.constructors, championship };
 }
 
 export async function getEntryList(season: number): Promise<EntryList> {
@@ -185,12 +200,19 @@ export async function getLookups(): Promise<Lookups> {
 }
 
 export async function getDrivers(): Promise<Driver[]> {
-  return source.readDrivers();
+  const seasons = await getSeasons();
+  return source.readDrivers().map(driver => {
+    const titles = seasons.filter(season => season.driverTitleClinched && season.driverChampion?.driverId === driver.driverId).length;
+    return { ...driver, career: { ...driver.career, titles: Math.max(driver.career.titles, titles) } };
+  });
 }
 
 export async function getDriver(driverId: string): Promise<Driver | null> {
-  const drivers = source.readDrivers();
-  return drivers.find((d) => d.driverId === driverId) ?? null;
+  const driver = source.readDrivers().find(d => d.driverId === driverId);
+  if (!driver) return null;
+  const seasons = await getSeasons();
+  const titles = seasons.filter(season => season.driverTitleClinched && season.driverChampion?.driverId === driverId).length;
+  return { ...driver, career: { ...driver.career, titles: Math.max(driver.career.titles, titles) } };
 }
 
 export async function getDriverSeasonResults(driverId: string, season: number): Promise<{ race: RaceSummary; result: Race["results"][number] | null; sprint: Race["sprint"][number] | null; qualifying: Race["qualifying"][number] | null }[]> {
@@ -212,12 +234,19 @@ export async function getDriverSeasonResults(driverId: string, season: number): 
 }
 
 export async function getConstructors(): Promise<Constructor[]> {
-  return source.readConstructors();
+  const seasons = await getSeasons();
+  return source.readConstructors().map(constructor => {
+    const titles = seasons.filter(season => season.constructorTitleClinched && season.constructorChampion?.constructorId === constructor.constructorId).length;
+    return { ...constructor, career: { ...constructor.career, titles: Math.max(constructor.career.titles, titles) } };
+  });
 }
 
 export async function getConstructor(constructorId: string): Promise<Constructor | null> {
-  const constructors = source.readConstructors();
-  return constructors.find((c) => c.constructorId === constructorId) ?? null;
+  const constructor = source.readConstructors().find(c => c.constructorId === constructorId);
+  if (!constructor) return null;
+  const seasons = await getSeasons();
+  const titles = seasons.filter(season => season.constructorTitleClinched && season.constructorChampion?.constructorId === constructorId).length;
+  return { ...constructor, career: { ...constructor.career, titles: Math.max(constructor.career.titles, titles) } };
 }
 
 export async function getConstructorSeasonResults(constructorId: string, season: number): Promise<{ race: RaceSummary; results: Race["results"] }[]> {
@@ -315,8 +344,8 @@ export async function getRaceLapsAvailability(): Promise<{ season: number; round
 }
 
 export async function getRecords(): Promise<RecordGroup[]> {
-  const drivers = source.readDrivers();
-  const constructors = source.readConstructors();
+  const drivers = await getDrivers();
+  const constructors = await getConstructors();
   const name = (d: Driver) => `${d.givenName} ${d.familyName}`;
   const span = (d: Driver) => `${d.career.firstSeason} to ${d.career.lastSeason}`;
   const topDrivers = (key: keyof Driver["career"], unit: string, title: string): RecordGroup => {

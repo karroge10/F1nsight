@@ -10,6 +10,7 @@ import { TeamName } from "@/components/ui/team-name";
 import { SortableTable, type SortColumn } from "@/components/ui/sortable-table";
 import { EntityIndex, type IndexRow } from "@/components/stats/entity-index";
 import { IconHelmet, IconHistory } from "@/components/icons";
+import { ChampionBadge } from "@/components/ui/champion-badge";
 
 export const metadata: Metadata = {
   title: "Drivers",
@@ -38,7 +39,7 @@ export default async function DriversPage() {
                   const standing = standingById.get(d.driverId);
                   const values = { pos: i, name: d.name, number: d.number, team: d.team, points: standing?.points ?? 0 };
                   const tr = (
-                    <tr>
+                    <tr className={standings?.championship.driverId === d.driverId ? "champion-row" : undefined}>
                       <td className="num text-ink-2">{standing?.position ?? ""}</td>
                       <td>
                         <Link href={`/drivers/${d.driverId}`} className="flex items-center gap-2 text-ink hover:underline underline-offset-2">
@@ -46,6 +47,7 @@ export default async function DriversPage() {
                           <TeamLogo constructorId={d.constructorId} name={d.team} color={d.teamColor} size={18} season={season} className="sm:hidden" />
                           <Flag of={driverById.get(d.driverId)?.nationality} fallback={driverById.get(d.driverId)?.countryCode} size={18} />
                           <span className="font-[550]">{d.name}</span>
+                          {standings?.championship.driverId === d.driverId ? <ChampionBadge season={season} /> : null}
                         </Link>
                       </td>
                       <td className="num hidden text-ink-3 sm:table-cell">{d.number ?? ""}</td>
