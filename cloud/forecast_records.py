@@ -48,6 +48,13 @@ def forecast_path():
     return ROOT / "data/predictions/next.json"
 
 
+def needs_championship_positions(payload):
+    championship = payload.get("championship") or {}
+    return any(not championship.get(kind) or any(
+        not isinstance(row.get("positionDist"), list) or len(row["positionDist"]) != len(championship[kind])
+        for row in championship[kind]) for kind in ("drivers", "constructors"))
+
+
 def identity(payload):
     return {"generated-at": payload["generatedAt"], "model": payload["model"]["version"],
             "race": f"{payload['race']['season']}-{payload['race']['round']}",
@@ -289,7 +296,7 @@ def report():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=("prepare", "check-build", "verify", "report"))
+    parser.add_argument("command", choices=("prepare", "check-build", "verify", "report", "needs-positions"))
     parser.add_argument("--url", default="https://f1nsight.pages.dev")
     args = parser.parse_args()
     if args.command == "prepare":
@@ -298,6 +305,8 @@ def main():
         check_build()
     elif args.command == "verify":
         verify(args.url)
+    elif args.command == "needs-positions":
+        print("true" if needs_championship_positions(read(forecast_path())) else "false")
     else:
         report()
 

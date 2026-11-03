@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { championshipStatus } from "./championship";
+import { championshipStatus, nextChampionshipBattle } from "./championship";
 import { getDriver, getSeasons, getStandings } from "./index";
 import type { FixtureSeason } from "./fixtures-source";
 import type { SeasonSummary } from "./types";
@@ -45,5 +45,43 @@ describe("confirmed championships", () => {
   it("keeps historical champions and leaves unknown ongoing seasons open", () => {
     expect(championshipStatus({ ...summary, inProgress: false }, null)).toEqual({ driverId: "leader", constructorId: "team" });
     expect(championshipStatus(summary, null)).toEqual({ driverId: null, constructorId: null });
+  });
+
+  it("moves through secured positions independently for drivers and constructors", () => {
+    const data = season(26);
+    const row = (id: string, points: number) => ({ id, points, wins: 0, position: null, pointsByRound: [], positionByRound: [] });
+    const table = { rounds: 22, list: [row("first", 200), row("second", 100), row("third", 60), row("fourth", 50)] };
+    expect(nextChampionshipBattle(table, data.races, 2027).position).toBe(3);
+    expect(nextChampionshipBattle(table, data.races, 2027).secured.map(row => row.id)).toEqual(["first", "second"]);
+    expect(nextChampionshipBattle(table, data.races, 2027, null, true).position).toBe(2);
+  });
+
+  it("keeps a reachable position open, including sprints and points ties", () => {
+    const data = season(25, true);
+    expect(nextChampionshipBattle(data.standings.drivers, data.races, 2027).position).toBe(1);
+    expect(nextChampionshipBattle(data.standings.drivers, data.races, 2027, "leader").position).toBeNull();
+    expect(nextChampionshipBattle(data.standings.drivers, [], 2027).position).toBe(1);
+  });
+
+  it("recognizes a guaranteed wins countback and does not invent a deeper tiebreak", () => {
+    const data = season(25);
+    data.standings.drivers.list[0].wins = 5;
+    data.standings.drivers.list[1].wins = 3;
+    expect(championshipStatus(summary, data).driverId).toBe("leader");
+    data.standings.drivers.list[1].wins = 4;
+    expect(championshipStatus(summary, data).driverId).toBeNull();
+  });
+
+  it("stops offering odds once every position has been secured", () => {
+    const data = season(50);
+    expect(nextChampionshipBattle(data.standings.drivers, data.races, 2027).position).toBeNull();
+    expect(nextChampionshipBattle(data.standings.drivers, data.races, 2027).secured).toHaveLength(2);
+  });
+
+  it("removes cancelled races from remaining points without treating their calendar entry as missing", () => {
+    const data = season(1, true);
+    data.races[data.races.length - 1].cancelled = true;
+    expect(championshipStatus(summary, data).driverId).toBe("leader");
+    expect(championshipStatus(summary, data).constructorId).toBe("team");
   });
 });

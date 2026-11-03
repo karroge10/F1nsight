@@ -63,7 +63,7 @@ export default async function TeamPage({ params }: { params: Params }) {
         media={<TeamLogo constructorId={team.constructorId} name={team.name} color={team.color} size={112} season={team.career.lastSeason} />}
         meta={
           <>
-            {isChampion ? <><ChampionBadge season={currentSeason} />{". "}</> : null}
+            {isChampion ? <><ChampionBadge season={currentSeason} inline />{" · "}</> : null}
             {span}. {team.career.driverCount} drivers have raced for the team.
             {drivers.length ? ` ${activeSeason} line-up: ${drivers.map((d) => d.name).join(", ")}.` : ""}
           </>

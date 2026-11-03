@@ -108,7 +108,11 @@ identities when they differ. A mismatch never counts as a successful publication
 Championship displays distinguish a confirmed champion from a simulated favourite. Confirmed
 results take precedence while standings feeds catch up; modern seasons also recognize a title
 when the points lead exceeds every rival's maximum remaining race and sprint points. Champion
-badges, season history, profiles and career title totals share the same status.
+badges, season history, profiles and career title totals share the same status. After P1 is
+secured, the forecast shows odds for P2, then P3 and later positions as each becomes decided.
+Drivers and constructors advance independently. Position odds come from simulated final
+standings; older title-only forecasts are upgraded automatically by the next prediction refresh
+or code deployment, then retained in cloud state.
 
 Builds refresh the current season's session exports from the processed FastF1 tables before
 rendering replay routes. Exports missing lap start times are upgraded even when no new session

@@ -1,0 +1,1708 @@
+{
+  "seasons": [
+    2024,
+    2025,
+    2026
+  ],
+  "races": 65,
+  "retrainEvery": 3,
+  "stages": {
+    "pre-weekend": {
+      "winnerCorrect": 0.27692307692307694,
+      "podiumHits": 0.5641025641025641,
+      "mae": 3.675949329407435,
+      "spearman": 0.6178898904299363,
+      "brierWin": 0.04149118037143908,
+      "logLossWin": 1.9351133394459223,
+      "brierPodium": 0.08611490456352595,
+      "logLossPodium": 0.2682532954264073,
+      "brierPoints": 0.16755590048183658,
+      "brierDnf": 0.1052835024936787,
+      "pWinActualWinner": 0.22764153846153845,
+      "maxPWin": 0.42169153846153845,
+      "favouritePodium": 0.5846153846153846,
+      "pDnfMean": 0.12848342234081708,
+      "dnfRate": 0.12288921604711078
+    },
+    "post-practice": {
+      "winnerCorrect": 0.3384615384615385,
+      "podiumHits": 0.5897435897435896,
+      "mae": 3.5206710563121093,
+      "spearman": 0.6339921405825296,
+      "brierWin": 0.039076342979260215,
+      "logLossWin": 1.693633291538359,
+      "brierPodium": 0.07802113033218624,
+      "logLossPodium": 0.2456840431856172,
+      "brierPoints": 0.16054623648594038,
+      "brierDnf": 0.10550541585632131,
+      "pWinActualWinner": 0.2586984615384615,
+      "maxPWin": 0.44255538461538463,
+      "favouritePodium": 0.6307692307692307,
+      "pDnfMean": 0.1250009928229665,
+      "dnfRate": 0.12288921604711078
+    },
+    "post-qualifying": {
+      "winnerCorrect": 0.5538461538461539,
+      "podiumHits": 0.682051282051282,
+      "mae": 3.2506505115936695,
+      "spearman": 0.6998669217891186,
+      "brierWin": 0.029414765703054842,
+      "logLossWin": 1.189177636992621,
+      "brierPodium": 0.06408576116882592,
+      "logLossPodium": 0.20522883390480434,
+      "brierPoints": 0.14631745752375783,
+      "brierDnf": 0.10454489119450681,
+      "pWinActualWinner": 0.40041230769230773,
+      "maxPWin": 0.5580846153846154,
+      "favouritePodium": 0.8,
+      "pDnfMean": 0.12509585112256166,
+      "dnfRate": 0.12288921604711078
+    }
+  },
+  "bySeason": {
+    "pre-weekend": {
+      "2024": {
+        "winnerCorrect": 0.375,
+        "podiumHits": 0.5,
+        "mae": 3.3676274780701756,
+        "spearman": 0.6679197994987467,
+        "brierWin": 0.04719589133717106,
+        "logLossWin": 2.192255598087124,
+        "brierPodium": 0.09643015230482455,
+        "logLossPodium": 0.29343092896969997,
+        "brierPoints": 0.14883736587116228,
+        "brierDnf": 0.08647907963760966,
+        "pWinActualWinner": 0.30473125,
+        "maxPWin": 0.7148499999999999,
+        "favouritePodium": 0.5833333333333334,
+        "pDnfMean": 0.10351594298245613,
+        "dnfRate": 0.09605263157894738
+      },
+      "2025": {
+        "winnerCorrect": 0.20833333333333334,
+        "podiumHits": 0.6805555555555555,
+        "mae": 3.7052239254385966,
+        "spearman": 0.569078947368421,
+        "brierWin": 0.0385261797066886,
+        "logLossWin": 1.669865645648822,
+        "brierPodium": 0.07680223544298245,
+        "logLossPodium": 0.25069932820191515,
+        "brierPoints": 0.18172009990350876,
+        "brierDnf": 0.0924994368462171,
+        "pWinActualWinner": 0.20457708333333335,
+        "maxPWin": 0.27226666666666666,
+        "favouritePodium": 0.625,
+        "pDnfMean": 0.0986521326754386,
+        "dnfRate": 0.10230263157894737
+      },
+      "2026": {
+        "winnerCorrect": 0.23529411764705882,
+        "podiumHits": 0.4901960784313725,
+        "mae": 4.069898395721926,
+        "spearman": 0.6161689972431661,
+        "brierWin": 0.03762335406417112,
+        "logLossWin": 1.9465563067248381,
+        "brierPodium": 0.08469949945187165,
+        "logLossPodium": 0.2574904723881008,
+        "brierPoints": 0.1739855501604278,
+        "brierDnf": 0.1498790156751337,
+        "pWinActualWinner": 0.15137058823529412,
+        "maxPWin": 0.2187735294117647,
+        "favouritePodium": 0.5294117647058824,
+        "pDnfMean": 0.20584639037433156,
+        "dnfRate": 0.18983957219251335
+      }
+    },
+    "post-practice": {
+      "2024": {
+        "winnerCorrect": 0.4166666666666667,
+        "podiumHits": 0.5555555555555555,
+        "mae": 3.2406918311403508,
+        "spearman": 0.6771303258145362,
+        "brierWin": 0.042184558570175446,
+        "logLossWin": 1.8274093824772877,
+        "brierPodium": 0.08542028816831142,
+        "logLossPodium": 0.266636499118118,
+        "brierPoints": 0.14207928177138157,
+        "brierDnf": 0.08666025159018641,
+        "pWinActualWinner": 0.32237083333333333,
+        "maxPWin": 0.6421291666666666,
+        "favouritePodium": 0.625,
+        "pDnfMean": 0.10221589364035089,
+        "dnfRate": 0.09605263157894738
+      },
+      "2025": {
+        "winnerCorrect": 0.20833333333333334,
+        "podiumHits": 0.6527777777777778,
+        "mae": 3.535163870614035,
+        "spearman": 0.5906328320802005,
+        "brierWin": 0.038625237917214915,
+        "logLossWin": 1.5464295017521419,
+        "brierPodium": 0.07109500231469298,
+        "logLossPodium": 0.2337690081467634,
+        "brierPoints": 0.17450656702576753,
+        "brierDnf": 0.09247055438432017,
+        "pWinActualWinner": 0.2429125,
+        "maxPWin": 0.38121875,
+        "favouritePodium": 0.625,
+        "pDnfMean": 0.09919115131578948,
+        "dnfRate": 0.10230263157894737
+      },
+      "2026": {
+        "winnerCorrect": 0.4117647058823529,
+        "podiumHits": 0.5490196078431372,
+        "mae": 3.8954754010695183,
+        "spearman": 0.6343043146112199,
+        "brierWin": 0.03532512811497327,
+        "logLossWin": 1.7125900428521772,
+        "brierPodium": 0.07735332352941178,
+        "logLossPodium": 0.2329253313357627,
+        "brierPoints": 0.16690852943850268,
+        "brierDnf": 0.1505125110160428,
+        "pWinActualWinner": 0.1910941176470588,
+        "maxPWin": 0.24739705882352941,
+        "favouritePodium": 0.6470588235294118,
+        "pDnfMean": 0.193605614973262,
+        "dnfRate": 0.18983957219251335
+      }
+    },
+    "post-qualifying": {
+      "2024": {
+        "winnerCorrect": 0.4166666666666667,
+        "podiumHits": 0.6666666666666666,
+        "mae": 2.9443551754385964,
+        "spearman": 0.7510651629072681,
+        "brierWin": 0.03716714273300439,
+        "logLossWin": 1.5040535206981602,
+        "brierPodium": 0.07073730648355263,
+        "logLossPodium": 0.2219769845926173,
+        "brierPoints": 0.1243794360685307,
+        "brierDnf": 0.08596229641557017,
+        "pWinActualWinner": 0.3571583333333333,
+        "maxPWin": 0.6103229166666666,
+        "favouritePodium": 0.6666666666666666,
+        "pDnfMean": 0.09984440789473685,
+        "dnfRate": 0.09605263157894738
+      },
+      "2025": {
+        "winnerCorrect": 0.625,
+        "podiumHits": 0.7222222222222222,
+        "mae": 3.1898202631578947,
+        "spearman": 0.6703111946532999,
+        "brierWin": 0.026363902154057015,
+        "logLossWin": 0.9813806169151061,
+        "brierPodium": 0.05690078834868421,
+        "logLossPodium": 0.19464613762116686,
+        "brierPoints": 0.15685278874013156,
+        "brierDnf": 0.09287687406387062,
+        "pWinActualWinner": 0.4180916666666667,
+        "maxPWin": 0.5185520833333334,
+        "favouritePodium": 0.9166666666666666,
+        "pDnfMean": 0.10077787828947367,
+        "dnfRate": 0.10230263157894737
+      },
+      "2026": {
+        "winnerCorrect": 0.6470588235294118,
+        "podiumHits": 0.6470588235294118,
+        "mae": 3.7689454545454546,
+        "spearman": 0.6693127844022985,
+        "brierWin": 0.02277733490641711,
+        "logLossWin": 1.0380074765765874,
+        "brierPodium": 0.06483883529411766,
+        "logLossPodium": 0.1965246629812624,
+        "brierPoints": 0.16241537315508023,
+        "brierDnf": 0.1472516374197861,
+        "pWinActualWinner": 0.4365176470588235,
+        "maxPWin": 0.5401470588235293,
+        "favouritePodium": 0.8235294117647058,
+        "pDnfMean": 0.19507620320855615,
+        "dnfRate": 0.18983957219251335
+      }
+    }
+  },
+  "baselines": {
+    "grid": {
+      "winnerCorrect": 0.6,
+      "podiumHits": 0.6871794871794872,
+      "mae": 3.215576002944424,
+      "spearman": 0.6797011988774002,
+      "brierWin": 0.02878209172615878,
+      "logLossWin": 1.5327300688347858,
+      "brierPodium": 0.0641089836495904,
+      "logLossPodium": 0.23121954625341035
+    },
+    "gridBySeason": {
+      "2024": {
+        "winnerCorrect": 0.4583333333333333,
+        "podiumHits": 0.6666666666666666,
+        "mae": 2.895614035087719,
+        "spearman": 0.7297932330827067,
+        "brierWin": 0.035232710826764164,
+        "logLossWin": 1.9315344068973073,
+        "brierPodium": 0.06952535766621712,
+        "logLossPodium": 0.2515855382679098
+      },
+      "2025": {
+        "winnerCorrect": 0.6666666666666666,
+        "podiumHits": 0.75,
+        "mae": 3.3359649122807014,
+        "spearman": 0.6526837928153717,
+        "brierWin": 0.026861757055717004,
+        "logLossWin": 1.084668870378016,
+        "brierPodium": 0.05814040507760143,
+        "logLossPodium": 0.22454341425832325
+      },
+      "2026": {
+        "winnerCorrect": 0.7058823529411765,
+        "podiumHits": 0.6274509803921569,
+        "mae": 3.497326203208556,
+        "spearman": 0.6471252532633607,
+        "brierWin": 0.022386396060045444,
+        "logLossWin": 1.60226916586196,
+        "brierPodium": 0.06488856655127831,
+        "logLossPodium": 0.21189268504953396
+      }
+    },
+    "championship": {
+      "winnerCorrect": 0.3076923076923077,
+      "podiumHits": 0.5743589743589744,
+      "mae": 3.8790136179609864,
+      "spearman": 0.6022957363003129,
+      "brierWin": 0.041102820402576956,
+      "logLossWin": 2.103830528015268,
+      "brierPodium": 0.0866413283447041,
+      "logLossPodium": 0.2833061367604089
+    },
+    "championshipBySeason": {
+      "2024": {
+        "winnerCorrect": 0.375,
+        "podiumHits": 0.5555555555555555,
+        "mae": 3.480921052631579,
+        "spearman": 0.6622598162071845,
+        "brierWin": 0.04188735701451537,
+        "logLossWin": 2.4748625209606536,
+        "brierPodium": 0.09285563471581744,
+        "logLossPodium": 0.30293292202766414
+      },
+      "2025": {
+        "winnerCorrect": 0.20833333333333334,
+        "podiumHits": 0.6666666666666666,
+        "mae": 4.180043859649123,
+        "spearman": 0.5352339181286548,
+        "brierWin": 0.04312092286630929,
+        "logLossWin": 1.8593016799507824,
+        "brierPodium": 0.07865252484321623,
+        "logLossPodium": 0.2734990038084295
+      },
+      "2026": {
+        "winnerCorrect": 0.35294117647058826,
+        "podiumHits": 0.4705882352941176,
+        "mae": 4.016042780748663,
+        "spearman": 0.612316072674129,
+        "brierWin": 0.03714615347221822,
+        "logLossWin": 1.9252378528892908,
+        "brierPodium": 0.08914650076405645,
+        "logLossPodium": 0.2694430981976664
+      }
+    },
+    "form3": {
+      "winnerCorrect": 0.2923076923076923,
+      "podiumHits": 0.5128205128205128,
+      "mae": 4.0975708502024295,
+      "spearman": 0.5692823271312974
+    },
+    "form3BySeason": {
+      "2024": {
+        "winnerCorrect": 0.16666666666666666,
+        "podiumHits": 0.5277777777777778,
+        "mae": 3.6809210526315788,
+        "spearman": 0.6353279030910609
+      },
+      "2025": {
+        "winnerCorrect": 0.3333333333333333,
+        "podiumHits": 0.5416666666666666,
+        "mae": 4.333333333333333,
+        "spearman": 0.51265664160401
+      },
+      "2026": {
+        "winnerCorrect": 0.4117647058823529,
+        "podiumHits": 0.4509803921568627,
+        "mae": 4.352941176470588,
+        "spearman": 0.5559836582854486
+      }
+    }
+  },
+  "components": {
+    "pre-weekend": {
+      "gbm_race": 0.6225177111218301,
+      "nn_race": 0.6159019470232285,
+      "race_strength": 0.6195698428192706
+    },
+    "post-practice": {
+      "gbm_race": 0.6381600550479269,
+      "nn_race": 0.6345206890744648,
+      "race_strength": 0.635660403669557
+    },
+    "post-qualifying": {
+      "gbm_race": 0.6943198525349555,
+      "nn_race": 0.6925428194993412,
+      "race_strength": 0.6963874874172358
+    }
+  },
+  "calibration": {
+    "post-practice": {
+      "win": {
+        "bins": [
+          {
+            "bin": "0.00-0.02",
+            "n": 931,
+            "predicted": 0.0032,
+            "observed": 0.0011
+          },
+          {
+            "bin": "0.02-0.05",
+            "n": 103,
+            "predicted": 0.0339,
+            "observed": 0.0388
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 95,
+            "predicted": 0.0699,
+            "observed": 0.0842
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 108,
+            "predicted": 0.1427,
+            "observed": 0.1759
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 47,
+            "predicted": 0.2437,
+            "observed": 0.383
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 21,
+            "predicted": 0.3664,
+            "observed": 0.2381
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 8,
+            "predicted": 0.446,
+            "observed": 0.375
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 5,
+            "predicted": 0.5404,
+            "observed": 0.0
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 7,
+            "predicted": 0.753,
+            "observed": 0.5714
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 7,
+            "predicted": 0.8342,
+            "observed": 0.4286
+          }
+        ],
+        "ece": 0.018
+      },
+      "podium": {
+        "bins": [
+          {
+            "bin": "0.00-0.02",
+            "n": 565,
+            "predicted": 0.0085,
+            "observed": 0.0053
+          },
+          {
+            "bin": "0.02-0.05",
+            "n": 243,
+            "predicted": 0.0311,
+            "observed": 0.0082
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 82,
+            "predicted": 0.0686,
+            "observed": 0.0488
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 83,
+            "predicted": 0.1501,
+            "observed": 0.1928
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 92,
+            "predicted": 0.2469,
+            "observed": 0.2826
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 85,
+            "predicted": 0.3498,
+            "observed": 0.4
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 48,
+            "predicted": 0.4481,
+            "observed": 0.4167
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 51,
+            "predicted": 0.5466,
+            "observed": 0.6471
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 32,
+            "predicted": 0.6434,
+            "observed": 0.6875
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 22,
+            "predicted": 0.7539,
+            "observed": 0.7273
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 17,
+            "predicted": 0.857,
+            "observed": 0.7647
+          },
+          {
+            "bin": "0.90-1.00",
+            "n": 12,
+            "predicted": 0.9114,
+            "observed": 0.5
+          }
+        ],
+        "ece": 0.0265
+      },
+      "points": {
+        "bins": [
+          {
+            "bin": "0.05-0.10",
+            "n": 18,
+            "predicted": 0.09,
+            "observed": 0.0556
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 150,
+            "predicted": 0.1465,
+            "observed": 0.0467
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 239,
+            "predicted": 0.2514,
+            "observed": 0.2343
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 287,
+            "predicted": 0.3475,
+            "observed": 0.331
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 128,
+            "predicted": 0.4461,
+            "observed": 0.5
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 37,
+            "predicted": 0.5435,
+            "observed": 0.5676
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 57,
+            "predicted": 0.6526,
+            "observed": 0.7895
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 102,
+            "predicted": 0.7595,
+            "observed": 0.8235
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 211,
+            "predicted": 0.8513,
+            "observed": 0.8673
+          },
+          {
+            "bin": "0.90-1.00",
+            "n": 103,
+            "predicted": 0.9232,
+            "observed": 0.9126
+          }
+        ],
+        "ece": 0.0383
+      },
+      "dnf": {
+        "bins": [
+          {
+            "bin": "0.02-0.05",
+            "n": 23,
+            "predicted": 0.0465,
+            "observed": 0.0435
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 441,
+            "predicted": 0.0828,
+            "observed": 0.0975
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 762,
+            "predicted": 0.1291,
+            "observed": 0.1168
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 67,
+            "predicted": 0.2394,
+            "observed": 0.2687
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 14,
+            "predicted": 0.3555,
+            "observed": 0.3571
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 16,
+            "predicted": 0.4436,
+            "observed": 0.5
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 9,
+            "predicted": 0.5382,
+            "observed": 0.2222
+          }
+        ],
+        "ece": 0.0162
+      }
+    },
+    "post-qualifying": {
+      "win": {
+        "bins": [
+          {
+            "bin": "0.00-0.02",
+            "n": 995,
+            "predicted": 0.0017,
+            "observed": 0.0
+          },
+          {
+            "bin": "0.02-0.05",
+            "n": 107,
+            "predicted": 0.0339,
+            "observed": 0.028
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 65,
+            "predicted": 0.0718,
+            "observed": 0.1231
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 63,
+            "predicted": 0.1446,
+            "observed": 0.0794
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 31,
+            "predicted": 0.2435,
+            "observed": 0.3226
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 16,
+            "predicted": 0.3536,
+            "observed": 0.4375
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 15,
+            "predicted": 0.4563,
+            "observed": 0.4667
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 16,
+            "predicted": 0.5461,
+            "observed": 0.625
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 11,
+            "predicted": 0.635,
+            "observed": 0.4545
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 9,
+            "predicted": 0.7496,
+            "observed": 0.7778
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 4,
+            "predicted": 0.8362,
+            "observed": 0.75
+          }
+        ],
+        "ece": 0.0132
+      },
+      "podium": {
+        "bins": [
+          {
+            "bin": "0.00-0.02",
+            "n": 764,
+            "predicted": 0.0052,
+            "observed": 0.0026
+          },
+          {
+            "bin": "0.02-0.05",
+            "n": 102,
+            "predicted": 0.032,
+            "observed": 0.0294
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 66,
+            "predicted": 0.0715,
+            "observed": 0.0909
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 82,
+            "predicted": 0.1484,
+            "observed": 0.0976
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 70,
+            "predicted": 0.2509,
+            "observed": 0.2857
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 36,
+            "predicted": 0.3488,
+            "observed": 0.5
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 42,
+            "predicted": 0.4469,
+            "observed": 0.4286
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 40,
+            "predicted": 0.5544,
+            "observed": 0.525
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 40,
+            "predicted": 0.6486,
+            "observed": 0.7
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 38,
+            "predicted": 0.7514,
+            "observed": 0.7632
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 40,
+            "predicted": 0.8572,
+            "observed": 0.85
+          },
+          {
+            "bin": "0.90-1.00",
+            "n": 12,
+            "predicted": 0.9191,
+            "observed": 0.6667
+          }
+        ],
+        "ece": 0.0175
+      },
+      "points": {
+        "bins": [
+          {
+            "bin": "0.05-0.10",
+            "n": 4,
+            "predicted": 0.0942,
+            "observed": 0.0
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 221,
+            "predicted": 0.1698,
+            "observed": 0.0633
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 316,
+            "predicted": 0.2423,
+            "observed": 0.1994
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 145,
+            "predicted": 0.348,
+            "observed": 0.3931
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 116,
+            "predicted": 0.45,
+            "observed": 0.569
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 58,
+            "predicted": 0.5598,
+            "observed": 0.6379
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 46,
+            "predicted": 0.6505,
+            "observed": 0.8043
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 86,
+            "predicted": 0.7507,
+            "observed": 0.8023
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 152,
+            "predicted": 0.8607,
+            "observed": 0.8684
+          },
+          {
+            "bin": "0.90-1.00",
+            "n": 188,
+            "predicted": 0.9313,
+            "observed": 0.9309
+          }
+        ],
+        "ece": 0.0564
+      },
+      "dnf": {
+        "bins": [
+          {
+            "bin": "0.02-0.05",
+            "n": 82,
+            "predicted": 0.0389,
+            "observed": 0.0244
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 483,
+            "predicted": 0.0797,
+            "observed": 0.1014
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 618,
+            "predicted": 0.1345,
+            "observed": 0.1197
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 91,
+            "predicted": 0.2353,
+            "observed": 0.2088
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 34,
+            "predicted": 0.3424,
+            "observed": 0.3529
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 19,
+            "predicted": 0.4518,
+            "observed": 0.4211
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 5,
+            "predicted": 0.5278,
+            "observed": 0.4
+          }
+        ],
+        "ece": 0.0186
+      }
+    },
+    "pre-weekend": {
+      "win": {
+        "bins": [
+          {
+            "bin": "0.00-0.02",
+            "n": 866,
+            "predicted": 0.0053,
+            "observed": 0.0046
+          },
+          {
+            "bin": "0.02-0.05",
+            "n": 160,
+            "predicted": 0.0311,
+            "observed": 0.025
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 117,
+            "predicted": 0.0753,
+            "observed": 0.1026
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 108,
+            "predicted": 0.1363,
+            "observed": 0.1667
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 48,
+            "predicted": 0.2459,
+            "observed": 0.3333
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 9,
+            "predicted": 0.3266,
+            "observed": 0.2222
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 3,
+            "predicted": 0.4644,
+            "observed": 0.6667
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 4,
+            "predicted": 0.5423,
+            "observed": 0.0
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 3,
+            "predicted": 0.6524,
+            "observed": 0.3333
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 2,
+            "predicted": 0.7877,
+            "observed": 0.0
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 12,
+            "predicted": 0.8385,
+            "observed": 0.5
+          }
+        ],
+        "ece": 0.0169
+      },
+      "podium": {
+        "bins": [
+          {
+            "bin": "0.00-0.02",
+            "n": 346,
+            "predicted": 0.0101,
+            "observed": 0.0058
+          },
+          {
+            "bin": "0.02-0.05",
+            "n": 342,
+            "predicted": 0.0333,
+            "observed": 0.0058
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 163,
+            "predicted": 0.0692,
+            "observed": 0.0245
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 114,
+            "predicted": 0.14,
+            "observed": 0.1404
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 113,
+            "predicted": 0.2537,
+            "observed": 0.3805
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 103,
+            "predicted": 0.3433,
+            "observed": 0.3883
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 59,
+            "predicted": 0.4424,
+            "observed": 0.5593
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 33,
+            "predicted": 0.5471,
+            "observed": 0.5455
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 27,
+            "predicted": 0.6511,
+            "observed": 0.7407
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 9,
+            "predicted": 0.7394,
+            "observed": 0.4444
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 9,
+            "predicted": 0.8518,
+            "observed": 0.4444
+          },
+          {
+            "bin": "0.90-1.00",
+            "n": 14,
+            "predicted": 0.9134,
+            "observed": 0.6429
+          }
+        ],
+        "ece": 0.0426
+      },
+      "points": {
+        "bins": [
+          {
+            "bin": "0.05-0.10",
+            "n": 5,
+            "predicted": 0.0873,
+            "observed": 0.2
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 132,
+            "predicted": 0.152,
+            "observed": 0.0455
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 202,
+            "predicted": 0.2564,
+            "observed": 0.2228
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 316,
+            "predicted": 0.3484,
+            "observed": 0.3165
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 164,
+            "predicted": 0.4398,
+            "observed": 0.439
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 58,
+            "predicted": 0.5461,
+            "observed": 0.569
+          },
+          {
+            "bin": "0.60-0.70",
+            "n": 64,
+            "predicted": 0.6626,
+            "observed": 0.8594
+          },
+          {
+            "bin": "0.70-0.80",
+            "n": 165,
+            "predicted": 0.7556,
+            "observed": 0.8485
+          },
+          {
+            "bin": "0.80-0.90",
+            "n": 157,
+            "predicted": 0.8467,
+            "observed": 0.8535
+          },
+          {
+            "bin": "0.90-1.00",
+            "n": 69,
+            "predicted": 0.9247,
+            "observed": 0.9275
+          }
+        ],
+        "ece": 0.0467
+      },
+      "dnf": {
+        "bins": [
+          {
+            "bin": "0.02-0.05",
+            "n": 27,
+            "predicted": 0.0456,
+            "observed": 0.037
+          },
+          {
+            "bin": "0.05-0.10",
+            "n": 419,
+            "predicted": 0.0834,
+            "observed": 0.0955
+          },
+          {
+            "bin": "0.10-0.20",
+            "n": 751,
+            "predicted": 0.1281,
+            "observed": 0.1158
+          },
+          {
+            "bin": "0.20-0.30",
+            "n": 85,
+            "predicted": 0.2375,
+            "observed": 0.2471
+          },
+          {
+            "bin": "0.30-0.40",
+            "n": 23,
+            "predicted": 0.3434,
+            "observed": 0.2174
+          },
+          {
+            "bin": "0.40-0.50",
+            "n": 13,
+            "predicted": 0.4511,
+            "observed": 0.5385
+          },
+          {
+            "bin": "0.50-0.60",
+            "n": 14,
+            "predicted": 0.5383,
+            "observed": 0.3571
+          }
+        ],
+        "ece": 0.0164
+      }
+    }
+  },
+  "fantasy": {
+    "lock:constructor": {
+      "n": 667,
+      "mae": 16.53,
+      "maeBaselineLast3": 19.63,
+      "maeModelSameRows": 18.3,
+      "bias": 2.27,
+      "spearmanPerRace": 0.709,
+      "p10p90Coverage": 0.778,
+      "maeBySeason": {
+        "2024": 14.22,
+        "2025": 17.25,
+        "2026": 18.56
+      },
+      "priceChange": {
+        "n": 417,
+        "modeAccuracy": 0.731,
+        "maeExpected": 0.223,
+        "pActual": 0.63
+      }
+    },
+    "lock:driver": {
+      "n": 1332,
+      "mae": 9.96,
+      "maeBaselineLast3": 13.19,
+      "maeModelSameRows": 11.55,
+      "bias": 1.11,
+      "spearmanPerRace": 0.574,
+      "p10p90Coverage": 0.839,
+      "maeBySeason": {
+        "2024": 8.55,
+        "2025": 10.11,
+        "2026": 11.57
+      },
+      "priceChange": {
+        "n": 832,
+        "modeAccuracy": 0.52,
+        "maeExpected": 0.312,
+        "pActual": 0.43
+      }
+    },
+    "post-practice:constructor": {
+      "n": 667,
+      "mae": 15.75,
+      "maeBaselineLast3": 19.63,
+      "maeModelSameRows": 17.44,
+      "bias": 1.98,
+      "spearmanPerRace": 0.717,
+      "p10p90Coverage": 0.771,
+      "maeBySeason": {
+        "2024": 13.68,
+        "2025": 16.28,
+        "2026": 17.74
+      },
+      "priceChange": {
+        "n": 417,
+        "modeAccuracy": 0.739,
+        "maeExpected": 0.216,
+        "pActual": 0.64
+      }
+    },
+    "post-practice:driver": {
+      "n": 1332,
+      "mae": 9.49,
+      "maeBaselineLast3": 13.19,
+      "maeModelSameRows": 10.95,
+      "bias": 0.97,
+      "spearmanPerRace": 0.6,
+      "p10p90Coverage": 0.838,
+      "maeBySeason": {
+        "2024": 8.41,
+        "2025": 9.39,
+        "2026": 11.01
+      },
+      "priceChange": {
+        "n": 832,
+        "modeAccuracy": 0.548,
+        "maeExpected": 0.295,
+        "pActual": 0.447
+      }
+    },
+    "post-qualifying:constructor": {
+      "n": 667,
+      "mae": 14.84,
+      "maeBaselineLast3": 19.63,
+      "maeModelSameRows": 17.24,
+      "bias": 1.45,
+      "spearmanPerRace": 0.732,
+      "p10p90Coverage": 0.777,
+      "maeBySeason": {
+        "2024": 13.01,
+        "2025": 14.62,
+        "2026": 17.48
+      },
+      "priceChange": {
+        "n": 417,
+        "modeAccuracy": 0.743,
+        "maeExpected": 0.212,
+        "pActual": 0.645
+      }
+    },
+    "post-qualifying:driver": {
+      "n": 1332,
+      "mae": 9.19,
+      "maeBaselineLast3": 13.19,
+      "maeModelSameRows": 10.94,
+      "bias": 0.68,
+      "spearmanPerRace": 0.611,
+      "p10p90Coverage": 0.823,
+      "maeBySeason": {
+        "2024": 8.23,
+        "2025": 8.72,
+        "2026": 11.02
+      },
+      "priceChange": {
+        "n": 832,
+        "modeAccuracy": 0.548,
+        "maeExpected": 0.295,
+        "pActual": 0.459
+      }
+    },
+    "pre-weekend:constructor": {
+      "n": 667,
+      "mae": 17.4,
+      "maeBaselineLast3": 19.63,
+      "maeModelSameRows": 18.97,
+      "bias": 2.36,
+      "spearmanPerRace": 0.694,
+      "p10p90Coverage": 0.789,
+      "maeBySeason": {
+        "2024": 15.09,
+        "2025": 18.21,
+        "2026": 19.32
+      },
+      "priceChange": {
+        "n": 417,
+        "modeAccuracy": 0.739,
+        "maeExpected": 0.226,
+        "pActual": 0.625
+      }
+    },
+    "pre-weekend:driver": {
+      "n": 1332,
+      "mae": 10.3,
+      "maeBaselineLast3": 13.19,
+      "maeModelSameRows": 11.81,
+      "bias": 1.16,
+      "spearmanPerRace": 0.564,
+      "p10p90Coverage": 0.845,
+      "maeBySeason": {
+        "2024": 8.91,
+        "2025": 10.47,
+        "2026": 11.86
+      },
+      "priceChange": {
+        "n": 832,
+        "modeAccuracy": 0.532,
+        "maeExpected": 0.315,
+        "pActual": 0.424
+      }
+    }
+  },
+  "pointsBySeason": {
+    "post-practice:2024": {
+      "top8ExpectedOverActual": 0.935,
+      "drivers": {
+        "max_verstappen": {
+          "expected": 513.6,
+          "actual": 437.0,
+          "races": 24
+        },
+        "norris": {
+          "expected": 313.4,
+          "actual": 374.0,
+          "races": 24
+        },
+        "leclerc": {
+          "expected": 303.1,
+          "actual": 356.0,
+          "races": 24
+        },
+        "piastri": {
+          "expected": 254.3,
+          "actual": 292.0,
+          "races": 24
+        },
+        "sainz": {
+          "expected": 252.2,
+          "actual": 290.0,
+          "races": 23
+        },
+        "russell": {
+          "expected": 210.0,
+          "actual": 245.0,
+          "races": 24
+        },
+        "hamilton": {
+          "expected": 185.7,
+          "actual": 223.0,
+          "races": 24
+        },
+        "perez": {
+          "expected": 182.7,
+          "actual": 152.0,
+          "races": 24
+        }
+      }
+    },
+    "post-practice:2025": {
+      "top8ExpectedOverActual": 0.941,
+      "drivers": {
+        "norris": {
+          "expected": 440.7,
+          "actual": 423.0,
+          "races": 24
+        },
+        "max_verstappen": {
+          "expected": 357.9,
+          "actual": 421.0,
+          "races": 24
+        },
+        "piastri": {
+          "expected": 383.2,
+          "actual": 410.0,
+          "races": 24
+        },
+        "russell": {
+          "expected": 283.5,
+          "actual": 319.0,
+          "races": 24
+        },
+        "leclerc": {
+          "expected": 238.6,
+          "actual": 242.0,
+          "races": 24
+        },
+        "hamilton": {
+          "expected": 166.4,
+          "actual": 156.0,
+          "races": 24
+        },
+        "antonelli": {
+          "expected": 124.8,
+          "actual": 150.0,
+          "races": 24
+        },
+        "albon": {
+          "expected": 70.2,
+          "actual": 73.0,
+          "races": 24
+        }
+      }
+    },
+    "post-practice:2026": {
+      "top8ExpectedOverActual": 0.922,
+      "drivers": {
+        "antonelli": {
+          "expected": 251.4,
+          "actual": 340.0,
+          "races": 17
+        },
+        "russell": {
+          "expected": 259.0,
+          "actual": 238.0,
+          "races": 17
+        },
+        "hamilton": {
+          "expected": 194.5,
+          "actual": 229.0,
+          "races": 17
+        },
+        "max_verstappen": {
+          "expected": 178.9,
+          "actual": 221.0,
+          "races": 17
+        },
+        "leclerc": {
+          "expected": 218.8,
+          "actual": 215.0,
+          "races": 17
+        },
+        "norris": {
+          "expected": 200.8,
+          "actual": 201.0,
+          "races": 17
+        },
+        "piastri": {
+          "expected": 170.8,
+          "actual": 138.0,
+          "races": 17
+        },
+        "hadjar": {
+          "expected": 73.8,
+          "actual": 97.0,
+          "races": 14
+        }
+      }
+    },
+    "post-qualifying:2024": {
+      "top8ExpectedOverActual": 0.944,
+      "drivers": {
+        "max_verstappen": {
+          "expected": 504.8,
+          "actual": 437.0,
+          "races": 24
+        },
+        "norris": {
+          "expected": 341.2,
+          "actual": 374.0,
+          "races": 24
+        },
+        "leclerc": {
+          "expected": 289.5,
+          "actual": 356.0,
+          "races": 24
+        },
+        "piastri": {
+          "expected": 261.7,
+          "actual": 292.0,
+          "races": 24
+        },
+        "sainz": {
+          "expected": 257.7,
+          "actual": 290.0,
+          "races": 23
+        },
+        "russell": {
+          "expected": 245.5,
+          "actual": 245.0,
+          "races": 24
+        },
+        "hamilton": {
+          "expected": 171.6,
+          "actual": 223.0,
+          "races": 24
+        },
+        "perez": {
+          "expected": 165.2,
+          "actual": 152.0,
+          "races": 24
+        }
+      }
+    },
+    "post-qualifying:2025": {
+      "top8ExpectedOverActual": 0.976,
+      "drivers": {
+        "norris": {
+          "expected": 442.0,
+          "actual": 423.0,
+          "races": 24
+        },
+        "max_verstappen": {
+          "expected": 383.0,
+          "actual": 421.0,
+          "races": 24
+        },
+        "piastri": {
+          "expected": 402.1,
+          "actual": 410.0,
+          "races": 24
+        },
+        "russell": {
+          "expected": 321.4,
+          "actual": 319.0,
+          "races": 24
+        },
+        "leclerc": {
+          "expected": 241.7,
+          "actual": 242.0,
+          "races": 24
+        },
+        "hamilton": {
+          "expected": 164.4,
+          "actual": 156.0,
+          "races": 24
+        },
+        "antonelli": {
+          "expected": 128.5,
+          "actual": 150.0,
+          "races": 24
+        },
+        "albon": {
+          "expected": 57.8,
+          "actual": 73.0,
+          "races": 24
+        }
+      }
+    },
+    "post-qualifying:2026": {
+      "top8ExpectedOverActual": 0.955,
+      "drivers": {
+        "antonelli": {
+          "expected": 283.2,
+          "actual": 340.0,
+          "races": 17
+        },
+        "russell": {
+          "expected": 268.7,
+          "actual": 238.0,
+          "races": 17
+        },
+        "hamilton": {
+          "expected": 219.4,
+          "actual": 229.0,
+          "races": 17
+        },
+        "max_verstappen": {
+          "expected": 187.0,
+          "actual": 221.0,
+          "races": 17
+        },
+        "leclerc": {
+          "expected": 232.5,
+          "actual": 215.0,
+          "races": 17
+        },
+        "norris": {
+          "expected": 194.9,
+          "actual": 201.0,
+          "races": 17
+        },
+        "piastri": {
+          "expected": 146.4,
+          "actual": 138.0,
+          "races": 17
+        },
+        "hadjar": {
+          "expected": 71.5,
+          "actual": 97.0,
+          "races": 14
+        }
+      }
+    },
+    "pre-weekend:2024": {
+      "top8ExpectedOverActual": 0.894,
+      "drivers": {
+        "max_verstappen": {
+          "expected": 550.4,
+          "actual": 437.0,
+          "races": 24
+        },
+        "norris": {
+          "expected": 267.2,
+          "actual": 374.0,
+          "races": 24
+        },
+        "leclerc": {
+          "expected": 284.4,
+          "actual": 356.0,
+          "races": 24
+        },
+        "piastri": {
+          "expected": 219.6,
+          "actual": 292.0,
+          "races": 24
+        },
+        "sainz": {
+          "expected": 229.5,
+          "actual": 290.0,
+          "races": 23
+        },
+        "russell": {
+          "expected": 183.8,
+          "actual": 245.0,
+          "races": 24
+        },
+        "hamilton": {
+          "expected": 162.4,
+          "actual": 223.0,
+          "races": 24
+        },
+        "perez": {
+          "expected": 220.5,
+          "actual": 152.0,
+          "races": 24
+        }
+      }
+    },
+    "pre-weekend:2025": {
+      "top8ExpectedOverActual": 0.877,
+      "drivers": {
+        "norris": {
+          "expected": 380.4,
+          "actual": 423.0,
+          "races": 24
+        },
+        "max_verstappen": {
+          "expected": 349.9,
+          "actual": 421.0,
+          "races": 24
+        },
+        "piastri": {
+          "expected": 351.6,
+          "actual": 410.0,
+          "races": 24
+        },
+        "russell": {
+          "expected": 262.1,
+          "actual": 319.0,
+          "races": 24
+        },
+        "leclerc": {
+          "expected": 225.6,
+          "actual": 242.0,
+          "races": 24
+        },
+        "hamilton": {
+          "expected": 155.7,
+          "actual": 156.0,
+          "races": 24
+        },
+        "antonelli": {
+          "expected": 118.2,
+          "actual": 150.0,
+          "races": 24
+        },
+        "albon": {
+          "expected": 79.9,
+          "actual": 73.0,
+          "races": 24
+        }
+      }
+    },
+    "pre-weekend:2026": {
+      "top8ExpectedOverActual": 0.853,
+      "drivers": {
+        "antonelli": {
+          "expected": 230.8,
+          "actual": 340.0,
+          "races": 17
+        },
+        "russell": {
+          "expected": 233.4,
+          "actual": 238.0,
+          "races": 17
+        },
+        "hamilton": {
+          "expected": 171.2,
+          "actual": 229.0,
+          "races": 17
+        },
+        "max_verstappen": {
+          "expected": 169.5,
+          "actual": 221.0,
+          "races": 17
+        },
+        "leclerc": {
+          "expected": 186.0,
+          "actual": 215.0,
+          "races": 17
+        },
+        "norris": {
+          "expected": 186.0,
+          "actual": 201.0,
+          "races": 17
+        },
+        "piastri": {
+          "expected": 168.9,
+          "actual": 138.0,
+          "races": 17
+        },
+        "hadjar": {
+          "expected": 86.2,
+          "actual": 97.0,
+          "races": 14
+        }
+      }
+    }
+  },
+  "gpu": {
+    "seconds": 5293.0,
+    "samples": 0
+  },
+  "seconds": 5293.0
+}

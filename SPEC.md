@@ -89,13 +89,22 @@ short `data/raw/<source>/README.md` describing what was fetched, coverage and ga
                      "expectedPoints": 0.0,
                      "fantasy": { "price": 0.0, "expectedPoints": 0.0, "p10": 0.0, "p90": 0.0,
                                   "expectedPriceChange": 0.0 } }],
-  "championship": { "drivers": [{ "driverId": "", "pTitle": 0.0, "expectedFinalPoints": 0.0 }],
-                    "constructors": [{ "constructorId": "", "pTitle": 0.0 }] }
+  "championship": { "drivers": [{ "driverId": "", "pTitle": 0.0, "expectedFinalPoints": 0.0,
+                                  "positionDist": [] }],
+                    "constructors": [{ "constructorId": "", "pTitle": 0.0,
+                                       "expectedFinalPoints": 0.0, "positionDist": [] }] }
 }
 ```
 
 Also `data/predictions/history/<season>-<round>.json`: historical walk-forward backtests in the
 same shape plus an `"actual"` block. These are labelled as backtests and may be regenerated.
+
+Championship `positionDist` contains probabilities for final P1 through the field size, indexed
+by position, with `pTitle` equal to its first element. Older forecasts may omit the distribution;
+the site shows an update message until a new forecast is published. Secured positions use
+standings and remaining scoring opportunities, including sprints and guaranteed wins countback,
+rather than a simulation reaching 100%. The next undecided position is selected independently
+for drivers and constructors.
 
 Verified published forecasts are immutable snapshots under
 `data/published/<season>-<round>/<sha256>.json`, with the full forecast, its hash, first successful

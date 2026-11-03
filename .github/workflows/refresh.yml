@@ -189,7 +189,12 @@ jobs:
         working-directory: site
         env:
           NODE_OPTIONS: --disable-warning=ExperimentalWarning
+          PUSH_EVENT: ${{ github.event_name == 'push' }}
         run: |
+          if [ "$PUSH_EVENT" = "true" ] && [ "$(python3 ../cloud/forecast_records.py needs-positions)" = "true" ]; then
+            uv sync --project ../ml
+            (cd ../ml && uv run python -m f1ml.predict)
+          fi
           if [ -f ../data/processed/ff1_session_results.parquet ] && [ -f ../data/processed/ff1_laps.parquet ] && [ -f ../data/processed/ff1_weather.parquet ]; then
             uv run --project ../pipeline python -m f1p.fastf1.session_export --seasons "$(date -u +%Y)"
           fi
@@ -220,7 +225,7 @@ jobs:
         run: |
           if [ "$VERIFIED" = "success" ]; then python3 cloud/publication.py finish; fi
           if [ "$PUSH_EVENT" = "true" ]; then
-            python3 cloud/state.py push --groups publication,forecast-records,serve
+            python3 cloud/state.py push --groups publication,forecast-records,serve,predictions
           else
             python3 cloud/state.py push --skip model,backtest
           fi

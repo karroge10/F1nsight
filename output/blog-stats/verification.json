@@ -1,0 +1,14 @@
+{
+  "desktop": {
+    "images": 10,
+    "broken": 0,
+    "horizontalOverflow": false,
+    "height": 11801,
+    "badNumbers": false
+  },
+  "mobile": {
+    "horizontalOverflow": false,
+    "width": 390
+  },
+  "errors": []
+}

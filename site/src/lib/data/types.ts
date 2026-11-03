@@ -403,8 +403,8 @@ export interface Prediction {
   drivers: DriverForecast[];
   constructors: ConstructorForecast[];
   championship: {
-    drivers: { driverId: string; pTitle: number; expectedFinalPoints: number }[];
-    constructors: { constructorId: string; pTitle: number }[];
+    drivers: { driverId: string; pTitle: number; expectedFinalPoints: number; positionDist?: number[] }[];
+    constructors: { constructorId: string; pTitle: number; expectedFinalPoints?: number; positionDist?: number[] }[];
   };
 }
 

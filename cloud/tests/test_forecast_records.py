@@ -88,6 +88,15 @@ def test_mismatch_reports_expected_and_received_identity():
         records.check_site("https://example.com", payload, lambda url: json.dumps(stale))
 
 
+def test_deployment_detects_title_only_forecasts_for_a_one_time_upgrade():
+    payload = forecast()
+    assert records.needs_championship_positions(payload)
+    payload["championship"] = {"drivers": [{"positionDist": [1]}], "constructors": [{"positionDist": [1]}]}
+    assert not records.needs_championship_positions(payload)
+    payload["championship"]["constructors"][0]["positionDist"] = []
+    assert records.needs_championship_positions(payload)
+
+
 def test_evaluation_excludes_post_start_publications_and_uses_last_pre_start_stage():
     first = record()
     last = record(verified="2026-10-25T19:00:00Z")

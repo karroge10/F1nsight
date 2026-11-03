@@ -1,0 +1,89 @@
+{
+  "rank": {
+    "default": {
+      "objective": "rank:pairwise",
+      "eta": 0.05,
+      "max_depth": 3,
+      "min_child_weight": 5.0,
+      "subsample": 0.8,
+      "colsample_bytree": 0.7,
+      "lambda": 5.0,
+      "alpha": 0.0,
+      "num_boost_round": 150,
+      "decay": 0.85
+    },
+    "pre-weekend": {
+      "objective": "rank:pairwise",
+      "eta": 0.03153588066704099,
+      "max_depth": 3,
+      "min_child_weight": 8.608895492331653,
+      "subsample": 0.6922386217875232,
+      "colsample_bytree": 0.4327895917946448,
+      "lambda": 8.11373076995943,
+      "alpha": 0.5686978404675913,
+      "num_boost_round": 44,
+      "decay": 0.9228390733029183
+    },
+    "post-practice": {
+      "objective": "rank:pairwise",
+      "eta": 0.012392311689438931,
+      "max_depth": 4,
+      "min_child_weight": 26.032572652876315,
+      "subsample": 0.5425734936487692,
+      "colsample_bytree": 0.6660644333758454,
+      "lambda": 43.56110461296134,
+      "alpha": 1.6759896693747567,
+      "num_boost_round": 94,
+      "decay": 0.9442526988010127
+    },
+    "post-qualifying": {
+      "objective": "rank:ndcg",
+      "eta": 0.06717035910376654,
+      "max_depth": 6,
+      "min_child_weight": 53.18456189484403,
+      "subsample": 0.843483898325887,
+      "colsample_bytree": 0.6603970612477249,
+      "lambda": 0.5069233038127322,
+      "alpha": 1.8813108641973217,
+      "num_boost_round": 227,
+      "decay": 0.861664348259547
+    },
+    "quali": {
+      "objective": "rank:pairwise",
+      "eta": 0.04428849144697458,
+      "max_depth": 2,
+      "min_child_weight": 24.879844714918157,
+      "subsample": 0.5523346237781946,
+      "colsample_bytree": 0.5540917316258583,
+      "lambda": 3.9589855325118797,
+      "alpha": 1.1741051562904308,
+      "num_boost_round": 95,
+      "decay": 0.9767040512632013
+    }
+  },
+  "dnf": {
+    "eta": 0.0668561971952919,
+    "max_depth": 4,
+    "min_child_weight": 7.5208009139433685,
+    "subsample": 0.9910422987600737,
+    "colsample_bytree": 0.8421379266220034,
+    "lambda": 0.34538025541084927,
+    "alpha": 7.863212784087489,
+    "num_boost_round": 44,
+    "decay": 0.6371006666874344
+  },
+  "nn": {
+    "d_model": 32,
+    "layers": 3,
+    "heads": 4,
+    "dropout": 0.0827914724238637,
+    "lr": 0.0003770518539517663,
+    "weight_decay": 0.07342571176240942,
+    "epochs": 25,
+    "batch": 64,
+    "quali_weight": 0.08190006001834516,
+    "dnf_weight": 1.4428464334795228,
+    "decay": 0.8600522072052533,
+    "seeds": 3
+  }
+}

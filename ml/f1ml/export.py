@@ -293,15 +293,24 @@ def _championship_block(result: dict | None) -> dict | None:
     if result is None:
         return None
     drivers = []
-    for driver_id, title, points in zip(result["driverIds"], result["driver_title"],
-                                        result["driver_points"]):
-        drivers.append({"driverId": driver_id, "pTitle": round(float(title), 4),
-                        "expectedFinalPoints": round(float(points), 1)})
+    driver_dist = result.get("driver_position_dist")
+    for index, (driver_id, title, points) in enumerate(zip(
+            result["driverIds"], result["driver_title"], result["driver_points"])):
+        row = {"driverId": driver_id, "pTitle": round(float(title), 4),
+               "expectedFinalPoints": round(float(points), 1)}
+        if driver_dist is not None:
+            row["positionDist"] = [round(float(value), 4) for value in driver_dist[index]]
+        drivers.append(row)
     drivers.sort(key=lambda item: -item["expectedFinalPoints"])
     constructors = []
-    for team, title, points in zip(result["teams"], result["team_title"], result["team_points"]):
-        constructors.append({"constructorId": str(team), "pTitle": round(float(title), 4),
-                             "expectedFinalPoints": round(float(points), 1)})
+    team_dist = result.get("team_position_dist")
+    for index, (team, title, points) in enumerate(zip(
+            result["teams"], result["team_title"], result["team_points"])):
+        row = {"constructorId": str(team), "pTitle": round(float(title), 4),
+               "expectedFinalPoints": round(float(points), 1)}
+        if team_dist is not None:
+            row["positionDist"] = [round(float(value), 4) for value in team_dist[index]]
+        constructors.append(row)
     constructors.sort(key=lambda item: -item["expectedFinalPoints"])
     return {"drivers": drivers, "constructors": constructors,
             "remainingRounds": int(result["remaining"])}

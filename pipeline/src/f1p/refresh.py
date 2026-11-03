@@ -229,11 +229,15 @@ class StepRunner:
         predict_state = self.state.get("predict", {})
         previous = predict_state.get("fingerprint")
         next_path = PREDICTIONS_DIR / "next.json"
-        if fingerprint == previous and next_path.exists() and not self.force:
+        before = _read_json(next_path) or {}
+        championship = before.get("championship") or {}
+        has_positions = all(championship.get(kind) and all(
+            isinstance(row.get("positionDist"), list) and len(row["positionDist"]) == len(championship[kind])
+            for row in championship[kind]) for kind in ("drivers", "constructors"))
+        if fingerprint == previous and next_path.exists() and has_positions and not self.force:
             result.status = "skipped"
             result.reason = "no input changed since the last forecast"
             return
-        before = _read_json(next_path) or {}
         self._run_module(result, "ml", "f1ml.predict")
         if result.status != "ok":
             return

@@ -837,11 +837,21 @@ select option {
   align-items: center;
   gap: 0.3rem;
   color: var(--champion);
-  font-size: 0.6875rem;
-  font-weight: 600;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 550;
   white-space: nowrap;
 }
 .champion-row { background: var(--champion-bg); }
+.champion-badge-inline {
+  display: inline;
+  vertical-align: baseline;
+}
+.champion-badge-inline svg {
+  display: inline-block;
+  margin-inline-end: 0.3rem;
+  vertical-align: -0.125em;
+}
 .champion-row td:first-child { box-shadow: inset 2px 0 var(--champion); }
 .champion-row a, .champion-name { color: var(--champion); }
 @media (max-width: 639px) { .fantasy-button, .fantasy-choice { min-height: 2.75rem; } }

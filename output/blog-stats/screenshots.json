@@ -1,0 +1,42 @@
+[
+  {
+    "name": "forecast",
+    "url": "https://f1nsight.pages.dev/",
+    "file": "forecast.png",
+    "width": 3200,
+    "height": 2200,
+    "capturedAt": "2026-10-23T05:47:35.835Z"
+  },
+  {
+    "name": "telemetry",
+    "url": "https://f1nsight.pages.dev/telemetry?s=2026-17-Q&a=NOR&b=VER",
+    "file": "telemetry.png",
+    "width": 3200,
+    "height": 2200,
+    "capturedAt": "2026-10-23T05:47:36.886Z"
+  },
+  {
+    "name": "fantasy",
+    "url": "https://f1nsight.pages.dev/fantasy",
+    "file": "fantasy.png",
+    "width": 3200,
+    "height": 2200,
+    "capturedAt": "2026-10-23T05:47:37.883Z"
+  },
+  {
+    "name": "history",
+    "url": "https://f1nsight.pages.dev/history",
+    "file": "history.png",
+    "width": 3200,
+    "height": 2200,
+    "capturedAt": "2026-10-23T05:47:39.187Z"
+  },
+  {
+    "name": "forecast-mobile",
+    "url": "https://f1nsight.pages.dev/",
+    "file": "forecast-mobile.png",
+    "width": 860,
+    "height": 1864,
+    "capturedAt": "2026-10-23T05:47:40.097Z"
+  }
+]

@@ -8,6 +8,7 @@ Run from pipeline without touching the shared venv:
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 from datetime import datetime, timedelta, timezone
@@ -109,3 +110,32 @@ def test_refresh_reads_the_incremental_result_line():
     output = "log line\nRESULT {\"new\": [\"2026/17_FP1\"], \"pending\": [], \"built\": true}\n"
     assert refresh._result_line(output)["new"] == ["2026/17_FP1"]
     assert refresh._result_line("no result") == {}
+
+
+def test_refresh_upgrades_old_title_only_forecasts_without_other_input_changes(monkeypatch, tmp_path):
+    monkeypatch.setattr(refresh, "PREDICTIONS_DIR", tmp_path)
+    monkeypatch.setattr(refresh, "_prediction_inputs", lambda: "unchanged")
+    forecast = {"generatedAt": "old", "championship": {
+        "drivers": [{"driverId": "a", "pTitle": 1}],
+        "constructors": [{"constructorId": "team", "pTitle": 1}]}}
+    path = tmp_path / "next.json"
+    path.write_text(json.dumps(forecast), encoding="utf-8")
+    state = {"predict": {"fingerprint": "unchanged"}}
+    runner = refresh.StepRunner(refresh.RunLog(io.StringIO()), state, False)
+    calls = []
+    def predict(result, *args):
+        calls.append(args)
+        forecast["generatedAt"] = "new"
+        for kind in ("drivers", "constructors"):
+            forecast["championship"][kind][0]["positionDist"] = [1]
+        path.write_text(json.dumps(forecast), encoding="utf-8")
+        result.status = "ok"
+        return ""
+    monkeypatch.setattr(runner, "_run_module", predict)
+    result = refresh.StepResult("predict")
+    runner.step_predict(result)
+    assert result.status == "ok"
+    assert calls == [("ml", "f1ml.predict")]
+    runner.step_predict(result)
+    assert result.status == "skipped"
+    assert len(calls) == 1

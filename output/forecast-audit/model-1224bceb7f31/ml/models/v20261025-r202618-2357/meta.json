@@ -1,0 +1,306 @@
+{
+  "version": "v20261025-r202618-2357",
+  "trainedAt": "2026-10-25T23:57:49Z",
+  "trainedThroughRaceId": 202618,
+  "races": 417,
+  "rows": 8785,
+  "useNN": true,
+  "params": {
+    "rank": {
+      "default": {
+        "objective": "rank:pairwise",
+        "eta": 0.05,
+        "max_depth": 3,
+        "min_child_weight": 5.0,
+        "subsample": 0.8,
+        "colsample_bytree": 0.7,
+        "lambda": 5.0,
+        "alpha": 0.0,
+        "num_boost_round": 150,
+        "decay": 0.85
+      },
+      "pre-weekend": {
+        "objective": "rank:pairwise",
+        "eta": 0.03153588066704099,
+        "max_depth": 3,
+        "min_child_weight": 8.608895492331653,
+        "subsample": 0.6922386217875232,
+        "colsample_bytree": 0.4327895917946448,
+        "lambda": 8.11373076995943,
+        "alpha": 0.5686978404675913,
+        "num_boost_round": 44,
+        "decay": 0.9228390733029183
+      },
+      "post-practice": {
+        "objective": "rank:pairwise",
+        "eta": 0.012392311689438931,
+        "max_depth": 4,
+        "min_child_weight": 26.032572652876315,
+        "subsample": 0.5425734936487692,
+        "colsample_bytree": 0.6660644333758454,
+        "lambda": 43.56110461296134,
+        "alpha": 1.6759896693747567,
+        "num_boost_round": 94,
+        "decay": 0.9442526988010127
+      },
+      "post-qualifying": {
+        "objective": "rank:ndcg",
+        "eta": 0.06717035910376654,
+        "max_depth": 6,
+        "min_child_weight": 53.18456189484403,
+        "subsample": 0.843483898325887,
+        "colsample_bytree": 0.6603970612477249,
+        "lambda": 0.5069233038127322,
+        "alpha": 1.8813108641973217,
+        "num_boost_round": 227,
+        "decay": 0.861664348259547
+      },
+      "quali": {
+        "objective": "rank:pairwise",
+        "eta": 0.04428849144697458,
+        "max_depth": 2,
+        "min_child_weight": 24.879844714918157,
+        "subsample": 0.5523346237781946,
+        "colsample_bytree": 0.5540917316258583,
+        "lambda": 3.9589855325118797,
+        "alpha": 1.1741051562904308,
+        "num_boost_round": 95,
+        "decay": 0.9767040512632013
+      }
+    },
+    "dnf": {
+      "eta": 0.0668561971952919,
+      "max_depth": 4,
+      "min_child_weight": 7.5208009139433685,
+      "subsample": 0.9910422987600737,
+      "colsample_bytree": 0.8421379266220034,
+      "lambda": 0.34538025541084927,
+      "alpha": 7.863212784087489,
+      "num_boost_round": 44,
+      "decay": 0.6371006666874344
+    },
+    "nn": {
+      "d_model": 32,
+      "layers": 3,
+      "heads": 4,
+      "dropout": 0.0827914724238637,
+      "lr": 0.0003770518539517663,
+      "weight_decay": 0.07342571176240942,
+      "epochs": 25,
+      "batch": 64,
+      "quali_weight": 0.08190006001834516,
+      "dnf_weight": 1.4428464334795228,
+      "decay": 0.8600522072052533,
+      "seeds": 10
+    },
+    "seed": 0,
+    "gbm_bags": 5
+  },
+  "stack": {
+    "pre-weekend": {
+      "race": [
+        3.5408678205166857,
+        0.20375951597067224
+      ],
+      "race_schedule": [
+        1.7924485617098769,
+        1.0872117334987785e-13,
+        8.431849807063985
+      ],
+      "quali": [
+        1.0654942949169661,
+        0.7725632685627597
+      ],
+      "quali_schedule": [
+        1.5022792016709159,
+        9.90057576438321e-13,
+        10.000079981909963
+      ],
+      "dnf": {
+        "intercept": 0.8950711767425177,
+        "coef": [
+          0.8815309977365002,
+          0.5448070751471693
+        ]
+      },
+      "race_gbm_ratio": 1.3671095851902415,
+      "quali_gbm_ratio": 2.7118682686642885,
+      "race_schedule_recent": [
+        2.2678757341259037,
+        6.577836247990549e-14,
+        7.004764982864415
+      ],
+      "race_first_pick_full_fit": 1.879868259412981,
+      "quali_schedule_recent": [
+        1.8372699577321379,
+        2.1617412573625222e-13,
+        12.498136605954182
+      ],
+      "schedule_window": 96
+    },
+    "post-practice": {
+      "race": [
+        4.53532476011201,
+        0.16225911583482855
+      ],
+      "race_schedule": [
+        2.153434366265794,
+        1.1623037799851395e-14,
+        7.203752504804741
+      ],
+      "quali": [
+        1.9223171366719627,
+        0.4237729637723324
+      ],
+      "quali_schedule": [
+        1.6775919817410325,
+        7.589699677246884e-14,
+        10.080060059953476
+      ],
+      "dnf": {
+        "intercept": 0.8466922646040828,
+        "coef": [
+          1.0622181346690864,
+          0.33002594077267605
+        ]
+      },
+      "race_gbm_ratio": 1.2746262995572653,
+      "quali_gbm_ratio": 1.55908134009282,
+      "race_schedule_recent": [
+        2.2001362033543854,
+        8.516132150370226e-14,
+        7.3502339123143114
+      ],
+      "race_first_pick_full_fit": 2.2686326828772083,
+      "quali_schedule_recent": [
+        1.9008651203937275,
+        1.164903009269609e-13,
+        11.962347009364656
+      ],
+      "schedule_window": 96
+    },
+    "post-qualifying": {
+      "race": [
+        0.6461927915561306,
+        0.22151551302886147
+      ],
+      "race_schedule": [
+        2.7028785551868038,
+        1.1796718908585216e-14,
+        6.085850989631674
+      ],
+      "dnf": {
+        "intercept": 0.7169123444422336,
+        "coef": [
+          1.0898421557793883,
+          0.25493627261121504
+        ]
+      },
+      "race_gbm_ratio": 1.3785790386637404,
+      "race_schedule_recent": [
+        2.856102473252047,
+        3.336679790037262e-14,
+        5.486784933840453
+      ],
+      "grid_term": 0.6192500000000005,
+      "race_first_pick_full_fit": 2.42602083133234,
+      "first_pick_grid_bonus": [
+        0.7639417681878367,
+        -0.2936623773554379,
+        -0.14808283389388238
+      ],
+      "schedule_window": 96
+    }
+  },
+  "timings": {
+    "gbm_seconds": 6.4426891803741455,
+    "nn_seconds": 107.79258513450623
+  },
+  "gpu": {
+    "seconds": 250.6,
+    "samples": 0
+  },
+  "importance": {
+    "pre-weekend": {
+      "d_q_e3": 0.1269,
+      "t_pts_e5": 0.1098,
+      "dp_total": 0.1012,
+      "d_q_s": 0.0835,
+      "t_fin_e3": 0.0802,
+      "t_fin_e8": 0.0751,
+      "d_champ_share": 0.0744,
+      "d_pts_e5": 0.062,
+      "d_fin_e3": 0.0499,
+      "t_fin_s": 0.0394,
+      "d_qgap_s": 0.0227,
+      "d_fin_e10": 0.0188,
+      "d_champ_pos": 0.0171,
+      "d_fin_s": 0.0166,
+      "d_q_e10": 0.0148,
+      "d_qgap_e3": 0.008,
+      "d_qgap_e10": 0.008,
+      "t_qgap_s": 0.0073,
+      "t_champ_pos": 0.0072,
+      "d_last_fin": 0.0056,
+      "d_sprint_fin_e": 0.0056,
+      "dp_team": 0.0052,
+      "t_qgap_e3": 0.0047,
+      "d_circ_fin": 0.0046,
+      "t_qgap_e8": 0.0045
+    },
+    "post-practice": {
+      "fp_mean_rank": 0.1798,
+      "d_pts_e5": 0.1082,
+      "t_pts_e5": 0.0741,
+      "dp_total": 0.0739,
+      "t_fin_e3": 0.0633,
+      "d_champ_share": 0.0508,
+      "d_q_e3": 0.0463,
+      "d_q_s": 0.0318,
+      "t_fin_s": 0.0281,
+      "d_fin_e3": 0.0207,
+      "fp_last_gap": 0.0183,
+      "d_fin_s": 0.018,
+      "fp_best_gap": 0.0166,
+      "d_qgap_s": 0.0137,
+      "fp3_gap": 0.0135,
+      "t_fin_e8": 0.0107,
+      "d_q_e10": 0.0104,
+      "fp_team_best_gap": 0.0098,
+      "d_champ_pos": 0.0079,
+      "d_fin_e10": 0.0074,
+      "d_sprint_fin_e": 0.0073,
+      "lr_rank": 0.0072,
+      "d_fin_ps": 0.0064,
+      "fp2_gap": 0.0063,
+      "lr_gap": 0.0062
+    },
+    "post-qualifying": {
+      "q_pos": 0.5079,
+      "grid": 0.159,
+      "d_pts_e5": 0.0645,
+      "d_q_e3": 0.0422,
+      "t_pts_e5": 0.037,
+      "dp_total": 0.0239,
+      "fp_mean_rank": 0.0234,
+      "q_gap": 0.0167,
+      "d_champ_share": 0.0134,
+      "d_qgap_s": 0.0098,
+      "q_tm_delta": 0.0063,
+      "d_fin_s": 0.0057,
+      "t_fin_e8": 0.0051,
+      "d_acc_rate": 0.0047,
+      "d_fin_ps": 0.0045,
+      "fp_last_gap": 0.0042,
+      "t_fin_e3": 0.0037,
+      "d_fin_e3": 0.0033,
+      "d_circ_tm": 0.003,
+      "d_circ_fin": 0.0026,
+      "t_fin_s": 0.0026,
+      "dp_team": 0.0026,
+      "t_cluster_qgap": 0.0025,
+      "q_vs_form": 0.0024,
+      "fp_team_best_gap": 0.0024
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "asOf": "2026-10-23",
+  "coverage": {
+    "seasons": 77,
+    "races": 1172,
+    "drivers": 881,
+    "constructors": 214,
+    "circuits": 78,
+    "results": 26247,
+    "lap_times": 635331,
+    "pit_stops": 12881,
+    "result_races": 1166
+  },
+  "telemetry": {
+    "sessions": 326,
+    "drivers_in_sessions": 6437,
+    "speed_samples": 2059840,
+    "distinct_drivers": 44,
+    "session_codes": [
+      "Q",
+      "R",
+      "S",
+      "SQ"
+    ]
+  },
+  "backtestRaces": 65,
+  "backtestGeneratedAt": "2026-10-13T19:12:24Z",
+  "metrics": {
+    "stages": {
+      "pre-weekend": {
+        "winnerCorrect": 0.27692307692307694,
+        "podiumHits": 0.5641025641025641,
+        "mae": 3.675949329407435,
+        "spearman": 0.6178898904299363,
+        "brierWin": 0.04149118037143908,
+        "logLossWin": 1.9351133394459223,
+        "brierPodium": 0.08611490456352595,
+        "logLossPodium": 0.2682532954264073,
+        "brierPoints": 0.16755590048183658,
+        "brierDnf": 0.1052835024936787,
+        "pWinActualWinner": 0.22764153846153845,
+        "maxPWin": 0.42169153846153845,
+        "favouritePodium": 0.5846153846153846,
+        "pDnfMean": 0.12848342234081708,
+        "dnfRate": 0.12288921604711078
+      },
+      "post-practice": {
+        "winnerCorrect": 0.3384615384615385,
+        "podiumHits": 0.5897435897435896,
+        "mae": 3.5206710563121093,
+        "spearman": 0.6339921405825296,
+        "brierWin": 0.039076342979260215,
+        "logLossWin": 1.693633291538359,
+        "brierPodium": 0.07802113033218624,
+        "logLossPodium": 0.2456840431856172,
+        "brierPoints": 0.16054623648594038,
+        "brierDnf": 0.10550541585632131,
+        "pWinActualWinner": 0.2586984615384615,
+        "maxPWin": 0.44255538461538463,
+        "favouritePodium": 0.6307692307692307,
+        "pDnfMean": 0.1250009928229665,
+        "dnfRate": 0.12288921604711078
+      },
+      "post-qualifying": {
+        "winnerCorrect": 0.5538461538461539,
+        "podiumHits": 0.682051282051282,
+        "mae": 3.2506505115936695,
+        "spearman": 0.6998669217891186,
+        "brierWin": 0.029414765703054842,
+        "logLossWin": 1.189177636992621,
+        "brierPodium": 0.06408576116882592,
+        "logLossPodium": 0.20522883390480434,
+        "brierPoints": 0.14631745752375783,
+        "brierDnf": 0.10454489119450681,
+        "pWinActualWinner": 0.40041230769230773,
+        "maxPWin": 0.5580846153846154,
+        "favouritePodium": 0.8,
+        "pDnfMean": 0.12509585112256166,
+        "dnfRate": 0.12288921604711078
+      }
+    },
+    "baselines": {
+      "grid": {
+        "winnerCorrect": 0.6,
+        "podiumHits": 0.6871794871794872,
+        "mae": 3.215576002944424,
+        "spearman": 0.6797011988774002,
+        "brierWin": 0.02878209172615878,
+        "logLossWin": 1.5327300688347858,
+        "brierPodium": 0.0641089836495904,
+        "logLossPodium": 0.23121954625341035
+      },
+      "championship": {
+        "winnerCorrect": 0.3076923076923077,
+        "podiumHits": 0.5743589743589744,
+        "mae": 3.8790136179609864,
+        "spearman": 0.6022957363003129,
+        "brierWin": 0.041102820402576956,
+        "logLossWin": 2.103830528015268,
+        "brierPodium": 0.0866413283447041,
+        "logLossPodium": 0.2833061367604089
+      },
+      "form3": {
+        "winnerCorrect": 0.2923076923076923,
+        "podiumHits": 0.5128205128205128,
+        "mae": 4.0975708502024295,
+        "spearman": 0.5692823271312974
+      }
+    }
+  },
+  "winLogLossReductionVsGrid": 0.22414411958613212,
+  "winnerPicks": {
+    "pre-weekend": 18,
+    "post-practice": 22,
+    "post-qualifying": 36
+  }
+}

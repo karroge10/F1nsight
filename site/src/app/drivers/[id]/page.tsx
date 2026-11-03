@@ -68,7 +68,7 @@ export default async function DriverPage({ params }: { params: Params }) {
         media={<DriverPortrait driverId={driver.driverId} name={`${driver.givenName} ${driver.familyName}`} teamColor={lookups.teamColor(currentTeam)} size={128} />}
         meta={
           <>
-            {isChampion ? <><ChampionBadge season={currentSeason} />{". "}</> : null}
+            {isChampion ? <><ChampionBadge season={currentSeason} inline />{" · "}</> : null}
             {driver.nationality ? (
               <>
                 <Flag of={driver.nationality} fallback={driver.countryCode} keepSpace={false} className="mr-1.5" />

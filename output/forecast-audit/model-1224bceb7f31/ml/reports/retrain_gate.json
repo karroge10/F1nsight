@@ -1,0 +1,61 @@
+{
+  "startedAt": "2026-10-25T23:52:28+00:00",
+  "criteria": [
+    "post-qualifying logLossWin (tolerance 0.031)",
+    "post-qualifying spearman (tolerance 0.0013)",
+    "pre-weekend logLossWin (tolerance 0.0061)"
+  ],
+  "dryRun": false,
+  "ensembleArguments": [
+    "--seed",
+    "0"
+  ],
+  "phaseSeconds": {
+    "fastf1Tables": 0.0,
+    "features": 66.4,
+    "train": 255.3,
+    "backtest": 5423.9
+  },
+  "resultsThroughRaceId": 202618,
+  "currentModel": "v20261013-r202617-1744",
+  "candidateModel": "v20261025-r202618-2357",
+  "comparison": {
+    "better_or_equal": true,
+    "worse": [],
+    "races": 65,
+    "metrics": [
+      {
+        "stage": "post-qualifying",
+        "metric": "logLossWin",
+        "current": 1.18918,
+        "candidate": 1.1976,
+        "delta": 0.00843,
+        "tolerance": 0.031,
+        "worse": false
+      },
+      {
+        "stage": "post-qualifying",
+        "metric": "spearman",
+        "current": 0.69987,
+        "candidate": 0.70112,
+        "delta": 0.00125,
+        "tolerance": 0.0013,
+        "worse": false
+      },
+      {
+        "stage": "pre-weekend",
+        "metric": "logLossWin",
+        "current": 1.93511,
+        "candidate": 1.78933,
+        "delta": -0.14578,
+        "tolerance": 0.0061,
+        "worse": false
+      }
+    ]
+  },
+  "decision": "promoted",
+  "reason": "candidate is not worse than the noise tolerance on any criterion",
+  "finishedAt": "2026-10-26T01:30:07+00:00",
+  "log": "/home/runner/work/F1nsight/F1nsight/logs/retrain-20261025-235228.log",
+  "trigger": "manual"
+}

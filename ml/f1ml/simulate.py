@@ -235,18 +235,24 @@ def simulate_championship(current_points: np.ndarray, teams: np.ndarray, rounds:
             totals = totals + sprint_table[sprint_positions - 1] * sprint_classified
     jitter = torch.rand((sims, drivers), generator=generator, device=device) * 1e-6
     ranked = totals + win_counts * 1e-3 + jitter
-    champion = ranked.argmax(dim=1)
-    driver_title = torch.bincount(champion, minlength=drivers).float() / sims
+    driver_ranking = ranked.argsort(dim=1, descending=True, stable=True)
+    driver_position_dist = torch.nn.functional.one_hot(
+        driver_ranking, num_classes=drivers).float().mean(dim=0).transpose(0, 1)
+    driver_title = driver_position_dist[:, 0]
     team_totals = torch.zeros((sims, team_count), device=device)
     team_totals.index_add_(1, team_index, totals)
-    team_champion = team_totals.argmax(dim=1)
-    team_title = torch.bincount(team_champion, minlength=team_count).float() / sims
     unique_teams = np.unique(teams)
+    team_ranking = team_totals.argsort(dim=1, descending=True, stable=True)
+    team_position_dist = torch.nn.functional.one_hot(
+        team_ranking, num_classes=team_count).float().mean(dim=0).transpose(0, 1)
+    team_title = team_position_dist[:, 0]
     result = {
         "driver_title": driver_title.cpu().numpy(),
+        "driver_position_dist": driver_position_dist.cpu().numpy(),
         "driver_points": totals.mean(dim=0).cpu().numpy(),
         "teams": unique_teams,
         "team_title": team_title.cpu().numpy(),
+        "team_position_dist": team_position_dist.cpu().numpy(),
         "team_points": team_totals.mean(dim=0).cpu().numpy(),
     }
     if keep_totals:

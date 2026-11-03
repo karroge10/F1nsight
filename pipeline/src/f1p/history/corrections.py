@@ -115,3 +115,10 @@ def _local_to_utc(local_clock: pd.Timestamp, zone: ZoneInfo) -> pd.Timestamp:
     localized = local_clock.tz_localize(zone)
     in_utc = localized.tz_convert("UTC")
     return in_utc.tz_localize(None)
+
+
+def apply_driver_fixes(drivers: pd.DataFrame) -> pd.DataFrame:
+    fixed = drivers.copy()
+    missing_code = fixed["code"].isna() | fixed["code"].astype("string").str.strip().eq("")
+    fixed.loc[fixed["driverId"].eq("ryo_hirakawa") & missing_code, "code"] = "HIR"
+    return fixed

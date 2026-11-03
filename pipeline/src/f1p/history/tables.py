@@ -9,7 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from f1p.history import from_api
-from f1p.history.corrections import apply_race_fixes
+from f1p.history.corrections import apply_driver_fixes, apply_race_fixes
 from f1p.paths import processed_path
 
 I16, I32, I64 = pa.int16(), pa.int32(), pa.int64()
@@ -96,6 +96,7 @@ def build_processed(dump_tables: dict[str, pd.DataFrame], gap: dict) -> dict[str
                                          "circuitId")
     tables["drivers"] = _append_missing(dump_tables["drivers"], api_tables["drivers"],
                                         "driverId")
+    tables["drivers"] = apply_driver_fixes(tables["drivers"])
     tables["constructors"] = _append_missing(dump_tables["constructors"],
                                              api_tables["constructors"], "constructorId")
     tables["seasons"] = _seasons(dump_tables["seasons"], tables["races"])

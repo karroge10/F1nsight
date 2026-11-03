@@ -22,7 +22,7 @@ export default async function HomePage() {
   const entries = await getEntryList(prediction.race.season);
   const history = await getPredictionHistory();
   const calendar = await getCalendar(prediction.race.season);
-  const totalRounds = calendar.filter((r) => !r.cancelled).length;
+  const totalRounds = calendar.filter(race => !race.cancelled).length;
   const circuit = await getCircuit(prediction.race.circuitId);
   const lookups = await getLookups();
   const previousRace = circuit?.races.find((r) => r.season < prediction.race.season) ?? null;
@@ -50,8 +50,8 @@ export default async function HomePage() {
         <ForecastTable drivers={prediction.drivers} poleMs={poleMs} />
       </Section>
 
-      <Section title="Championship" icon={IconCrown} info="Confirmed champions are marked once the title is secured. Open titles show the share of simulated season endings won by each driver or team.">
-        <TitleOdds prediction={prediction} standings={standings} entries={entries} totalRounds={totalRounds} />
+      <Section title="Championship" icon={IconCrown} info="Secured positions stay marked. Odds show the highest championship position still undecided, using simulated final standings. Drivers and constructors advance independently.">
+        <TitleOdds prediction={prediction} standings={standings} entries={entries} calendar={calendar} />
       </Section>
 
       <Section title="Constructor points" icon={IconGarage} info="Expected race points for each team this weekend, both cars combined.">
