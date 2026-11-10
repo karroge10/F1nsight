@@ -164,11 +164,12 @@ def probabilities(values, ids):
 
 def score(values, winner, ids):
     values = probabilities(values, ids)
-    if values is None or winner not in values:
+    if values is None:
         return None
-    chance = values[winner]
+    chance = values.get(winner, 0.0)
     return {"winnerProbability": chance, "logLoss": -math.log(max(chance, 1e-15)),
-            "brier": sum((value - int(key == winner)) ** 2 for key, value in values.items()),
+            "brier": sum((value - int(key == winner)) ** 2 for key, value in values.items())
+            + (0.0 if winner in values else 1.0),
             "topPick": max(values, key=values.get), "winnerCorrect": max(values, key=values.get) == winner}
 
 
@@ -203,13 +204,17 @@ def evaluate(records, results):
             selected = max(candidates, key=lambda item: timestamp(item["verifiedAt"]))
             payload = selected["forecast"]
             ids = [row["driverId"] for row in payload["drivers"]]
-            if set(ids) != {row["driverId"] for row in actual}:
-                continue
+            # A substitute driver changes the field after the forecast was made: score the forecast
+            # over its own field and record the difference; a winner it did not list scores zero.
+            started = {row["driverId"] for row in actual}
+            field_difference = {"notForecast": sorted(started - set(ids)),
+                                "notStarted": sorted(set(ids) - started)}
             sources = payload.get("probabilitySources", {})
             published = {row["driverId"]: row["pWin"] for row in payload["drivers"]}
             stages[stage] = {"forecastHash": selected["forecastHash"], "verifiedAt": selected["verifiedAt"],
                              "generatedAt": payload["generatedAt"], "model": payload["model"]["version"],
                              "inputsUsed": payload["race"]["inputsUsed"],
+                             "fieldDifference": field_difference,
                              "scores": {"model": score(sources.get("model"), winner, ids),
                                         "market": score(sources.get("market"), winner, ids),
                                         "published": score(published, winner, ids)}}

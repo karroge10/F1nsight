@@ -159,3 +159,18 @@ def test_report_reads_official_results_and_keeps_missing_snapshots_explicit(monk
     assert by_race[202617]["status"] == "no-published-pre-race-forecast"
     assert payload["aggregate"]["post-qualifying"]["pairedRaces"] == 1
     assert "No verified pre-race forecast" in (tmp_path / "data/reports/published-forecasts.md").read_text()
+
+
+def test_substitute_driver_still_scores_the_forecast():
+    forecast = {"race": {"season": 2026, "round": 20, "stage": "pre-weekend", "date": "2026-11-08T17:00:00Z",
+                         "inputsUsed": []},
+                "generatedAt": "2026-11-02T10:00:00Z", "model": {"version": "m"},
+                "drivers": [{"driverId": "a", "pWin": 0.7}, {"driverId": "regular", "pWin": 0.3}]}
+    record = {"forecast": forecast, "forecastHash": records.digest(forecast),
+              "verifiedAt": "2026-11-02T10:02:00+00:00"}
+    results = {202620: [{"driverId": "a", "position": 1}, {"driverId": "substitute", "position": 2}]}
+    report = records.evaluate([record], results)[0]
+    stage = report["stages"]["pre-weekend"]
+    assert report["status"] == "scored"
+    assert stage["fieldDifference"] == {"notForecast": ["substitute"], "notStarted": ["regular"]}
+    assert stage["scores"]["published"]["winnerProbability"] == 0.7
