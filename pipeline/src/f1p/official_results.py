@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import sys
 from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -299,4 +301,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    code = main()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    # Leave without interpreter teardown: on the Actions runner a native library's worker thread
+    # sometimes aborts at shutdown ("terminate called without an active exception") after the
+    # result is already written, which turned a finished step into a failed refresh.
+    os._exit(code)

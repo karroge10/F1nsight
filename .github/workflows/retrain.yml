@@ -53,11 +53,20 @@ jobs:
           df -h . | tail -1
 
       - uses: astral-sh/setup-uv@v6
+        id: uv
+        # GitHub's release downloads sometimes answer 504 several times running; pipx is the backup.
+        continue-on-error: true
         with:
           enable-cache: true
           cache-dependency-glob: |
             pipeline/uv.lock
             ml/uv.lock
+
+      - name: uv from PyPI
+        if: steps.uv.outcome == 'failure'
+        run: |
+          pipx install uv
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Environments
         run: |
