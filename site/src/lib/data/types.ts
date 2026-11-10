@@ -420,6 +420,8 @@ export interface ActualResult {
 
 export interface PredictionHistoryEntry extends Prediction {
   actual: { results: ActualResult[] };
+  /** "published" when the entry is the forecast we published live before the race, not a backtest. */
+  source?: "backtest" | "published";
   /** Fantasy projections archived at team lock (published history files only). */
   fantasyAtLock?: FantasyAtLock;
 }

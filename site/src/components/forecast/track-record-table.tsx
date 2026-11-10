@@ -23,6 +23,8 @@ export interface TrackRecordRow {
   predictedPodium: { driverId: string; code: string; inActual: boolean }[];
   actualPodium: { driverId: string; code: string }[];
   correlation: number | null;
+  /** Scored with the forecast we published before the race rather than a backtest. */
+  published?: boolean;
 }
 
 type RecordSort = "race" | "corr";
@@ -65,6 +67,11 @@ export function TrackRecordTable({ rows }: { rows: TrackRecordRow[] }) {
                 </span>
                 {r.raceName}
               </Link>
+              {r.published ? (
+                <span className="ml-2 text-caption text-ink-3" title="Forecast published before the race, not a backtest">
+                  live
+                </span>
+              ) : null}
             </td>
             <td>
               <span className={"timing " + (r.hit ? "text-ink" : "text-ink-2")}>

@@ -8,6 +8,7 @@ import { TitleOdds } from "@/components/forecast/title-odds";
 import { TrackRecord } from "@/components/forecast/track-record";
 import { ConstructorForecastList } from "@/components/forecast/constructor-forecast";
 import { Section } from "@/components/ui/section";
+import { mergePublishedHistory, readPublishedForecastReport, type FinishedRace } from "@/lib/model-record";
 import { IconCrown, IconGarage, IconListNumbers, IconPulse } from "@/components/icons";
 
 export const metadata: Metadata = {
@@ -20,8 +21,11 @@ export default async function HomePage() {
   const race = await getNextRace(now);
   const standings = await getStandings(prediction.race.season);
   const entries = await getEntryList(prediction.race.season);
-  const history = await getPredictionHistory();
+  const backtestHistory = await getPredictionHistory();
   const calendar = await getCalendar(prediction.race.season);
+  const finished = await finishedRaces(calendar);
+  const publishedReport = readPublishedForecastReport();
+  const history = mergePublishedHistory(backtestHistory, publishedReport, finished);
   const totalRounds = calendar.filter(race => !race.cancelled).length;
   const circuit = await getCircuit(prediction.race.circuitId);
   const lookups = await getLookups();
@@ -86,6 +90,19 @@ function circuitFacts(circuit: Circuit | null, previousRace: Circuit["races"][nu
 }
 
 /** Pole lap from the last race at this circuit: the reference that turns percent gaps into seconds. */
+/** Races of the season with official results, for scoring the forecasts published before them. */
+async function finishedRaces(calendar: Awaited<ReturnType<typeof getCalendar>>): Promise<FinishedRace[]> {
+  const races: FinishedRace[] = [];
+  for (const summary of calendar) {
+    if (summary.cancelled) continue;
+    const race = await getRace(summary.season, summary.round);
+    if (!race?.results.length) continue;
+    const results = race.results.map(({ driverId, position, positionText, grid, points, status, classified }) => ({ driverId, position, positionText, grid, points, status, classified }));
+    races.push({ season: race.season, round: race.round, time: race.time, results });
+  }
+  return races;
+}
+
 async function previousPoleMs(season: number, round: number): Promise<number | null> {
   const race = await getRace(season, round);
   const pole = race?.qualifying.find((q) => q.position === 1);

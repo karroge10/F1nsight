@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { Prediction, PredictionHistoryEntry } from "@/lib/data";
+import type { ActualResult, Prediction, PredictionHistoryEntry } from "@/lib/data";
 
 export type PublishedScore = {
   winnerProbability: number;
@@ -49,6 +49,7 @@ export type BacktestRaceRecord = {
   logLoss: number;
   brier: number;
   spearman: number | null;
+  published: boolean;
   exactPositionHits: number;
   exactPositionDenominator: number;
   exactPositionAccuracy: number | null;
@@ -111,6 +112,25 @@ export function readPublishedForecast(report: PublishedForecastReport | null, se
   return null;
 }
 
+export type FinishedRace = { season: number; round: number; time: string | null; results: ActualResult[] };
+
+/**
+ * The history plus every finished race after the last backtest race, scored with the forecast we
+ * published and verified before the race start. History files are only rewritten when a retrained
+ * model is promoted, so without this the record would stop at the last promotion.
+ */
+export function mergePublishedHistory(history: PredictionHistoryEntry[], report: PublishedForecastReport | null, finished: FinishedRace[], readForecast = readPublishedForecast): PredictionHistoryEntry[] {
+  const lastKey = history.reduce((max, entry) => Math.max(max, entry.race.season * 100 + entry.race.round), 0);
+  const added = finished.flatMap((race) => {
+    if (race.season * 100 + race.round <= lastKey || !race.results.length) return [];
+    const forecast = readForecast(report, race.season, race.round, race.time);
+    if (!forecast) return [];
+    const entry: PredictionHistoryEntry = { ...forecast, actual: { results: race.results }, source: "published" };
+    return [entry];
+  });
+  return [...history, ...added];
+}
+
 export function buildBacktestRecord(history: PredictionHistoryEntry[]): { rows: BacktestRaceRecord[]; analytics: BacktestAnalytics } {
   const rows = history.flatMap((raw) => {
     const entry = raw as MetricsEntry;
@@ -119,10 +139,13 @@ export function buildBacktestRecord(history: PredictionHistoryEntry[]): { rows: 
     )[0];
     const actual = entry.actual.results.find((result) => result.position === 1);
     if (!predicted || !actual) return [];
+    // A substitute the forecast did not list can still win: a miss with no chance, not a gap.
     const actualDriver = entry.drivers.find((driver) => driver.driverId === actual.driverId);
-    if (!actualDriver) return [];
     const probabilities = entry.drivers.map((driver) => driver.pWin);
-    const actualChance = actualDriver.pWin;
+    const actualChance = actualDriver?.pWin ?? 0;
+    const actualWinner = actualDriver
+      ? { id: actualDriver.driverId, code: actualDriver.code, name: actualDriver.name }
+      : { id: actual.driverId, code: actual.driverId.slice(0, 3).toUpperCase(), name: actual.driverId };
     const stageMetrics = entry.metrics?.[entry.race.stage];
     const actualPositions = new Map(entry.actual.results.map(result => [result.driverId, result.classified === false ? null : result.position]));
     const positionOrder = [...entry.drivers].sort((a, b) => a.expectedPosition - b.expectedPosition || b.pWin - a.pWin);
@@ -143,13 +166,14 @@ export function buildBacktestRecord(history: PredictionHistoryEntry[]): { rows: 
       model: entry.model.version,
       stage: entry.race.stage,
       predictedWinner: { id: predicted.driverId, code: predicted.code, name: predicted.name, probability: predicted.pWin, constructorId: predicted.constructorId, team: predicted.team, teamColor: predicted.teamColor },
-      actualWinner: { id: actualDriver.driverId, code: actualDriver.code, name: actualDriver.name },
+      actualWinner,
+      published: entry.source === "published",
       winnerCorrect: predicted.driverId === actual.driverId,
       logLoss: typeof stageMetrics?.logLossWin === "number" ? stageMetrics.logLossWin : -Math.log(Math.max(actualChance, 1e-15)),
       brier: typeof stageMetrics?.brierWin === "number" ? stageMetrics.brierWin : probabilities.reduce((sum, chance, index) => {
         const driverId = entry.drivers[index].driverId;
         return sum + (chance - Number(driverId === actual.driverId)) ** 2;
-      }, 0) / entry.drivers.length,
+      }, actualDriver ? 0 : 1) / (entry.drivers.length + (actualDriver ? 0 : 1)),
       exactPositionHits,
       exactPositionDenominator,
       exactPositionAccuracy: exactPositionDenominator ? exactPositionHits / exactPositionDenominator : null,

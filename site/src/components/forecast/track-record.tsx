@@ -66,6 +66,7 @@ function recordRow(entry: PredictionHistoryEntry, metrics: Prediction["model"]["
     predictedPodium,
     actualPodium: actualPodium.map((a) => ({ driverId: a.driverId, code: code(a.driverId) })),
     correlation: entryCorrelation(entry, metrics),
+    published: entry.source === "published",
   };
 }
 
@@ -73,7 +74,7 @@ function recordRow(entry: PredictionHistoryEntry, metrics: Prediction["model"]["
 function entryCorrelation(entry: PredictionHistoryEntry, metrics: Prediction["model"]["backtest"]): number | null {
   const own = (entry as PredictionHistoryEntry & { metrics?: { spearman?: number } }).metrics?.spearman;
   if (typeof own === "number") return own;
-  const perRace = metrics.perRace?.find((p) => p.round === entry.race.round);
+  const perRace = entry.source === "published" ? undefined : metrics.perRace?.find((p) => p.round === entry.race.round);
   if (perRace) return perRace.spearman;
   const ordered = predictedOrder(entry.drivers);
   const predicted = ordered.map((d) => d.driverId);

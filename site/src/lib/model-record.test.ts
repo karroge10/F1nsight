@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PredictionHistoryEntry } from "@/lib/data";
-import { buildBacktestRecord, buildPublishedRaceRows, type PublishedForecastReport } from "./model-record";
+import { buildBacktestRecord, buildPublishedRaceRows, mergePublishedHistory, type FinishedRace, type PublishedForecastReport } from "./model-record";
 
 function historyEntry(season: number, round: number, predictedWinner: string, actualWinner: string): PredictionHistoryEntry {
   const driver = (driverId: string, code: string, pWin: number) => ({
@@ -68,5 +68,32 @@ describe("model record helpers", () => {
     const record = buildBacktestRecord([entry]).rows[0];
     expect(record.exactPositionDenominator).toBe(1);
     expect(record.order.find(driver => driver.id === "a")?.actualPosition).toBeNull();
+  });
+});
+
+describe("published races in the record", () => {
+  it("counts a winner missing from the forecast as a miss with no chance", () => {
+    const entry = historyEntry(2026, 5, "a", "b");
+    entry.drivers = entry.drivers.filter((driver) => driver.driverId === "a");
+    const result = buildBacktestRecord([entry]);
+    expect(result.analytics.races).toBe(1);
+    expect(result.rows[0]).toMatchObject({ winnerCorrect: false, actualWinner: { id: "b" } });
+    expect(result.rows[0].logLoss).toBeCloseTo(-Math.log(1e-15));
+  });
+
+  it("adds finished races after the last backtest race from published snapshots only", () => {
+    const history = [historyEntry(2026, 19, "a", "a")];
+    const finished: FinishedRace[] = [
+      { season: 2026, round: 19, time: null, results: history[0].actual.results },
+      { season: 2026, round: 99, time: null, results: [{ driverId: "b", position: 1, positionText: "1", grid: 1, points: 25, status: "Finished", classified: true }] },
+    ];
+    const published = historyEntry(2026, 99, "a", "b");
+    const read = (_report: PublishedForecastReport | null, season: number, round: number) => (round === 99 ? { ...published, actual: undefined } : null);
+    const merged = mergePublishedHistory(history, null, finished, read);
+    expect(merged.map((entry) => entry.race.round)).toEqual([19, 99]);
+    expect(merged[1]).toMatchObject({ source: "published", actual: { results: finished[1].results } });
+    const record = buildBacktestRecord(merged);
+    expect(record.rows[0]).toMatchObject({ round: 99, published: true, winnerCorrect: false });
+    expect(mergePublishedHistory(history, null, finished, () => null)).toHaveLength(1);
   });
 });
