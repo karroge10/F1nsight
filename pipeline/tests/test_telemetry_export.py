@@ -104,6 +104,7 @@ def test_refresh_summary_exposes_pending_telemetry(monkeypatch):
     outputs = iter([
         'RESULT {"new": [], "pending": ["2026/18_Q"], "built": false}',
         'RESULT {"written": 0, "pending": ["2026/18_Q"], "failed": []}',
+        'RESULT {"telemetry": ["2026/18_Q"], "sessions": ["2026/18_FP1"], "pending": [], "errors": []}',
     ])
 
     def run_module(result, *args):
@@ -118,6 +119,7 @@ def test_refresh_summary_exposes_pending_telemetry(monkeypatch):
     assert result.status == "ok"
     assert result.details["telemetry"]["pending"] == ["2026/18_Q"]
     assert "telemetry pending: 2026/18_Q" in result.reason
+    assert "from OpenF1: 2026/18_FP1, 2026/18_Q" in result.reason
 
 
 def test_backfill_exports_just_downloaded_session_without_waiting_four_hours(monkeypatch, tmp_path):
@@ -164,9 +166,9 @@ def test_refresh_requests_online_telemetry_backfill(monkeypatch):
 
     runner.step_fastf1(refresh.StepResult("fastf1"))
 
-    assert run_module.call_args.args[1:] == (
-        "pipeline", "f1p.fastf1.telemetry_export", "--backfill-days", "14"
-    )
+    modules = [call.args[1:] for call in run_module.call_args_list]
+    assert ("pipeline", "f1p.fastf1.telemetry_export", "--backfill-days", "14") in modules
+    assert modules[-1] == ("pipeline", "f1p.openf1.fallback")
 
 
 

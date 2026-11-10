@@ -19,7 +19,8 @@ Steps, in order. Each runs as its own process, so a failure in one source never 
              or the last success is older than FANTASY_MAX_AGE.
 4. fastf1    `f1p.fastf1.incremental`: this weekend's finished sessions (lock-safe next to the
              bulk download), then `build_tables` when a session was added, then
-             `f1p.fastf1.telemetry_export` for sessions with no telemetry file yet.
+             `f1p.fastf1.telemetry_export` for sessions with no telemetry file yet, then
+             `f1p.openf1.fallback` for sessions FastF1 has not published (OpenF1 stand-ins).
 5. penalties `f1p.penalties.update`: grid penalties announced for the next races (FIA stewards'
              decisions, race control, data/manual/grid_penalties.json) into
              data/processed/grid_penalties.parquet. Runs every time; the file is only rewritten
@@ -209,6 +210,14 @@ class StepRunner:
             pending = ", ".join(telemetry.get("pending", []))
             if pending:
                 result.reason += f"; telemetry pending: {pending}"
+        # OpenF1 stand-ins for sessions FastF1 has not published; FastF1 replaces them later
+        output = self._run_module(result, "pipeline", "f1p.openf1.fallback")
+        fallback = _result_line(output)
+        if fallback:
+            result.details["openf1Fallback"] = fallback
+            filled = sorted(set(fallback.get("telemetry", []) + fallback.get("sessions", [])))
+            if filled:
+                result.reason += f"; from OpenF1: {', '.join(filled)}"
         self._mark_success("fastf1", result)
 
     def step_penalties(self, result: StepResult) -> None:
