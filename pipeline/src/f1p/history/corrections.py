@@ -118,7 +118,21 @@ def _local_to_utc(local_clock: pd.Timestamp, zone: ZoneInfo) -> pd.Timestamp:
 
 
 def apply_driver_fixes(drivers: pd.DataFrame) -> pd.DataFrame:
+    """Fill the metadata Jolpica leaves empty for one-off substitutes. Without a code and a
+    country they show up with no code or flag until FastF1 covers their weekend."""
     fixed = drivers.copy()
-    missing_code = fixed["code"].isna() | fixed["code"].astype("string").str.strip().eq("")
-    fixed.loc[fixed["driverId"].eq("ryo_hirakawa") & missing_code, "code"] = "HIR"
+    for driver_id, values in DRIVER_FIXES.items():
+        rows = fixed["driverId"].eq(driver_id)
+        for column, value in values.items():
+            if column not in fixed.columns:
+                continue
+            missing = fixed[column].isna() | fixed[column].astype("string").str.strip().eq("")
+            fixed.loc[rows & missing, column] = value
     return fixed
+
+
+# driverId -> metadata to fill when the source leaves it empty (official F1 entry lists).
+DRIVER_FIXES: dict[str, dict[str, str]] = {
+    "ryo_hirakawa": {"code": "HIR", "nationality": "Japanese", "countryCode": "JPN"},
+    "rafael_camara": {"code": "CAM", "nationality": "Brazilian", "countryCode": "BRA"},
+}
