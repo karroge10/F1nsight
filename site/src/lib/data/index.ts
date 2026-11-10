@@ -377,7 +377,7 @@ export async function getRecords(): Promise<RecordGroup[]> {
     topDrivers("titles", "titles", "Most drivers' championships"),
     topDrivers("starts", "starts", "Most race starts"),
     topDrivers("points", "points", "Most career points"),
-    topDrivers("fastestLaps", "fastest laps", "Most fastest laps (2004 onwards)"),
+    topDrivers("fastestLaps", "fastest laps", "Most fastest laps"),
     topConstructors("wins", "wins", "Most wins by constructor"),
     topConstructors("titles", "titles", "Most constructors' championships"),
     topConstructors("starts", "races", "Most races entered by constructor"),

@@ -85,7 +85,7 @@ export default async function DriverPage({ params }: { params: Params }) {
           { label: "Poles", value: driver.career.poles },
           { label: "Titles", value: driver.career.titles, note: titleSeasons.join(", ") },
           { label: "Points", value: formatPoints(driver.career.points) },
-          { label: "Fastest laps", value: driver.career.fastestLaps, note: "2004 onwards" },
+          { label: "Fastest laps", value: driver.career.fastestLaps },
         ]}
       />
 
