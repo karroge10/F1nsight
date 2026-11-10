@@ -9,6 +9,8 @@ races (Plackett-Luce likelihood), see `bundle.py`.
 
 from __future__ import annotations
 
+import copyreg
+
 import numpy as np
 import pandas as pd
 import torch
@@ -99,6 +101,23 @@ def train_dnf(frame: pd.DataFrame, columns: list[str], params: dict,
     booster_params["eval_metric"] = "logloss"
     rounds = int(params["num_boost_round"])
     return xgb.train(booster_params, matrix, num_boost_round=rounds)
+
+
+def _booster_from_raw(raw: bytes) -> xgb.Booster:
+    booster = xgb.Booster()
+    booster.load_model(bytearray(raw))
+    return booster
+
+
+def _reduce_booster(booster: xgb.Booster):
+    """Pickle a booster as its UBJSON model only. XGBoost's own pickle also stores the random
+    generator state, whose format differs between Linux and Windows, so a model trained in the
+    cloud could not be loaded on the PC ("input stream corrupted")."""
+    raw = bytes(booster.save_raw("ubj"))
+    return _booster_from_raw, (raw,)
+
+
+copyreg.pickle(xgb.Booster, _reduce_booster)
 
 
 def predict(booster: xgb.Booster, frame: pd.DataFrame, columns: list[str],
