@@ -65,6 +65,7 @@ def build_all() -> None:
     overtakes = session_export.read_overtakes()
     exported = session_export.export_all(results, laps, weather, overtakes)
     print(f"session JSON files: {exported}")
+    print(f"overtake sessions: {session_export.export_overtakes(overtakes)}")
 
 
 def build_laps(sessions: list[dict]) -> pd.DataFrame:

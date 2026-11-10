@@ -139,3 +139,18 @@ def test_existing_reports_without_start_times_are_rebuilt_once(tmp_path, monkeyp
     assert first == {"written": 1, "skipped": 0}
     second = session_export.export_all(_results("R"), _laps(), _weather())
     assert second == {"written": 0, "skipped": 1}
+
+
+def test_export_overtakes_writes_counts_without_a_timing_export(tmp_path, monkeypatch):
+    target = tmp_path / "overtakes.json"
+    monkeypatch.setattr(session_export, "OVERTAKES_PATH", target)
+    overtakes = pd.DataFrame([
+        {"season": 2026, "round": 20, "session": "Race", "driverNumber": 3, "driverId": "max_verstappen", "overtakesRaw": 25, "overtakes": 20},
+        {"season": 2026, "round": 20, "session": "Race", "driverNumber": 1, "driverId": "norris", "overtakesRaw": 2, "overtakes": 1},
+        {"season": 2026, "round": 19, "session": "Sprint", "driverNumber": 1, "driverId": "norris", "overtakesRaw": 3, "overtakes": 3},
+    ])
+    sessions = session_export.export_overtakes(overtakes)
+    payload = json.loads(target.read_text(encoding="utf-8"))
+    assert sessions == 2
+    assert payload["2026-20-R"][0] == {"driverId": "max_verstappen", "count": 20, "raw": 25}
+    assert payload["2026-19-S"] == [{"driverId": "norris", "count": 3, "raw": 3}]

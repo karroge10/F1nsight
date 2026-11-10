@@ -7,7 +7,7 @@
    fantasy_pitstops and fantasy_overtakes (the latter from processed OpenF1 tables;
    refresh those first with `uv run python -m f1p.openf1.download --refresh` and
    `uv run python -m f1p.openf1.process`),
-5. export data/serve/fantasy_rounds.json for the site (`serve_rounds`),
+5. export data/serve/fantasy_rounds.json and data/serve/overtakes.json for the site,
 6. optionally (--validate) re-run the scoring / price change validation.
 
 Safe to run repeatedly: finished gamedays are not downloaded again except the
@@ -18,6 +18,7 @@ import argparse
 import json
 
 from f1p.fantasy import dhl, history, official, overtakes, process, serve_rounds, validate
+from f1p.fastf1 import session_export
 
 
 def update(include_history: bool = False, run_validation: bool = False, force: bool = False) -> dict:
@@ -30,6 +31,7 @@ def update(include_history: bool = False, run_validation: bool = False, force: b
     summary["processed"]["fantasy_pitstops"] = len(pitstops)
     overtake_counts = overtakes.build()
     summary["processed"]["fantasy_overtakes"] = len(overtake_counts)
+    summary["served_overtakes"] = session_export.export_overtakes(overtake_counts)
     summary["served"] = serve_rounds.build()
     if run_validation:
         report = validate.run()

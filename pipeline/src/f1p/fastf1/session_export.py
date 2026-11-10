@@ -23,6 +23,7 @@ from f1p.fastf1.common import fastf1_root, season_range
 from f1p.paths import SERVE_DIR, processed_path
 
 SESSIONS_DIR = SERVE_DIR / "sessions"
+OVERTAKES_PATH = SERVE_DIR / "overtakes.json"
 SESSION_NAMES = {
     "FP1": "Practice 1",
     "FP2": "Practice 2",
@@ -60,6 +61,7 @@ def main() -> int:
     weather = pd.read_parquet(processed_path("ff1_weather"))
     overtakes = read_overtakes()
     summary = export_all(results, laps, weather, overtakes, seasons=seasons, force=args.force)
+    summary["overtakeSessions"] = export_overtakes(overtakes)
     print(f"session export: {summary}")
     return 0
 
@@ -134,6 +136,21 @@ def read_overtakes() -> pd.DataFrame | None:
     if not path.exists():
         return None
     return pd.read_parquet(path)
+
+
+def export_overtakes(overtakes: pd.DataFrame | None) -> int:
+    """Write data/serve/overtakes.json: race and sprint overtakes per driver keyed
+    `<season>-<round>-<R|S>`. The session JSON files only exist once FastF1 timing has
+    arrived, which can lag OpenF1 by days, so the site reads the counts from here as well."""
+    frame = _overtake_sessions(overtakes)
+    payload = {}
+    for key, rows in _grouped(frame).items():
+        season, round_number, code = int(key[0]), int(key[1]), str(key[2])
+        payload[f"{season}-{round_number}-{code}"] = _overtakes(rows)
+    text = json.dumps(payload, separators=(",", ":"), sort_keys=True, allow_nan=False)
+    OVERTAKES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OVERTAKES_PATH.write_text(text, encoding="utf-8")
+    return len(payload)
 
 
 def session_path(season: int, round_number: int, code: str) -> Path:
