@@ -5,8 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { sessionSpec } from "@/lib/sessions";
 import { handleRovingKey } from "@/lib/roving-keys";
 import { LocalTime } from "@/components/ui/local-time";
-import { SectionTitle } from "@/components/ui/section";
-import { IconCalendar } from "@/components/icons";
 
 export interface SessionTab {
   /** URL slug, also the panel key: `fp1`, `sq`, `sprint`, `qualifying`, `race`. */
@@ -24,16 +22,20 @@ interface SessionSwitcherProps {
   panels: Record<string, ReactNode>;
   /** The session open by default, when the URL names none. */
   initial: string;
+  /** Left side of the top bar (breadcrumb, pager); the session tabs sit on its right. */
+  bar?: ReactNode;
+  /** Page content between the top bar and the open session's panel. */
+  children?: ReactNode;
 }
 
 const TAB_TIME: Intl.DateTimeFormatOptions = { weekday: "short", hour: "2-digit", minute: "2-digit" };
 
 /**
- * The weekend's sessions as one row of tabs, each with its local start time, and the open
- * session's panel below. Every panel is prerendered; switching only swaps which one shows and
- * rewrites `?session=` in place, so nothing above the panel moves. The HTML opens the default
+ * The weekend's sessions as a compact segmented control at the right of the page's top bar,
+ * and the open session's panel below the page content. Every panel is prerendered; switching
+ * only swaps which one shows and rewrites `?session=` in place. The HTML opens the default
  * session and `?session=fp1` is applied in the browser. The panel box is at least a screen tall,
- * so a short session never pulls the page up under the tabs.
+ * so a short session never pulls the page up.
  */
 export function SessionSwitcher(props: SessionSwitcherProps) {
   return (
@@ -55,7 +57,7 @@ function SwitcherFromUrl(props: SessionSwitcherProps) {
   return <Switcher {...props} asked={asked} />;
 }
 
-function Switcher({ tabs, panels, initial, asked }: SessionSwitcherProps & { asked: string | null }) {
+function Switcher({ tabs, panels, initial, asked, bar, children }: SessionSwitcherProps & { asked: string | null }) {
   const [picked, setPicked] = useState<string | null>(null);
   const current = picked ?? asked ?? initial;
   const select = (slug: string) => {
@@ -63,17 +65,19 @@ function Switcher({ tabs, panels, initial, asked }: SessionSwitcherProps & { ask
     const url = `${window.location.pathname}?session=${slug}`;
     window.history.replaceState(null, "", url);
   };
-  const columns = { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` };
   return (
     <>
-      <section className="stagger-in mx-auto mt-4 w-full max-w-[1440px] px-4 sm:mt-6 sm:px-6">
-        <SectionTitle title="Weekend" icon={IconCalendar} info="Pick a session to open its results below. Times are in your time zone." />
-        <div role="tablist" aria-label="Session" onKeyDown={handleRovingKey} className="mt-3 grid rounded-control border border-rule" style={columns}>
-          {tabs.map((tab) => (
-            <TabButton key={tab.slug} tab={tab} on={tab.slug === current} onSelect={select} />
-          ))}
+      <div className="stagger-in mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 pt-6 sm:px-6 sm:pt-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">{bar}</div>
+        <div className="-mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 sm:mx-0 sm:w-auto sm:overflow-visible sm:px-0">
+          <div role="tablist" aria-label="Session" onKeyDown={handleRovingKey} className="inline-flex h-8 rounded-control border border-rule">
+            {tabs.map((tab) => (
+              <TabButton key={tab.slug} tab={tab} on={tab.slug === current} onSelect={select} />
+            ))}
+          </div>
         </div>
-      </section>
+      </div>
+      {children}
       <div role="tabpanel" id="session-panel" aria-label={labelOf(tabs, current)} className="min-h-svh">
         {panels[current] ?? null}
       </div>
@@ -83,7 +87,6 @@ function Switcher({ tabs, panels, initial, asked }: SessionSwitcherProps & { ask
 
 function TabButton({ tab, on, onSelect }: { tab: SessionTab; on: boolean; onSelect: (slug: string) => void }) {
   const tone = on ? "segment-on" : tab.state === "upcoming" ? "text-ink-3 hover:text-ink-2" : "text-ink-2 hover:text-ink";
-  const captionTone = on ? "opacity-75" : "text-ink-3";
   return (
     <button
       type="button"
@@ -93,14 +96,16 @@ function TabButton({ tab, on, onSelect }: { tab: SessionTab; on: boolean; onSele
       tabIndex={on ? 0 : -1}
       data-session={tab.slug}
       onClick={() => onSelect(tab.slug)}
-      className={"press segment -my-px flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-control px-1 text-ui " + tone}
+      className={"press segment -my-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-control px-3 text-caption font-[550] " + tone}
     >
-      <span className="inline-flex max-w-full items-center gap-1.5 font-[550]">
-        {tab.state === "live" ? <span className="live-dot inline-block size-1.5 shrink-0 rounded-full bg-accent" aria-label="Live" /> : null}
-        <span className="truncate sm:hidden">{tab.shortLabel}</span>
-        <span className="hidden truncate sm:inline">{tab.label}</span>
-      </span>
-      <span className={"timing max-w-full truncate text-caption " + captionTone}>{tab.time ? <LocalTime iso={tab.time} options={TAB_TIME} /> : "Result"}</span>
+      {tab.state === "live" ? <span className="live-dot inline-block size-1.5 shrink-0 rounded-full bg-accent" aria-label="Live" /> : null}
+      <span className="lg:hidden">{tab.shortLabel}</span>
+      <span className="hidden lg:inline">{tab.label}</span>
+      {tab.time ? (
+        <span className="sr-only">
+          , <LocalTime iso={tab.time} options={TAB_TIME} />
+        </span>
+      ) : null}
     </button>
   );
 }

@@ -1,7 +1,7 @@
 // Numbers derived from a race or sprint classification, its pit stops, the overtake counts and
 // our own pre-race forecast. Pure functions, safe on server and client.
 
-import type { Lookups, PitStop, PredictionHistoryEntry, ResultRow } from "@/lib/data";
+import type { Lookups, PitStop, Prediction, ResultRow } from "@/lib/data";
 import type { PitStopRow } from "@/components/stats/pit-stops-table";
 
 export interface OvertakeCount {
@@ -43,7 +43,7 @@ export interface RaceAnalysis {
 const STOPPAGE_MS = 120000;
 
 /** Everything the analysis section shows, in finishing order. */
-export function analyseRace(results: ResultRow[], pitStops: PitStop[], overtakes: OvertakeCount[], forecast: PredictionHistoryEntry | null): RaceAnalysis {
+export function analyseRace(results: ResultRow[], pitStops: PitStop[], overtakes: OvertakeCount[], forecast: Prediction | null): RaceAnalysis {
   const overtakesById = new Map(overtakes.map((o) => [o.driverId, o.count]));
   const expectedById = new Map((forecast?.drivers ?? []).map((d) => [d.driverId, d.expectedPosition]));
   const stopsById = new Map<string, PitStop[]>();

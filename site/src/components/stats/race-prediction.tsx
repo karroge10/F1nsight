@@ -22,10 +22,10 @@ export function RacePrediction({ record, forecastDrivers = [], publicationVerifi
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-rule py-3">
       <span className="text-caption text-ink-3">Race win prediction</span>
       <CalendarPrediction record={record} forecast={forecast} />
-      <span className="text-caption text-ink-3">{record ? "Retrospective backtest" : "Not yet scored"}</span>
+      <span className="text-caption text-ink-3">{record ? "Retrospective backtest" : publicationVerified ? "Published before the race" : "Not yet scored"}</span>
       <details className="text-caption text-ink-3">
         <summary className="cursor-pointer text-ink-2">Forecast details</summary>
-        <p className="mt-2 max-w-2xl">{record ? `Updated ${record.stage === "post-qualifying" ? "after qualifying" : record.stage === "post-practice" ? "after practice" : "before the weekend"}. ` : "Current race forecast. "}Predicted finishes appear beside the race results, ranked by expected finish. {publicationVerified ? "A verified pre-race publication is archived." : "Publication before the race is not verified for this snapshot."}</p>
+        <p className="mt-2 max-w-2xl">{record ? `Updated ${record.stage === "post-qualifying" ? "after qualifying" : record.stage === "post-practice" ? "after practice" : "before the weekend"}. ` : publicationVerified ? "The last forecast published before the race. " : "Current race forecast. "}Predicted finishes appear beside the race results, ranked by expected finish. {publicationVerified ? "A verified pre-race publication is archived." : "Publication before the race is not verified for this snapshot."}</p>
         {documented ? <p className="mt-2 max-w-2xl">A separate pre-race pick of {documented.name} at {Math.round(documented.probability * 100)}% was recorded on 9 Oct 2026. The results comparison uses the later retrospective backtest.</p> : null}
       </details>
     </div>

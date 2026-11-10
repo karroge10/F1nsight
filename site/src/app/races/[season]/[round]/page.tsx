@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCalendar, getLookups, getNextRacePrediction, getPredictionHistory, getRace, getSeasons, getSessionReport } from "@/lib/data";
-import type { Lookups, Race, SessionReport } from "@/lib/data";
+import { getCalendar, getLookups, getNextRacePrediction, getPredictionHistory, getRace, getSeasons, getServedOvertakes, getSessionReport } from "@/lib/data";
+import type { Lookups, Prediction, Race, SessionReport } from "@/lib/data";
 import { formatDate, formatLapTime } from "@/lib/format";
 import { SESSION_SPECS, sessionFinished, type SessionSpec } from "@/lib/sessions";
 import { reportLookups } from "@/lib/session-report";
@@ -16,7 +16,8 @@ import { RacePrediction } from "@/components/stats/race-prediction";
 import { HeadlineStack, type HeadlineItem } from "@/components/stats/headline-stack";
 import { SessionSwitcher, type SessionTab } from "@/components/stats/session-switcher";
 import { SessionPanel, type SessionState } from "./session-panel";
-import { buildBacktestRecord, hasVerifiedPublication, readPublishedForecastReport } from "@/lib/model-record";
+import { IconFastestLap, IconGridSlot, IconTrophy } from "@/components/icons";
+import { buildBacktestRecord, hasVerifiedPublication, readPublishedForecast, readPublishedForecastReport } from "@/lib/model-record";
 
 type Params = Promise<{ season: string; round: string }>;
 
@@ -64,17 +65,24 @@ export default async function RacePage({ params }: { params: Params }) {
   const nextForecast = await getNextRacePrediction();
   const forecastCandidates = history.filter((h) => h.race.season === year && h.race.round === rnd);
   const stagePriority: Record<string, number> = { "pre-weekend": 0, "post-practice": 1, "post-qualifying": 2 };
-  const forecast = forecastCandidates.sort((a, b) => (stagePriority[b.race.stage] ?? -1) - (stagePriority[a.race.stage] ?? -1))[0]
-    ?? (nextForecast.race.season === year && nextForecast.race.round === rnd ? nextForecast : null);
+  const publishedReport = readPublishedForecastReport();
+  // The forecast we actually published and verified before the start comes first; the
+  // backtest history covers the rounds before publication records began.
+  const published = readPublishedForecast(publishedReport, year, rnd, race.time);
+  const historyForecast = forecastCandidates.sort((a, b) => (stagePriority[b.race.stage] ?? -1) - (stagePriority[a.race.stage] ?? -1))[0] ?? null;
+  const upcomingForecast = nextForecast.race.season === year && nextForecast.race.round === rnd ? nextForecast : null;
+  const forecast: Prediction | null = published ?? historyForecast ?? upcomingForecast;
   const predictionRows = buildBacktestRecord(history).rows.filter((row) => row.season === year && row.round === rnd);
-  const publicationVerified = hasVerifiedPublication(readPublishedForecastReport(), year, rnd);
+  const publicationVerified = hasVerifiedPublication(publishedReport, year, rnd);
   const prediction = predictionRows.sort((a, b) => (stagePriority[b.stage] ?? -1) - (stagePriority[a.stage] ?? -1))[0] ?? null;
   const now = new Date();
   const sessions = weekendSessions(race, now);
   const reports = await loadReports(race, sessions);
   const previous = calendar.find((r) => r.round === rnd - 1) ?? null;
   const next = calendar.find((r) => r.round === rnd + 1) ?? null;
-  const pager = <RacePager previous={previous} next={next} hrefFor={(r) => `/races/${r.season}/${r.round}`} />;
+  const hrefFor = (r: { season: number; round: number }) => `/races/${r.season}/${r.round}`;
+  const pager = <RacePager previous={previous} next={next} hrefFor={hrefFor} />;
+  const topPager = <RacePager previous={previous} next={next} hrefFor={hrefFor} compact />;
   const headline = headlineItems(race, siteLookups);
   const raceDateText = formatDate(race.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   const initial = initialSession(sessions, race, reports);
@@ -84,47 +92,53 @@ export default async function RacePage({ params }: { params: Params }) {
     const report = reports.get(s.spec.code) ?? null;
     const lookups = report ? reportLookups(report, siteLookups) : siteLookups;
     const replayable = replays.some((r) => r.season === year && r.round === rnd && r.session === s.spec.code);
-    panels[s.spec.slug] = <SessionPanel spec={s.spec} state={s.state} start={s.start} race={race} report={report} lookups={lookups} forecast={forecast} replayable={replayable} />;
+    const overtakes = await servedOvertakes(year, rnd, s.spec);
+    panels[s.spec.slug] = <SessionPanel spec={s.spec} state={s.state} start={s.start} race={race} report={report} lookups={lookups} forecast={forecast} replayable={replayable} servedOvertakes={overtakes} />;
   }
+
+  const breadcrumb = (
+    <p className="eyebrow">
+      <Link href={`/races/${year}`} className="hover:text-ink">
+        {year} season
+      </Link>
+      <span className="mx-1.5 text-ink-3">/</span> Round {race.round}
+      {race.hasSprint ? (
+        <>
+          <span className="mx-1.5 text-ink-3">/</span> Sprint weekend
+        </>
+      ) : null}
+    </p>
+  );
+  const bar = (
+    <>
+      {breadcrumb}
+      {topPager}
+    </>
+  );
 
   return (
     <>
-      <PageIntro
-        label={
-          <>
-            <Link href={`/races/${year}`} className="hover:text-ink">
-              {year} season
-            </Link>
-            <span className="mx-1.5 text-ink-3">/</span> Round {race.round}
-            {race.hasSprint ? (
-              <>
-                <span className="mx-1.5 text-ink-3">/</span> Sprint weekend
-              </>
-            ) : null}
-          </>
-        }
-        title={race.raceName}
-        dek={
-          <>
-            <Link href={`/circuits/${race.circuitId}`} className="text-ink hover:underline underline-offset-2">
-              {race.circuitName}
-            </Link>
-            , {race.locality},{" "}
-            <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
-              <Flag of={race.country} fallback={race.countryCode} className="self-center" />
-              {race.country}
-            </span>
-            . {race.time ? <LocalTime iso={race.time} options={RACE_TIME} /> : raceDateText}.{race.scheduledLaps ? ` ${race.scheduledLaps} laps.` : ""}
-          </>
-        }
-        extra={pager}
-        aside={<HeadlineStack items={headline} season={year} />}
-      />
-
-      <RacePrediction record={prediction} forecastDrivers={prediction ? [] : forecast?.drivers ?? []} publicationVerified={publicationVerified} />
-
-      <SessionSwitcher key={`${year}-${rnd}-${initial}`} tabs={tabs} panels={panels} initial={initial} />
-
+      <SessionSwitcher key={`${year}-${rnd}-${initial}`} tabs={tabs} panels={panels} initial={initial} bar={bar}>
+        <PageIntro
+          flushTop
+          title={race.raceName}
+          dek={
+            <>
+              <Link href={`/circuits/${race.circuitId}`} className="text-ink hover:underline underline-offset-2">
+                {race.circuitName}
+              </Link>
+              , {race.locality},{" "}
+              <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+                <Flag of={race.country} fallback={race.countryCode} className="self-center" />
+                {race.country}
+              </span>
+              . {race.time ? <LocalTime iso={race.time} options={RACE_TIME} /> : raceDateText}.{race.scheduledLaps ? ` ${race.scheduledLaps} laps.` : ""}
+            </>
+          }
+          aside={<HeadlineStack items={headline} season={year} />}
+        />
+        <RacePrediction record={prediction} forecastDrivers={prediction ? [] : forecast?.drivers ?? []} publicationVerified={publicationVerified} />
+      </SessionSwitcher>
 
       <div className="mx-auto mt-10 w-full max-w-[1440px] px-4 sm:mt-14 sm:px-6">{pager}</div>
     </>
@@ -190,6 +204,12 @@ function sessionState(spec: SessionSpec, start: string, now: Date): SessionState
   return "upcoming";
 }
 
+/** OpenF1 overtakes for a race or sprint; empty for other sessions or before they arrive. */
+async function servedOvertakes(season: number, round: number, spec: SessionSpec): Promise<{ driverId: string; count: number }[]> {
+  if (spec.code !== "R" && spec.code !== "S") return [];
+  return getServedOvertakes(season, round, spec.code);
+}
+
 function hasHistory(race: Race, spec: SessionSpec): boolean {
   if (spec.code === "R") return race.results.length > 0;
   if (spec.code === "S") return race.sprint.length > 0;
@@ -204,8 +224,8 @@ function headlineItems(race: Race, lookups: Lookups): HeadlineItem[] {
   const fastest = race.results.find((r) => r.fastestLapRank === 1) ?? null;
   const teamOf = (constructorId: string) => ({ constructorId, name: lookups.teamName(constructorId), color: lookups.teamColor(constructorId) });
   return [
-    { label: "Winner", value: winner ? lookups.driverCode(winner.driverId) : "–", note: winner ? lookups.teamName(winner.constructorId) : "Not run yet", team: winner ? teamOf(winner.constructorId) : undefined },
-    { label: "Pole", value: pole ? lookups.driverCode(pole.driverId) : "–", note: pole ? lookups.teamName(pole.constructorId) : "", team: pole ? teamOf(pole.constructorId) : undefined },
-    { label: "Fastest lap", value: fastest ? lookups.driverCode(fastest.driverId) : "–", note: fastest?.fastestLapMs ? formatLapTime(fastest.fastestLapMs) : "", team: fastest ? teamOf(fastest.constructorId) : undefined },
+    { label: "Winner", icon: IconTrophy, value: winner ? lookups.driverCode(winner.driverId) : "–", note: winner ? lookups.teamName(winner.constructorId) : "Not run yet", team: winner ? teamOf(winner.constructorId) : undefined },
+    { label: "Pole", icon: IconGridSlot, value: pole ? lookups.driverCode(pole.driverId) : "–", note: pole ? lookups.teamName(pole.constructorId) : "", team: pole ? teamOf(pole.constructorId) : undefined },
+    { label: "Fastest lap", icon: IconFastestLap, value: fastest ? lookups.driverCode(fastest.driverId) : "–", note: fastest?.fastestLapMs ? formatLapTime(fastest.fastestLapMs) : "", team: fastest ? teamOf(fastest.constructorId) : undefined },
   ];
 }

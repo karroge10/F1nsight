@@ -152,6 +152,13 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scrollbar-gutter: stable;
+  /* Anchor jumps land below the sticky site header (two rows on phones). */
+  scroll-padding-top: 7rem;
+}
+@media (min-width: 40rem) {
+  html {
+    scroll-padding-top: 4.5rem;
+  }
 }
 
 body {

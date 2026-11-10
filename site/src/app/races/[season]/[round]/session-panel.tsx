@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Lookups, PitStop, PredictionHistoryEntry, QualifyingRow, Race, ResultRow, SessionReport } from "@/lib/data";
+import type { Lookups, PitStop, Prediction, QualifyingRow, Race, ResultRow, SessionReport } from "@/lib/data";
 import { formatGap, formatLapTime, formatRaceTime } from "@/lib/format";
 import { analyseRace, toPitStopRows } from "@/lib/race-analysis";
 import { sessionName, type SessionSpec } from "@/lib/sessions";
@@ -28,9 +28,12 @@ export interface SessionPanelProps {
   report: SessionReport | null;
   /** Site lookups, already merged with the report's entry list. */
   lookups: Lookups;
-  forecast: PredictionHistoryEntry | null;
+  /** The last verified pre-race forecast, else the backtest or the upcoming forecast. */
+  forecast: Prediction | null;
   /** True when the session replays from the files written at build time. */
   replayable: boolean;
+  /** OpenF1 overtakes per driver for a race or sprint, used when the timing export has none. */
+  servedOvertakes: { driverId: string; count: number }[];
 }
 
 const START_TIME: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" };
@@ -74,7 +77,7 @@ export function SessionPanel(props: SessionPanelProps) {
 // helpers
 // ---------------------------------------------------------------------------
 
-function RacePanel({ spec, race, report, lookups, forecast, replayable }: SessionPanelProps) {
+function RacePanel({ spec, race, report, lookups, forecast, replayable, servedOvertakes }: SessionPanelProps) {
   const isRace = spec.code === "R";
   const history = isRace ? race.results : race.sprint;
   const results = history.length > 0 ? history : report ? toResultRows(report) : [];
@@ -82,7 +85,8 @@ function RacePanel({ spec, race, report, lookups, forecast, replayable }: Sessio
   const season = race.season;
   const historyStops = isRace ? (race.laps?.pitStops ?? []) : [];
   const pitStops = historyStops.length > 0 ? historyStops : reportStops(report);
-  const overtakes = (report?.overtakes ?? []).map((o) => ({ driverId: o.driverId, count: o.count }));
+  const reportOvertakes = (report?.overtakes ?? []).map((o) => ({ driverId: o.driverId, count: o.count }));
+  const overtakes = reportOvertakes.length > 0 ? reportOvertakes : servedOvertakes;
   const analysis = analyseRace(results, pitStops, overtakes, isRace ? forecast : null);
   const pitStopRows = toPitStopRows(pitStops, results, lookups);
   const historyLaps = isRace ? race.laps : null;
@@ -110,7 +114,7 @@ function RacePanel({ spec, race, report, lookups, forecast, replayable }: Sessio
         </Section>
       ) : null}
       {raceLaps ? (
-        <Section title="Lap chart" icon={IconForecast} info="Position of every car at the end of each lap.">
+        <Section title="Lap chart" icon={IconForecast} info="Starting grid, then the position of every car at the end of each lap. Pick drivers to highlight their lines.">
           <LapChart laps={raceLaps} results={results} lookups={lookups} />
         </Section>
       ) : null}

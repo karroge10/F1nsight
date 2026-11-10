@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { PredictionHistoryEntry } from "@/lib/data";
+import type { Prediction, PredictionHistoryEntry } from "@/lib/data";
 
 export type PublishedScore = {
   winnerProbability: number;
@@ -69,9 +69,11 @@ type MetricsEntry = PredictionHistoryEntry & {
 };
 
 export function readPublishedForecastReport(): PublishedForecastReport | null {
+  // The data folder first: public/reports is only a copy made just before the cloud build, so
+  // locally it can be weeks behind.
   const candidates = [
-    path.join(process.cwd(), "public/reports/published-forecasts.json"),
     path.resolve(process.cwd(), "../data/reports/published-forecasts.json"),
+    path.join(process.cwd(), "public/reports/published-forecasts.json"),
   ];
   const file = candidates.find((candidate) => fs.existsSync(candidate));
   if (!file) return null;
@@ -86,6 +88,27 @@ export function buildPublishedRaceRows(report: PublishedForecastReport | null): 
 export function hasVerifiedPublication(report: PublishedForecastReport | null, season: number, round: number): boolean {
   const race = report?.races.find((item) => item.raceId === season * 100 + round);
   return Boolean(race && Object.values(race.stages).some((stage) => stage && stage.verifiedAt));
+}
+
+const STAGE_ORDER = ["post-qualifying", "post-practice", "pre-weekend"] as const;
+
+/**
+ * The last forecast we published and verified live before the race started: the latest stage
+ * in the report with a verification, read from its archived snapshot in data/published.
+ */
+export function readPublishedForecast(report: PublishedForecastReport | null, season: number, round: number, raceStart: string | null): Prediction | null {
+  const race = report?.races.find((item) => item.raceId === season * 100 + round);
+  if (!race) return null;
+  const startMs = raceStart ? new Date(raceStart).getTime() : Infinity;
+  for (const stage of STAGE_ORDER) {
+    const record = race.stages[stage];
+    if (!record?.verifiedAt) continue;
+    const generatedMs = new Date(record.generatedAt).getTime();
+    if (generatedMs >= startMs) continue;
+    const snapshot = readPublishedSnapshot(season, round, record.forecastHash);
+    if (snapshot) return snapshot;
+  }
+  return null;
 }
 
 export function buildBacktestRecord(history: PredictionHistoryEntry[]): { rows: BacktestRaceRecord[]; analytics: BacktestAnalytics } {
@@ -150,4 +173,17 @@ export function buildBacktestRecord(history: PredictionHistoryEntry[]): { rows: 
     currentCorrectRun,
   };
   return { rows, analytics };
+}
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+function readPublishedSnapshot(season: number, round: number, forecastHash: string): Prediction | null {
+  const folder = `${season}-${String(round).padStart(2, "0")}`;
+  const file = path.resolve(process.cwd(), "../data/published", folder, `${forecastHash}.json`);
+  if (!fs.existsSync(file)) return null;
+  const text = fs.readFileSync(file, "utf8");
+  const record = JSON.parse(text) as { forecast?: Prediction };
+  return record.forecast ?? null;
 }

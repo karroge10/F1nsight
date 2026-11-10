@@ -229,6 +229,11 @@ export function readSessionReport(season: number, round: number, code: SessionCo
   return readOptionalExternal<SessionReport>(`serve/sessions/${season}/${paddedRound}_${code}.json`);
 }
 
+/** OpenF1 overtakes per race and sprint, keyed `<season>-<round>-<R|S>`; ahead of the timing export. */
+export function readServedOvertakes(): Record<string, { driverId: string; count: number; raw: number }[]> {
+  return readOptionalExternal<Record<string, { driverId: string; count: number; raw: number }[]>>("serve/overtakes.json") ?? {};
+}
+
 export function predictionSource(): "published" | "fixture" {
   const file = path.join(DATA_DIR, "predictions/next.json");
   return externalEnabled() && fs.existsSync(file) ? "published" : "fixture";

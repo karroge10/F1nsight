@@ -41,3 +41,4 @@ export const readSessionReport = (season: number, round: number, code: SessionCo
 export const predictionSource = () => fixtures.predictionSource();
 
 export const readSessionReportIndex = () => fixtures.readSessionReportIndex();
+export const readServedOvertakes = () => fixtures.readServedOvertakes();

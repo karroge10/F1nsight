@@ -339,6 +339,12 @@ export async function getSessionReport(season: number, round: number, code: Sess
   return { ...report, eventName: calendarRaceName(season, round) ?? report.eventName };
 }
 
+/** On-track overtakes per driver for a race (`R`) or sprint (`S`), served apart from the timing export. */
+export async function getServedOvertakes(season: number, round: number, code: "R" | "S"): Promise<{ driverId: string; count: number; raw: number }[]> {
+  const all = source.readServedOvertakes();
+  return all[`${season}-${round}-${code}`] ?? [];
+}
+
 export async function getRaceLapsAvailability(): Promise<{ season: number; round: number }[]> {
   return source.readIndex().lapFiles;
 }
