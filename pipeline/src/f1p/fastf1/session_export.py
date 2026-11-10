@@ -88,6 +88,9 @@ def export_all(results: pd.DataFrame, laps: pd.DataFrame, weather: pd.DataFrame,
         session_weather = weather_by_session.get(key, weather.iloc[0:0])
         session_overtakes = overtakes_by_session.get(key)
         payload = session_payload(session_results, session_laps, session_weather, session_overtakes)
+        if _keeps_openf1(path, payload):
+            skipped += 1
+            continue
         text = json.dumps(payload, separators=(",", ":"), allow_nan=False)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
@@ -198,14 +201,34 @@ def _stale(path: Path, season: int, round_number: int, code: str) -> bool:
     if not path.exists():
         return True
     try:
-        if "lapStarts" not in json.loads(path.read_text(encoding="utf-8")):
-            return True
+        text = path.read_text(encoding="utf-8")
+        existing = json.loads(text)
     except (ValueError, OSError):
+        return True
+    if "lapStarts" not in existing or existing.get("source") == "openf1":
         return True
     meta_path = fastf1_root() / str(season) / f"{round_number:02d}_{code}" / "meta.json"
     if not meta_path.exists():
         return False
     return meta_path.stat().st_mtime > path.stat().st_mtime
+
+
+def _keeps_openf1(path: Path, payload: dict) -> bool:
+    """True when an OpenF1 stand-in (f1p.openf1.fallback) is on disk and FastF1 has no lap starts
+    yet: the stand-in stays until FastF1 delivers the laps."""
+    if not path.exists() or _has_lap_starts(payload):
+        return False
+    try:
+        text = path.read_text(encoding="utf-8")
+        existing = json.loads(text)
+    except (ValueError, OSError):
+        return False
+    return existing.get("source") == "openf1"
+
+
+def _has_lap_starts(payload: dict) -> bool:
+    starts = payload.get("lapStarts") or {}
+    return any(t is not None for times in starts.values() for t in times)
 
 
 def _driver_entry(row: pd.Series) -> dict:

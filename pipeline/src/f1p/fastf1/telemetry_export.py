@@ -8,7 +8,8 @@ distance grid of POINTS samples: speed (km/h), throttle (%), brake (0/1), gear a
 position (1/10 m) for the track heatmap.
 
 Writes data/serve/telemetry/<season>/<RR>_<code>.json (about 150 KB each) and
-data/serve/telemetry/index.json (every exported session). Existing files are kept unless --force.
+data/serve/telemetry/index.json (every exported session). Existing files are kept unless --force,
+except OpenF1 stand-ins (f1p.openf1.fallback), which are replaced once FastF1 has the session.
 """
 
 import argparse
@@ -54,7 +55,7 @@ def export(seasons: list[int], codes: list[str], force: bool = False, backfill_d
                 if start > now - COMPLETED_AFTER and not is_done(ref):
                     continue
             path = session_path(ref.season, ref.round, ref.code)
-            if path.exists() and not force:
+            if path.exists() and not force and not from_openf1(path):
                 continue
             try:
                 payload = session_payload(ref)
@@ -181,6 +182,7 @@ def write_index() -> list[dict]:
                 "eventName": payload["eventName"],
                 "sessionName": payload["sessionName"],
                 "drivers": [d["code"] for d in payload["drivers"]],
+                **({"source": payload["source"]} if payload.get("source") else {}),
             }
         )
     entries.sort(key=lambda e: (e["season"], e["round"], session_rank(e["code"])), reverse=True)
@@ -192,6 +194,16 @@ def write_index() -> list[dict]:
 
 def session_path(season: int, round_number: int, code: str):
     return TELEMETRY_DIR / str(season) / f"{round_number:02d}_{code}.json"
+
+
+def from_openf1(path) -> bool:
+    """True for a stand-in written by f1p.openf1.fallback, which FastF1 data replaces."""
+    try:
+        text = path.read_text(encoding="utf-8")
+        payload = json.loads(text)
+    except (ValueError, OSError):
+        return False
+    return payload.get("source") == "openf1"
 
 
 def session_rank(code: str) -> int:
