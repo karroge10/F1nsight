@@ -38,6 +38,8 @@ DEG_CLIP = 0.3
 # Drivers with long runs in both sessions needed to bring a second practice session's long
 # runs onto the main session's scale.
 LR_BRIDGE_MIN = 4
+# Drivers with qualifying (or practice) rows needed before the weekend list replaces the line up.
+MIN_WEEKEND_FIELD = 18
 # Earlier visits per circuit in the typical lap speed c_speed.
 SPEED_VISITS = 5
 # Long run gap and rank from `longrun` (fuel, tyre age and compound corrected, FastF1, OpenF1 or
@@ -253,16 +255,25 @@ class History:
         return targets
 
     def expected_entrants(self, race_id: int) -> pd.DataFrame:
-        """Entrants of a race: its qualifying list if known, else the latest race line up."""
-        weekend_rows = self.weekend[(self.weekend["raceId"] == race_id)
-                                    & self.weekend["q_pos"].notna()]
+        """Entrants of a race: the qualifying list if known, else who drove in practice, else
+        the latest race line up.
+
+        A weekend driver missing from the latest line up (a substitute, or a regular back after
+        missing a race) takes their latest team this season, else the seat the line up left
+        empty. Before qualifying a team with more than two practice drivers keeps the two from
+        the latest sessions (a reserve who only ran FP1 drops out).
+        """
         latest_race = self.event_race[self.event_race < race_id].max()
         lineup = self.events[self.events["raceId"] == latest_race]
-        lineup = lineup[["driverId", "constructorId", "number"]]
-        if len(weekend_rows) >= 18:
-            known = weekend_rows[["driverId"]].merge(lineup, on="driverId", how="left")
-            return known.reset_index(drop=True)
-        return lineup.reset_index(drop=True)
+        lineup = lineup[["driverId", "constructorId", "number"]].reset_index(drop=True)
+        weekend = self.weekend[self.weekend["raceId"] == race_id]
+        qualified = weekend[weekend["q_pos"].notna()]
+        if len(qualified) >= MIN_WEEKEND_FIELD:
+            return self._weekend_entrants(qualified, lineup, race_id, keep_two=False)
+        practised = weekend[weekend["fp_n"].notna()]
+        if len(practised) >= MIN_WEEKEND_FIELD:
+            return self._weekend_entrants(practised, lineup, race_id, keep_two=True)
+        return lineup
 
     def features(self, targets: list[Target]) -> pd.DataFrame:
         frames = []
@@ -271,6 +282,57 @@ class History:
             frames.append(frame)
         table = pd.concat(frames, ignore_index=True)
         return table
+
+    def _weekend_entrants(self, weekend: pd.DataFrame, lineup: pd.DataFrame, race_id: int,
+                          keep_two: bool) -> pd.DataFrame:
+        drivers = weekend[["driverId", "fp1_gap", "fp2_gap", "fp3_gap", "fp_n"]]
+        known = drivers.merge(lineup, on="driverId", how="left")
+        weekend_teams = data.weekend_teams()
+        this_weekend = weekend_teams[weekend_teams["raceId"] == race_id]
+        listed = this_weekend.set_index("driverId")["constructorId"]
+        missing = known["constructorId"].isna()
+        known.loc[missing, "constructorId"] = known.loc[missing, "driverId"].map(listed)
+        season_teams = self._season_teams(race_id)
+        missing = known["constructorId"].isna()
+        known.loc[missing, "constructorId"] = known.loc[missing, "driverId"].map(season_teams)
+        entries = _entry_teams(race_id)
+        missing = known["constructorId"].isna()
+        known.loc[missing, "constructorId"] = known.loc[missing, "driverId"].map(entries)
+        known = self._fill_empty_seats(known, lineup)
+        known = known[known["constructorId"].notna()]
+        if keep_two:
+            known = _two_per_team(known)
+        weekend_numbers = this_weekend.set_index("driverId")["number"]
+        known["number"] = known["number"].fillna(known["driverId"].map(weekend_numbers))
+        numbers = self._latest_numbers(race_id)
+        known["number"] = known["number"].fillna(known["driverId"].map(numbers))
+        return known[["driverId", "constructorId", "number"]].reset_index(drop=True)
+
+    def _season_teams(self, race_id: int) -> pd.Series:
+        """driverId -> their latest constructor in this season's races before race_id."""
+        season_start = (race_id // 100) * 100
+        past = self.events[(self.events["raceId"] > season_start) & (self.events["raceId"] < race_id)]
+        latest = past.sort_values("raceId").drop_duplicates("driverId", keep="last")
+        return latest.set_index("driverId")["constructorId"]
+
+    def _latest_numbers(self, race_id: int) -> pd.Series:
+        past = self.events[self.events["raceId"] < race_id].sort_values("raceId")
+        latest = past.drop_duplicates("driverId", keep="last")
+        return latest.set_index("driverId")["number"]
+
+    @staticmethod
+    def _fill_empty_seats(known: pd.DataFrame, lineup: pd.DataFrame) -> pd.DataFrame:
+        """Drivers still without a team take a seat the line up left empty, one per team."""
+        unknown = known.index[known["constructorId"].isna()]
+        if not len(unknown):
+            return known
+        present = set(known["driverId"])
+        absent = lineup[~lineup["driverId"].isin(present)]
+        seats = list(absent["constructorId"])
+        if len(seats) != len(unknown):
+            return known
+        known.loc[unknown, "constructorId"] = seats
+        return known
 
     # ------------------------------------------------------------------------------------------
 
@@ -1022,3 +1084,27 @@ def _nanmean(series) -> float:
 
 if __name__ == "__main__":
     main()
+
+
+def _two_per_team(known: pd.DataFrame) -> pd.DataFrame:
+    """At most two drivers per team: the ones who ran the latest practice session, then most."""
+    sessions = known[["fp1_gap", "fp2_gap", "fp3_gap"]].notna().to_numpy()
+    last_session = np.where(sessions.any(axis=1), sessions.shape[1] - np.argmax(sessions[:, ::-1], axis=1), 0)
+    ranked = known.assign(last_session=last_session, runs=known["fp_n"].fillna(0))
+    ranked = ranked.sort_values(["constructorId", "last_session", "runs"], ascending=[True, False, False])
+    kept = ranked.groupby("constructorId", sort=False).head(2)
+    return kept.drop(columns=["last_session", "runs"])
+
+
+def _entry_teams(race_id: int) -> pd.Series:
+    """driverId -> team from the season entry list (OpenF1 driver lists, so it knows a
+    substitute's team from their first session), empty when the table is missing."""
+    path = paths.processed("season_entries")
+    if not path.exists():
+        return pd.Series(dtype=object)
+    entries = pd.read_parquet(path)
+    season = race_id // 100
+    entries = entries[(entries["season"] == season)
+                      & (entries["firstRound"].fillna(0) <= race_id % 100)]
+    entries = entries.sort_values("lastRound").drop_duplicates("driverId", keep="last")
+    return entries.set_index("driverId")["constructorId"]

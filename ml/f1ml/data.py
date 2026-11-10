@@ -178,6 +178,28 @@ def live_qualifying() -> pd.DataFrame:
     return combined.drop_duplicates(["raceId", "driverId"], keep="first")
 
 
+def weekend_teams() -> pd.DataFrame:
+    """raceId, driverId, constructorId, number of every driver OpenF1 lists in a weekend's sessions.
+
+    OpenF1 names teams in its own words ("Haas F1 Team"); each name maps to the constructor the
+    same season's results most often pair it with. A substitute's team is known from the first
+    session they drive, before any result exists.
+    """
+    columns = ["raceId", "driverId", "constructorId", "number"]
+    drivers = _read_optional("openf1_drivers")
+    if drivers is None or not len(drivers):
+        return pd.DataFrame(columns=columns)
+    located = _locate_openf1(drivers)
+    results = load_core()["results"][["raceId", "driverId", "constructorId"]]
+    paired = located.merge(results, on=["raceId", "driverId"])
+    counts = paired.groupby(["season", "team_name", "constructorId"]).size().rename("n").reset_index()
+    names = counts.sort_values("n").drop_duplicates(["season", "team_name"], keep="last")
+    named = located.merge(names[["season", "team_name", "constructorId"]],
+                          on=["season", "team_name"])
+    teams = named.drop_duplicates(["raceId", "driverId"], keep="last")
+    return teams[columns].reset_index(drop=True)
+
+
 def team_colors_2026() -> dict[str, str]:
     """Team colour table for the 2026 grid (constructors.primaryColor, fixed fallbacks)."""
     fallback = {
