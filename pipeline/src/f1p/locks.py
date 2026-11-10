@@ -1,7 +1,9 @@
 """Pid-owned lock files shared by the pipeline entry points (refresh, FastF1 tables, ...).
 
 A lock is a file created with O_EXCL that holds the owner's pid. A lock whose pid is no longer
-running is stale and is taken over, so a crashed run never blocks the next one.
+running is stale and is taken over, so a crashed run never blocks the next one. Takeover happens
+under a short-lived guard file and re-reads the owner first, so two runs that both saw the same
+dead owner cannot delete each other's fresh lock.
 """
 
 from __future__ import annotations
@@ -17,6 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 POLL_S = 5
+# A takeover only deletes one file; a guard older than this was left by a crashed takeover.
+GUARD_STALE_S = 60
 _PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 _STILL_ACTIVE = 259
 
@@ -65,13 +69,15 @@ def try_create(path: Path, info: dict) -> bool:
     for _ in range(2):
         try:
             descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except PermissionError:
+            # Windows: another process is deleting or reading the file right now. Treat as held.
+            return False
         except FileExistsError:
             owner = read_owner(path)
-            owner_text = owner.get("pid") or 0
-            owner_pid = int(owner_text)
-            if pid_alive(owner_pid):
+            if _owner_alive(owner):
                 return False
-            release(path)
+            if not _remove_if_owner(path, owner):
+                return False
             continue
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             handle.write(text)
@@ -80,6 +86,10 @@ def try_create(path: Path, info: dict) -> bool:
 
 
 def release(path: Path) -> None:
+    """Delete the lock, but only if this process still owns it."""
+    owner = read_owner(path)
+    if owner and owner.get("pid") != os.getpid():
+        return
     try:
         path.unlink()
     except FileNotFoundError:
@@ -111,6 +121,56 @@ def pid_alive(pid: int) -> bool:
         return bool(ok) and exit_code.value == _STILL_ACTIVE
     finally:
         kernel32.CloseHandle(handle)
+
+
+def _owner_alive(owner: dict) -> bool:
+    owner_text = owner.get("pid") or 0
+    owner_pid = int(owner_text)
+    return pid_alive(owner_pid)
+
+
+def _remove_if_owner(path: Path, seen: dict) -> bool:
+    """Delete a stale lock only if it still holds the dead owner we saw. False if another run is taking it over."""
+    guard = path.with_name(path.name + ".takeover")
+    if not _take_guard(guard):
+        return False
+    try:
+        current = read_owner(path)
+        if current != seen or _owner_alive(current):
+            return True
+        try:
+            path.unlink()
+        except (FileNotFoundError, PermissionError):
+            pass
+        return True
+    finally:
+        try:
+            guard.unlink()
+        except (FileNotFoundError, PermissionError):
+            pass
+
+
+def _take_guard(guard: Path) -> bool:
+    for _ in range(2):
+        try:
+            descriptor = os.open(guard, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except PermissionError:
+            return False
+        except FileExistsError:
+            try:
+                age = time.time() - guard.stat().st_mtime
+            except (FileNotFoundError, PermissionError):
+                continue
+            if age < GUARD_STALE_S:
+                return False
+            try:
+                guard.unlink()
+            except (FileNotFoundError, PermissionError):
+                pass
+            continue
+        os.close(descriptor)
+        return True
+    return False
 
 
 def _drop_launchers(found: list[dict], module: str) -> list[dict]:

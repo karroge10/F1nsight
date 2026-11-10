@@ -41,7 +41,7 @@ class PushLockTests(unittest.TestCase):
                  patch.object(state, "_delete_asset_by_url") as delete:
                 with state._push_lock(False):
                     pass
-        delete.assert_called_once_with(record)
+        delete.assert_called_once_with(record, missing_ok=True)
         upload_calls = [call for call in calls if call[:3] == ("release", "upload", "state")]
         self.assertTrue(upload_calls)
         self.assertNotIn("--clobber", upload_calls[0])
@@ -88,7 +88,7 @@ class PushLockTests(unittest.TestCase):
             with self.assertRaisesRegex(SystemExit, "delete failed"):
                 with state._push_lock(False):
                     pass
-        delete.assert_called_once_with(record)
+        delete.assert_called_once_with(record, missing_ok=True)
 
     def test_delete_uses_api_url_and_numeric_asset_id_not_asset_name(self):
         record = {"id": "RA_kwDOPbACjs4mBw1u", "name": state.PUSH_LOCK_ASSET, "apiUrl": "https://api.test/assets/91"}

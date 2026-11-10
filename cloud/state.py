@@ -438,7 +438,7 @@ def _push_lock(dry_run: bool):
     try:
         yield
     finally:
-        _delete_asset_by_url(asset)
+        _delete_asset_by_url(asset, missing_ok=True)
 
 
 def _try_upload_lock(owner: dict) -> dict | None:
