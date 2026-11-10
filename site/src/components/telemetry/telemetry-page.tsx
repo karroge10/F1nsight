@@ -79,7 +79,8 @@ function TelemetryBody({ initial, index, notice, choice }: TelemetryPageProps & 
   }
 
   const keepDrivers = picked === null;
-  const dek = missing === wantedKey ? `Session ${wantedKey} has no exported telemetry. Pick another session.` : "Two drivers' fastest laps of the session laid over each other by distance: speed, throttle, brake and where the time goes. Car data from FastF1, resampled to 320 points per lap.";
+  const provider = shown.source === "openf1" ? "OpenF1" : "FastF1";
+  const dek = missing === wantedKey ? `Session ${wantedKey} has no exported telemetry. Pick another session.` : `Two drivers' fastest laps of the session laid over each other by distance: speed, throttle, brake and where the time goes. Car data from ${provider}, resampled to 320 points per lap.`;
   return (
     <>
       <PageIntro

@@ -27,6 +27,8 @@ export interface SessionTelemetry {
   eventName: string;
   sessionName: string;
   points: number;
+  /** "openf1" for a stand-in until FastF1 publishes the session; absent for FastF1 data. */
+  source?: "openf1";
   drivers: TelemetryDriver[];
 }
 
@@ -37,6 +39,7 @@ export interface TelemetryIndexEntry {
   eventName: string;
   sessionName: string;
   drivers: string[];
+  source?: "openf1";
 }
 
 export interface SessionRef {

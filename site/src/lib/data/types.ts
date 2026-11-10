@@ -149,6 +149,8 @@ export interface SessionReport {
   classification: SessionClassificationRow[];
   laps: Record<string, SessionLap[]>;
   lapStarts?: Record<string, (number | null)[]>;
+  /** "openf1" for a stand-in until FastF1 publishes the session; absent for FastF1 data. */
+  source?: "openf1";
   stints: SessionStint[];
   pitStops: { driverId: string; stop: number; lap: number | null; durationMs: number | null }[];
   sectorBests: { sector: number; driverId: string; ms: number | null }[];
