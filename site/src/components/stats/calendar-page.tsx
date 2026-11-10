@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { getCalendar, getLookups, getNextRacePrediction, getPredictionHistory, getRace, getSeasons } from "@/lib/data";
-import { buildBacktestRecord } from "@/lib/model-record";
+import { getCalendar, getLookups, getNextRacePrediction, getRace, getSeasons } from "@/lib/data";
+import { buildBacktestRecord, getScoredHistory } from "@/lib/model-record";
 import { formatDate } from "@/lib/format";
 import { PageIntro } from "@/components/ui/page-intro";
 import { Flag } from "@/components/ui/flag";
@@ -13,7 +13,7 @@ export async function CalendarPageContent({ season }: { season: number }) {
   const calendar = await getCalendar(season);
   const seasons = await getSeasons();
   const lookups = await getLookups();
-  const history = await getPredictionHistory();
+  const history = await getScoredHistory();
   const nextForecast = await getNextRacePrediction();
   const predictionRows = buildBacktestRecord(history).rows.filter((row) => row.season === season);
   const predictions = new Map<number, (typeof predictionRows)[number]>();

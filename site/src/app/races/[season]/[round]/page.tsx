@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCalendar, getLookups, getNextRacePrediction, getPredictionHistory, getRace, getSeasons, getServedOvertakes, getSessionReport } from "@/lib/data";
+import { getCalendar, getLookups, getNextRacePrediction, getRace, getSeasons, getServedOvertakes, getSessionReport } from "@/lib/data";
 import type { Lookups, Prediction, Race, SessionReport } from "@/lib/data";
 import { formatDate, formatLapTime } from "@/lib/format";
 import { SESSION_SPECS, sessionFinished, type SessionSpec } from "@/lib/sessions";
@@ -17,7 +17,7 @@ import { HeadlineStack, type HeadlineItem } from "@/components/stats/headline-st
 import { SessionSwitcher, type SessionTab } from "@/components/stats/session-switcher";
 import { SessionPanel, type SessionState } from "./session-panel";
 import { IconFastestLap, IconGridSlot, IconTrophy } from "@/components/icons";
-import { buildBacktestRecord, hasVerifiedPublication, readPublishedForecast, readPublishedForecastReport } from "@/lib/model-record";
+import { buildBacktestRecord, getScoredHistory, hasVerifiedPublication, readPublishedForecast, readPublishedForecastReport } from "@/lib/model-record";
 
 type Params = Promise<{ season: string; round: string }>;
 
@@ -61,11 +61,11 @@ export default async function RacePage({ params }: { params: Params }) {
   const siteLookups = await getLookups();
   const calendar = await getCalendar(year);
   const replays = await replayableSessions();
-  const history = await getPredictionHistory();
+  const publishedReport = readPublishedForecastReport();
+  const history = await getScoredHistory(publishedReport);
   const nextForecast = await getNextRacePrediction();
   const forecastCandidates = history.filter((h) => h.race.season === year && h.race.round === rnd);
   const stagePriority: Record<string, number> = { "pre-weekend": 0, "post-practice": 1, "post-qualifying": 2 };
-  const publishedReport = readPublishedForecastReport();
   // The forecast we actually published and verified before the start comes first; the
   // backtest history covers the rounds before publication records began.
   const published = readPublishedForecast(publishedReport, year, rnd, race.time);

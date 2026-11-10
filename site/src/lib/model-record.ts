@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getCalendar, getPredictionHistory, getRace } from "@/lib/data";
 import type { ActualResult, Prediction, PredictionHistoryEntry } from "@/lib/data";
 
 export type PublishedScore = {
@@ -68,6 +69,18 @@ export type BacktestAnalytics = {
 type MetricsEntry = PredictionHistoryEntry & {
   metrics?: Record<string, { logLossWin?: number; brierWin?: number; spearman?: number }>;
 };
+
+/**
+ * Every scored race forecast: the backtest history plus the published forecasts of the races
+ * finished since. Pages must read this rather than the backtest alone, or they stop at the last
+ * model promotion.
+ */
+export async function getScoredHistory(report: PublishedForecastReport | null = readPublishedForecastReport()): Promise<PredictionHistoryEntry[]> {
+  const history = await getPredictionHistory();
+  const lastKey = history.reduce((max, entry) => Math.max(max, entry.race.season * 100 + entry.race.round), 0);
+  const finished = await finishedRacesAfter(lastKey);
+  return mergePublishedHistory(history, report, finished);
+}
 
 export function readPublishedForecastReport(): PublishedForecastReport | null {
   // The data folder first: public/reports is only a copy made just before the cloud build, so
@@ -210,4 +223,22 @@ function readPublishedSnapshot(season: number, round: number, forecastHash: stri
   const text = fs.readFileSync(file, "utf8");
   const record = JSON.parse(text) as { forecast?: Prediction };
   return record.forecast ?? null;
+}
+
+/** Races with results after the given season * 100 + round key, for scoring published forecasts. */
+async function finishedRacesAfter(lastKey: number): Promise<FinishedRace[]> {
+  const races: FinishedRace[] = [];
+  const currentSeason = new Date().getUTCFullYear();
+  const firstSeason = Math.max(Math.floor(lastKey / 100), currentSeason - 1);
+  for (let season = firstSeason; season <= currentSeason; season += 1) {
+    const calendar = await getCalendar(season);
+    for (const summary of calendar) {
+      if (summary.cancelled || !summary.hasResults || summary.season * 100 + summary.round <= lastKey) continue;
+      const race = await getRace(summary.season, summary.round);
+      if (!race?.results.length) continue;
+      const results = race.results.map(({ driverId, position, positionText, grid, points, status, classified }) => ({ driverId, position, positionText, grid, points, status, classified }));
+      races.push({ season: race.season, round: race.round, time: race.time, results });
+    }
+  }
+  return races;
 }
