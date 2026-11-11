@@ -448,18 +448,26 @@ def has_lap_starts(payload: dict) -> bool:
 def meeting_rounds(sessions: list[dict], races: pd.DataFrame) -> dict[int, int]:
     """OpenF1 meeting_key -> round, by the race start nearest races.raceUtc (within 30 hours)."""
     rounds = {}
+    window = pd.Timedelta(30, unit="h").as_unit("ns")
     for session in sessions:
         if session.get("session_name") != "Race":
             continue
-        start = pd.Timestamp(session["date_start"]).tz_convert("UTC").tz_localize(None)
+        start = race_start_utc(session["date_start"])
         season_races = races[races["season"] == int(session["year"])]
         if season_races.empty:
             continue
-        gap = (season_races["raceUtc"] - start).abs()
+        race_utc = season_races["raceUtc"].astype("datetime64[ns]")
+        gap = (race_utc - start).abs()
         best = gap.idxmin()
-        if gap.loc[best] <= pd.Timedelta(hours=30):
+        if gap.loc[best] <= window:
             rounds[session["meeting_key"]] = int(season_races.loc[best, "round"])
     return rounds
+
+
+def race_start_utc(date_start: str) -> pd.Timestamp:
+    """OpenF1 session start as a naive UTC timestamp in nanoseconds, matching raceUtc after cast."""
+    stamp = pd.Timestamp(date_start).tz_convert("UTC").tz_localize(None)
+    return stamp.as_unit("ns")
 
 
 def driver_ids(season: int, round_number: int) -> dict[int, dict]:
