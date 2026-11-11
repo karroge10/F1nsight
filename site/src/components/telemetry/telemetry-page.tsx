@@ -84,11 +84,6 @@ function TelemetryBody({ initial, index, notice, choice }: TelemetryPageProps & 
   return (
     <>
       <PageIntro
-        label={
-          <>
-            Telemetry <span className="mx-1.5 text-ink-3">/</span> {shown.season} round {shown.round}
-          </>
-        }
         title={notice && picked === null && choice.key === null ? "Telemetry comparison" : `${shown.eventName}, ${shown.sessionName}`}
         dek={notice && picked === null && choice.key === null ? `${notice} Latest available: ${shown.eventName}, ${shown.sessionName}.` : dek}
       />

@@ -1,17 +1,11 @@
 "use client";
 
 import { PageIntro } from "@/components/ui/page-intro";
-import { IconDnf } from "@/components/icons";
 
 export default function CircuitsError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <>
       <PageIntro
-        label={
-          <span className="inline-flex items-center gap-2">
-            <IconDnf size="1rem" /> Circuits
-          </span>
-        }
         title="Circuits could not load"
         dek="The circuit data did not respond. Try again, or open another page from the navigation."
       />

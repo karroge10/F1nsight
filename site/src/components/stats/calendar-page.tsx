@@ -37,11 +37,6 @@ export async function CalendarPageContent({ season }: { season: number }) {
   return (
     <>
       <PageIntro
-        label={
-          <>
-            Races <span className="mx-1.5 text-ink-3">/</span> {season}
-          </>
-        }
         title={`${season} calendar and results`}
         dek={completed < calendar.length ? `${completed} of ${calendar.length} rounds completed.` : `${calendar.length} rounds.`}
         aside={<SeasonPicker seasons={seasons.map((s) => s.season)} current={season} hrefFor={(s) => `/races/${s}`} />}

@@ -25,7 +25,7 @@ export default async function HistoryPage() {
 
   return (
     <>
-      <PageIntro label="History" title="Every champion since 1950, and the records" />
+      <PageIntro title="Every champion since 1950, and the records" />
 
       <Section title="Driver records" icon={IconHelmet} info="Points are as awarded, so totals from eras with different scoring systems do not compare one to one." flush>
         <RecordGrid groups={driverRecords} hrefBase="/drivers" />

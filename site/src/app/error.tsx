@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { PageIntro } from "@/components/ui/page-intro";
-import { IconWarning } from "@/components/icons";
 
 export default function Error({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
@@ -13,11 +12,6 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
   return (
     <>
       <PageIntro
-        label={
-          <span className="inline-flex items-center gap-2">
-            <IconWarning size="1rem" /> Error
-          </span>
-        }
         title="Something went wrong"
         dek={
           <>

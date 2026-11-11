@@ -1,17 +1,11 @@
 "use client";
 
 import { PageIntro } from "@/components/ui/page-intro";
-import { IconWarning } from "@/components/icons";
 
 export default function FantasyError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <>
       <PageIntro
-        label={
-          <span className="inline-flex items-center gap-2">
-            <IconWarning size="1rem" /> Fantasy
-          </span>
-        }
         title="The fantasy planner could not load"
         dek="The fantasy data did not respond. Try again, or open another page from the navigation."
       />

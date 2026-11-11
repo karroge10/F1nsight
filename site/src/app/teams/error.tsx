@@ -1,17 +1,11 @@
 "use client";
 
 import { PageIntro } from "@/components/ui/page-intro";
-import { IconDnf } from "@/components/icons";
 
 export default function TeamsError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <>
       <PageIntro
-        label={
-          <span className="inline-flex items-center gap-2">
-            <IconDnf size="1rem" /> Teams
-          </span>
-        }
         title="Teams could not load"
         dek="The constructor data did not respond. Try again, or open another page from the navigation."
       />

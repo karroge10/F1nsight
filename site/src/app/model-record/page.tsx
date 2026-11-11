@@ -8,7 +8,6 @@ export default function ModelRecordPage() {
   return (
     <>
       <PageIntro
-        label="Forecasts"
         title="Predictions now live in Races"
         dek="Race winner calls and driver finishing-position comparisons are shown alongside each race in the calendar and race details."
         extra={<Link href="/races" className="press inline-flex h-10 items-center rounded-control bg-ink px-4 text-ui font-[600] text-bg hover:opacity-90">Go to Races</Link>}

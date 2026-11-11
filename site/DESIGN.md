@@ -76,7 +76,7 @@ a line on a chart. They never fill a surface or colour text.
 
 - Max content width 1440px, 24px gutters (16px below 640px). 12 columns at >= 1024px.
 - 8pt spacing. Rows in timing tables: 36px desktop, 44px touch.
-- Sections are separated by a hairline rule and a small uppercase label, not by boxes.
+- Sections are separated by a hairline rule and the section title, not by boxes.
 - Border radius: 2px on chips, 4px on controls, 6px on the few floating surfaces (tooltips).
   Concentric radii when nested.
 
@@ -90,7 +90,8 @@ a line on a chart. They never fill a surface or colour text.
 
 ## Headings and copy
 
-- Page intro: eyebrow in sentence case, large headline, one short dek at most.
+- Page intro: starts with the headline, no eyebrow or label above it, one short dek at most
+  and only when it says something useful.
 - Section header: short all-caps title (`section-title`, 13px, +0.08em) with one icon on a
   hairline. Explanations live behind the info mark, never as a subtitle. No filled panel
   backgrounds: structure comes from rules, spacing and type.

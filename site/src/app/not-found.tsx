@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PageIntro } from "@/components/ui/page-intro";
-import { IconDnf } from "@/components/icons";
 import { OldSessionRedirect } from "@/components/stats/old-session-redirect";
 
 export default function NotFound() {
@@ -8,11 +7,6 @@ export default function NotFound() {
     <>
       <OldSessionRedirect />
       <PageIntro
-        label={
-          <span className="inline-flex items-center gap-2">
-            <IconDnf size="1rem" /> 404
-          </span>
-        }
         title="Page not found"
         dek={
           <>

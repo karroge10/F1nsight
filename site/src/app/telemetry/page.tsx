@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { getCalendar, getCurrentSeason, getSessionTelemetry, getTelemetryIndex } from "@/lib/data";
 import { PageIntro } from "@/components/ui/page-intro";
 import { TelemetryPage as TelemetryPageBody } from "@/components/telemetry/telemetry-page";
-import { IconWarning } from "@/components/icons";
 
 export const metadata: Metadata = {
   title: "Telemetry comparison",
@@ -24,11 +23,6 @@ export default async function TelemetryPage() {
 function NoTelemetry() {
   return (
     <PageIntro
-      label={
-        <span className="inline-flex items-center gap-2">
-          <IconWarning size="1rem" /> Telemetry
-        </span>
-      }
       title="Telemetry not available"
       dek="No telemetry exported yet. Run uv run python -m f1p.fastf1.telemetry_export in pipeline (it reads the local FastF1 cache), then rebuild."
     />

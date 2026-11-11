@@ -20,11 +20,6 @@ export async function StandingsPageContent({ season }: { season: number }) {
   return (
     <>
       <PageIntro
-        label={
-          <>
-            Standings <span className="mx-1.5 text-ink-3">/</span> {season}
-          </>
-        }
         title={`${season} championship`}
         dek={dek}
         aside={<SeasonPicker seasons={seasons.map((s) => s.season)} current={season} hrefFor={(s) => `/standings/${s}`} />}

@@ -29,7 +29,7 @@ export default async function DriversPage() {
 
   return (
     <>
-      <PageIntro label="Drivers" title={`${season} drivers`} dek={`${entries.drivers.length} drivers this season. Explore ${drivers.length} drivers in the archive below.`} />
+      <PageIntro title={`${season} drivers`} dek={`${entries.drivers.length} drivers this season, ${drivers.length} in the archive.`} />
       <Section title={`${season} grid`} icon={IconHelmet} flush>
         {/* one column read top to bottom, capped so the few columns stay close together */}
         <div className="w-full">
