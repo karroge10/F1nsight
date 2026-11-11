@@ -13,13 +13,10 @@ export interface HeadlineItem {
   icon?: IconComponent;
 }
 
-// globals.css makes every svg a block; the label icon has to sit inline with the text.
-const INLINE_ICON = { display: "inline-block", verticalAlign: "-0.2em" } as const;
-
 /** Winner, pole and fastest lap (or any three facts) stacked one per line in the page header. */
 export function HeadlineStack({ items, season = null }: { items: HeadlineItem[]; season?: number | null }) {
   return (
-    <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2">
+    <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2">
       {items.map((item) => (
         <Row key={item.label} item={item} season={season} />
       ))}
@@ -34,11 +31,11 @@ export function HeadlineStack({ items, season = null }: { items: HeadlineItem[];
 function Row({ item, season }: { item: HeadlineItem; season: number | null }) {
   return (
     <>
-      <dt className="label whitespace-nowrap">
-        {item.icon ? <item.icon size="1rem" className="mr-1.5 text-ink-3" style={INLINE_ICON} /> : null}
+      <dt className="label flex items-center gap-1.5 whitespace-nowrap">
+        {item.icon ? <item.icon size="1rem" className="shrink-0 text-ink-3" /> : null}
         {item.label}
       </dt>
-      <dd className="flex flex-wrap items-baseline gap-x-3">
+      <dd className="flex flex-wrap items-center gap-x-3">
         <span className="headline text-h2 text-ink">{item.team ? <DriverTag text={item.value} team={item.team} season={season} logo={24} /> : item.value}</span>
         {item.note ? <span className="text-caption text-ink-3">{item.note}</span> : null}
       </dd>

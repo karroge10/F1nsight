@@ -56,7 +56,7 @@ function Step({ slot, entry, season }: { slot: (typeof SLOTS)[number]; entry: Po
             {entry.name}
           </Link>
           <span className="mt-1 flex h-6 max-w-full items-center justify-center text-caption text-ink-3">
-            <TeamName constructorId={entry.team.constructorId} name={entry.team.name} color={entry.team.color} season={season} size={20} textClassName="hidden min-w-0 truncate sm:inline" />
+            <TeamName constructorId={entry.team.constructorId} name={entry.team.name} color={entry.team.color} season={season} size={20} className="max-w-full gap-1.5 sm:gap-2" />
           </span>
           <span className={"timing mt-0.5 h-5 text-ui " + valueTone}>{entry.value}</span>
         </>
