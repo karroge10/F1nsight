@@ -267,8 +267,7 @@ class StepRunner:
         command = _python_command(project, module, extra)
         cwd = ROOT_DIR / project
         env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")
-        shown_parts = len(extra) + 2
-        printable = " ".join(command[-shown_parts:])
+        printable = " ".join(["-m", module, *extra])
         self.logger.line(f"$ ({project}) python {printable}")
         lines: list[str] = []
         process = subprocess.Popen(command, cwd=cwd, env=env, stdout=subprocess.PIPE,
@@ -433,8 +432,8 @@ def _python_command(project: str, module: str, extra: tuple[str, ...]) -> list[s
     venv = ROOT_DIR / project / ".venv"
     venv_python = venv / "Scripts" / "python.exe" if os.name == "nt" else venv / "bin" / "python"
     if venv_python.exists():
-        return [str(venv_python), "-m", module, *extra]
-    return ["uv", "run", "python", "-m", module, *extra]
+        return [str(venv_python), str(ROOT_DIR / "cloud" / "run_module.py"), module, *extra]
+    return ["uv", "run", "python", str(ROOT_DIR / "cloud" / "run_module.py"), module, *extra]
 
 
 def _result_line(output: str) -> dict:

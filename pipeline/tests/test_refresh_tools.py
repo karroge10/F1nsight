@@ -139,3 +139,20 @@ def test_refresh_upgrades_old_title_only_forecasts_without_other_input_changes(m
     runner.step_predict(result)
     assert result.status == "skipped"
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize("ending, expected", [("", 0), ("raise SystemExit(0)", 0), ("raise SystemExit(7)", 7), ("raise RuntimeError('broken')", 1)])
+def test_module_runner_preserves_execution_result(tmp_path, ending, expected):
+    import subprocess
+    import sys
+
+    module = tmp_path / "probe.py"
+    module.write_text("import atexit, os, sys\natexit.register(os.abort)\nprint('RESULT {}')\nassert sys.argv[1:] == ['--probe']\n" + ending)
+    command = [sys.executable, str(refresh.ROOT_DIR / "cloud/run_module.py"), "probe", "--probe"]
+    if expected:
+        module.write_text(module.read_text().replace("atexit.register(os.abort)", "atexit.register(lambda: None)"))
+    process = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True)
+    assert process.returncode == expected
+    assert "RESULT {}" in process.stdout
+    if expected == 1:
+        assert "RuntimeError: broken" in process.stderr
