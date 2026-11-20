@@ -156,3 +156,18 @@ def test_module_runner_preserves_execution_result(tmp_path, ending, expected):
     assert "RESULT {}" in process.stdout
     if expected == 1:
         assert "RuntimeError: broken" in process.stderr
+
+
+def test_weather_rate_limit_is_deferred_without_marking_success(monkeypatch):
+    runner = refresh.StepRunner(refresh.RunLog(io.StringIO()), {}, False)
+
+    def deferred(result, *args):
+        result.status = "ok"
+        return 'RESULT {"deferred": true, "reason": "rate limit"}'
+
+    monkeypatch.setattr(runner, "_run_module", deferred)
+    result = refresh.StepResult("weather")
+    runner.step_weather(result)
+    assert result.status == "skipped"
+    assert result.details["deferred"] is True
+    assert "weather" not in runner.state

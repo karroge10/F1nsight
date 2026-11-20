@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -46,7 +47,18 @@ LEAD_BY_STAGE = {"pre-weekend": 4, "post-practice": 2, "post-qualifying": 1}
 
 
 def main() -> None:
-    counts = download()
+    try:
+        counts = download()
+    except (urllib.error.URLError, TimeoutError) as error:
+        # Open-Meteo rate limits and slow handshakes come and go; the cached weather stays valid
+        # and the next refresh retries. Any other HTTP status is a real failure.
+        is_http = isinstance(error, urllib.error.HTTPError)
+        if is_http and error.code != 429:
+            raise
+        reason = "Open-Meteo rate limit" if is_http else "Open-Meteo unreachable"
+        result = {"deferred": True, "reason": f"{reason}; retained cached weather, retry on next refresh"}
+        print("RESULT " + json.dumps(result))
+        return
     print("downloaded:", counts)
     table = race_weather()
     wet = table[table["rain_actual"] >= 0.5]

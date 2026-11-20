@@ -230,7 +230,13 @@ class StepRunner:
         self._mark_success("penalties", result)
 
     def step_weather(self, result: StepResult) -> None:
-        self._run_module(result, "ml", "f1ml.weather")
+        output = self._run_module(result, "ml", "f1ml.weather")
+        details = _result_line(output)
+        if result.status == "ok" and details.get("deferred"):
+            result.status = "skipped"
+            result.reason = details["reason"]
+            result.details = details
+            return
         self._mark_success("weather", result)
 
     def step_predict(self, result: StepResult) -> None:
