@@ -20,8 +20,10 @@ One row per decision: season, round, raceId, driverId, carNumber, kind (places, 
 pit_lane), places, category (power_unit or other), appliesTo (race or sprint), source (fia,
 race_control, manual), documentId, title, url, session, decision, publishedUtc. Several rows for
 one driver add up (the ML side sums places). The file is only rewritten when its content
-changes, so an unchanged file never triggers a new forecast. When fia.com cannot be reached the
-FIA rows already in the file are kept and the exit code is 1.
+changes, so an unchanged file never triggers a new forecast. When fia.com cannot be read the
+FIA rows already in the file are kept. A timeout, connection error or server error is transient:
+the remaining rounds skip fia.com, the RESULT line says "deferred" and the exit code is 0, so the
+next refresh retries. Any other FIA error gives exit code 1.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ import re
 import sys
 from datetime import datetime, timezone
 
+import httpx
 import pandas as pd
 
 from f1p import weekend
@@ -59,11 +62,14 @@ def main() -> int:
     targets = [race] + following_races(races, race, AHEAD_ROUNDS)
     tables = []
     fia_errors = []
+    transient = []
     for target in targets:
-        table, fia_error = race_penalties(races, target, now, args.no_fia)
+        table, fia_error = race_penalties(races, target, now, args.no_fia,
+                                          keep_fia=bool(transient))
         tables.append(table)
         if fia_error:
-            fia_errors.append(fia_error)
+            fia_errors.append(fia_error.message)
+            transient.append(fia_error.transient)
     filled = [table for table in tables if len(table)]
     combined = pd.concat(filled, ignore_index=True) if filled else tables[0]
     written = write_if_changed(combined)
@@ -75,14 +81,33 @@ def main() -> int:
     rounds = [int(target["round"]) for target in targets]
     summary = {"race": f"{season} R{round_number}", "rounds": rounds,
                "penalties": len(combined), "written": written, "fiaError": fia_error}
+    deferred = bool(transient) and all(transient)
+    if deferred:
+        summary["deferred"] = True
+        summary["reason"] = f"fia.com unreachable ({fia_errors[0]}); kept the FIA rows on file"
     summary_text = json.dumps(summary)
     print(f"RESULT {summary_text}")
-    return 1 if fia_error else 0
+    return 1 if fia_error and not deferred else 0
+
+
+class FiaError:
+    def __init__(self, message: str, transient: bool):
+        self.message = message
+        self.transient = transient
+
+
+def is_transient(exc: Exception) -> bool:
+    """Whether fia.com failing this way is worth retrying later instead of failing the step."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500 or exc.response.status_code == 429
+    return isinstance(exc, httpx.TransportError)
 
 
 def race_penalties(races: pd.DataFrame, race: pd.Series, now: datetime,
-                   no_fia: bool) -> tuple[pd.DataFrame, str | None]:
-    """The merged penalties of one race and the FIA error, if fia.com could not be read."""
+                   no_fia: bool, keep_fia: bool = False) -> tuple[pd.DataFrame, FiaError | None]:
+    """The merged penalties of one race and the FIA error, if fia.com could not be read.
+
+    keep_fia uses the FIA rows on file without asking fia.com (it already timed out this run)."""
     previous = previous_race(races, race)
     if previous is not None and previous["raceUtc"] > now.replace(tzinfo=None):
         # decisions only move on to this race once the previous race has started
@@ -92,12 +117,14 @@ def race_penalties(races: pd.DataFrame, race: pd.Series, now: datetime,
     numbers = car_numbers(season)
     fia_error = None
     fia_rows: list[dict] = []
-    if not no_fia:
+    if keep_fia and not no_fia:
+        fia_rows = _existing_rows(season, round_number, "fia")
+    elif not no_fia:
         try:
             fia_rows = fia_penalties(race, previous, numbers)
         except Exception as exc:
-            fia_error = f"R{round_number} {type(exc).__name__}: {exc}"
-            print(f"warning: FIA documents unavailable ({fia_error}); keeping the FIA rows on file")
+            fia_error = FiaError(f"R{round_number} {type(exc).__name__}: {exc}", is_transient(exc))
+            print(f"warning: FIA documents unavailable ({fia_error.message}); keeping the FIA rows on file")
             fia_rows = _existing_rows(season, round_number, "fia")
     control_rows = race_control_penalties(races, race, previous, numbers)
     manual_rows = manual_entries(season, round_number, numbers)

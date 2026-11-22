@@ -171,3 +171,19 @@ def test_weather_rate_limit_is_deferred_without_marking_success(monkeypatch):
     assert result.status == "skipped"
     assert result.details["deferred"] is True
     assert "weather" not in runner.state
+
+
+def test_penalties_fia_timeout_is_deferred_without_marking_success(monkeypatch):
+    runner = refresh.StepRunner(refresh.RunLog(io.StringIO()), {}, False)
+
+    def deferred(result, *args):
+        result.status = "ok"
+        return ('RESULT {"race": "2026 R21", "penalties": 5, "written": false, '
+                '"deferred": true, "reason": "fia.com unreachable"}')
+
+    monkeypatch.setattr(runner, "_run_module", deferred)
+    result = refresh.StepResult("penalties")
+    runner.step_penalties(result)
+    assert result.status == "skipped"
+    assert result.reason == "fia.com unreachable"
+    assert "penalties" not in runner.state

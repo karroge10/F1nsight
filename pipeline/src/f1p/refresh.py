@@ -227,6 +227,10 @@ class StepRunner:
         if details:
             state = "rewritten" if details.get("written") else "unchanged"
             result.reason = f"{details.get('race')}: {details.get('penalties')} grid penalties ({state})"
+        if result.status == "ok" and details.get("deferred"):
+            result.status = "skipped"
+            result.reason = details["reason"]
+            return
         self._mark_success("penalties", result)
 
     def step_weather(self, result: StepResult) -> None:

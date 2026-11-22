@@ -5,7 +5,9 @@
 
 from __future__ import annotations
 
+import httpx
 import pandas as pd
+import pytest
 
 from f1p.penalties import fia, race_control, update
 
@@ -161,3 +163,20 @@ def test_following_races_are_the_next_ones_in_order():
     race = races[races["round"] == 2].iloc[0]
     following = update.following_races(races, race, 2)
     assert [int(record["round"]) for record in following] == [3, 4]
+
+
+def _status_error(code: int) -> httpx.HTTPStatusError:
+    request = httpx.Request("GET", "https://www.fia.com/documents")
+    return httpx.HTTPStatusError("", request=request, response=httpx.Response(code, request=request))
+
+
+@pytest.mark.parametrize("exc, transient", [
+    (httpx.ReadTimeout("The read operation timed out"), True),
+    (httpx.ConnectError("refused"), True),
+    (_status_error(503), True),
+    (_status_error(429), True),
+    (_status_error(404), False),
+    (ValueError("unexpected page layout"), False),
+])
+def test_only_network_failures_on_fia_com_are_retried_later(exc, transient):
+    assert update.is_transient(exc) is transient
